@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# quickbox-gui - GTK3 GUI / quickemu VM manager
+# quickbox - GTK3 GUI / quickemu VM manager
 # Author: musqz
 # License: GPL3
 # 
@@ -17,7 +17,7 @@ import socket
 import sys
 from pathlib import Path
 
-SOCKET_PATH = Path.home() / ".config/quickbox/quickbox-gui.sock"
+SOCKET_PATH = Path.home() / ".config/quickbox/quickbox.sock"
 
 def _acquire_lock():
     """Acquire exclusive socket lock - BEFORE anything else runs"""
@@ -58,7 +58,7 @@ import shutil
 import threading
 from pathlib import Path
 
-CONFIG_FILE   = Path.home() / ".config/quickbox/quickbox-gui.conf"
+CONFIG_FILE   = Path.home() / ".config/quickbox/quickbox.conf"
 ICON_PATH     = next((p for p in [
     Path("/usr/share/icons/hicolor/scalable/apps/quickbox.svg"),
     Path("/usr/share/icons/hicolor/scalable/apps/utilities-terminal.svg"),
@@ -1242,7 +1242,7 @@ TIPS
 
         accel   = "kvm" if KVM_AVAILABLE else "tcg"
 
-        notify("quickbox-gui", f"Launching {vmname}", "low")
+        notify("quickbox", f"Launching {vmname}", "low")
 
         # Base QEMU args (all modes)
         base_args = [
@@ -1399,7 +1399,7 @@ TIPS
         write_default_profiles(overwrite=True)
         PROFILES = load_profiles()
         _PROFILE_KEYS = {key for p in PROFILES.values() for key in p["settings"]}
-        notify("quickbox-gui", "Default profiles restored.", "low")
+        notify("quickbox", "Default profiles restored.", "low")
 
     # ── snapshots ──
 
@@ -1424,7 +1424,7 @@ TIPS
         )
         if result.returncode == 0:
             self._snap_entry.set_text("")
-            notify("quickbox-gui", f"Snapshot '{tag}' created.", "low")
+            notify("quickbox", f"Snapshot '{tag}' created.", "low")
             self._show_panel(vm)
         else:
             self._warn("Snapshot failed", result.stderr or "qemu-img returned an error.")
@@ -1519,7 +1519,7 @@ TIPS
             try:
                 shutil.copytree(str(src_dir), str(dest_dir))
                 flag.unlink(missing_ok=True)
-                notify("quickbox-gui", f"Clone complete: '{name}' — ready to use", "low")
+                notify("quickbox", f"Clone complete: '{name}' — ready to use", "low")
                 GLib.idle_add(self._refresh)
                 GLib.timeout_add(200, lambda: self._select_vm_by_name(dest_name) or False)
             except Exception as e:
@@ -2094,7 +2094,7 @@ TIPS
 
         if src_path.suffix.lower() == ".img":
             # convert raw img to qcow2
-            notify("quickbox-gui", f"Converting {src_path.name} to qcow2…", "low")
+            notify("quickbox", f"Converting {src_path.name} to qcow2…", "low")
             def _convert():
                 disk = str(dest_dir / "disk.qcow2")
                 subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
@@ -2112,12 +2112,12 @@ TIPS
                              f"net_device=e1000\n")
                 dest_conf.write_text(conf_text)
                 dest_conf.chmod(0o755)
-                notify("quickbox-gui", f"VM <b>{vm_name}</b> created!", "low")
+                notify("quickbox", f"VM <b>{vm_name}</b> created!", "low")
                 GLib.idle_add(self._refresh)
             threading.Thread(target=_convert, daemon=True).start()
         else:
             # copy ISO
-            notify("quickbox-gui", f"Copying {src_path.name}…", "low")
+            notify("quickbox", f"Copying {src_path.name}…", "low")
             def _copy():
                 shutil.copy2(str(src_path), str(dest_dir / src_path.name))
                 conf_text = (f"#!/usr/bin/quickemu --vm\n"
@@ -2128,7 +2128,7 @@ TIPS
                              f"ssh_port=\"{ssh_port}\"\n")
                 dest_conf.write_text(conf_text)
                 dest_conf.chmod(0o755)
-                notify("quickbox-gui", f"VM <b>{vm_name}</b> created!", "low")
+                notify("quickbox", f"VM <b>{vm_name}</b> created!", "low")
                 GLib.idle_add(self._refresh)
             threading.Thread(target=_copy, daemon=True).start()
 

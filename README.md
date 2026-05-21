@@ -1,4 +1,4 @@
-# Quickbox GUI
+# Quickbox
 
 GTK3-based GUI for managing QEMU virtual machines with quickemu integration.
 
@@ -29,16 +29,9 @@ sudo ./install.sh
 Manual installation as root:
 
 ```bash
-sudo cp quickbox-gui /usr/local/bin/
-sudo chmod +x /usr/local/bin/quickbox-gui
-sudo cp quickbox-gui.desktop /usr/share/applications/
-```
-
-Optional - Alt-F2 launcher support:
-
-```bash
-sudo cp quickbox-launch /usr/local/bin/
-sudo chmod +x /usr/local/bin/quickbox-launch
+sudo cp quickbox /usr/local/bin/
+sudo chmod +x /usr/local/bin/quickbox
+sudo cp quickbox.desktop /usr/share/applications/
 ```
 
 ## Uninstallation
@@ -50,22 +43,21 @@ sudo ./uninstall.sh
 Or manually remove:
 
 ```bash
-sudo rm /usr/local/bin/quickbox-gui
-sudo rm /usr/local/bin/quickbox-launch (if installed)
-sudo rm /usr/share/applications/quickbox-gui.desktop
+sudo rm /usr/local/bin/quickbox
+sudo rm /usr/share/applications/quickbox.desktop
 ```
 
 ## Usage
 
-Command line:
+Command line or Alt-F2:
 
 ```bash
-quickbox-gui
+quickbox
 ```
 
 ## Configuration
 
-Config stored in ~/.config/quickbox/quickbox-gui.conf
+Config stored in ~/.config/quickbox/quickbox.conf
 
 Default VM directory: ~/emu/
 
