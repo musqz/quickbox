@@ -20,7 +20,17 @@ UEFI/BIOS support, distro updates. Quickget to get the latest updated distro's. 
 
 ## Installation
 
-Easiest method using install script:
+### Debian / Ubuntu (recommended)
+
+Download the latest `.deb` from the [Releases page](https://github.com/musqz/quickbox/releases) and install:
+
+```bash
+sudo apt install ./quickbox_1.2.2_all.deb
+```
+
+Dependencies (`python3-gi`, `gir1.2-gtk-3.0`, `xclip`) are pulled in automatically.
+
+### From source
 
 ```bash
 sudo ./install.sh
@@ -35,6 +45,14 @@ sudo cp quickbox.desktop /usr/share/applications/
 ```
 
 ## Uninstallation
+
+### Debian / Ubuntu
+
+```bash
+sudo apt remove quickbox
+```
+
+### From source
 
 ```bash
 sudo ./uninstall.sh
