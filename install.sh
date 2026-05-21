@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Quickbox GUI Installation Script
+# Quickbox Installation Script
 # MIT License - Copyright (c) 2026 Musqz
 
 set -e
@@ -8,10 +8,9 @@ set -e
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== Quickbox GUI Installer ===${NC}\n"
+echo -e "${GREEN}=== Quickbox Installer ===${NC}\n"
 
 # Check if running as root
 if [[ $EUID -ne 0 ]]; then
@@ -22,7 +21,7 @@ fi
 
 # Check required files exist
 echo "Checking files..."
-for file in quickbox-gui quickbox-gui.desktop LICENSE; do
+for file in quickbox quickbox.desktop LICENSE; do
     if [[ ! -f "$file" ]]; then
         echo -e "${RED}Error: $file not found${NC}"
         exit 1
@@ -30,25 +29,15 @@ for file in quickbox-gui quickbox-gui.desktop LICENSE; do
 done
 
 # Install main application
-echo "Installing quickbox-gui to /usr/local/bin/"
-cp quickbox-gui /usr/local/bin/
-chmod +x /usr/local/bin/quickbox-gui
-echo -e "${GREEN}✓ quickbox-gui installed${NC}"
+echo "Installing quickbox to /usr/local/bin/"
+cp quickbox /usr/local/bin/
+chmod +x /usr/local/bin/quickbox
+echo -e "${GREEN}✓ quickbox installed${NC}"
 
 # Install desktop file
 echo "Installing desktop file to /usr/share/applications/"
-cp quickbox-gui.desktop /usr/share/applications/
-echo -e "${GREEN}✓ quickbox-gui.desktop installed${NC}"
-
-# Install optional launcher if available
-if [[ -f "quickbox-launch" ]]; then
-    echo "Installing quickbox-launch to /usr/local/bin/ (Alt-F2 support)"
-    cp quickbox-launch /usr/local/bin/
-    chmod +x /usr/local/bin/quickbox-launch
-    echo -e "${GREEN}✓ quickbox-launch installed${NC}"
-else
-    echo -e "${YELLOW}Warning: quickbox-launch not found (optional)${NC}"
-fi
+cp quickbox.desktop /usr/share/applications/
+echo -e "${GREEN}✓ quickbox.desktop installed${NC}"
 
 # Create config directory
 echo "Creating config directory..."
@@ -59,6 +48,7 @@ echo ""
 echo -e "${GREEN}=== Installation Complete ===${NC}"
 echo ""
 echo "Usage:"
-echo "  Command line: quickbox-gui"
+echo "  Command line: quickbox"
+echo "  Alt-F2 / run dialog: quickbox"
 echo ""
 echo "To uninstall: sudo ./uninstall.sh"
