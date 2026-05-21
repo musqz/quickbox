@@ -30,6 +30,8 @@ sudo apt install ./quickbox_1.2.2_all.deb
 
 Dependencies (`python3-gi`, `gir1.2-gtk-3.0`, `xclip`) are pulled in automatically.
 
+> **Note:** The `.deb` package has not yet been tested on a live Debian/Ubuntu system. Feedback welcome via [Issues](https://github.com/musqz/quickbox/issues).
+
 ### From source
 
 ```bash
