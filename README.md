@@ -4,25 +4,9 @@ GTK3-based GUI for managing QEMU virtual machines with quickemu integration.
 
 ## Features
 
-VM creation, deletion, start/stop, SSH port management, snapshots, migration, cloning, ISO management, boot order control, UEFI/BIOS support, distro updates. Quickget to get the latest updated distro's. In GUI a refresh button.
+VM creation, deletion, start/stop, SSH port management, snapshots, migration, cloning, ISO management, boot order control, 
 
-## Disclaimer
-
-    **DEVELOPMENT / TESTING PHASE - USE AT OWN RISK**
-
-    This tool is in active development and testing phase.
-
-    Status: Tested for approximately 3 weeks. Overall feels stable.
-
-    Known behavior:
-    - Most distros from quickget --list work fine
-    - Some distros (e.g. EasyOS) may fail
-    - SSH part is a helper tool with basic oneliners and sshd setup - not production-grade
-    - Configuration may need adjustments for edge cases
-
-    Tested successfully with: Ubuntu, Debian, Arch, AlmaLinux, Manjaro and others from quickget list.
-
-    Report issues if you encounter problems. Feedback helps improve stability.
+UEFI/BIOS support, distro updates. Quickget to get the latest updated distro's. In GUI a refresh button.
 
 ![advanced](images/advanced.jpg)
 
