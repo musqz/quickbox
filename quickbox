@@ -2,15 +2,6 @@
 # quickbox - GTK3 GUI / quickemu VM manager
 # Author: musqz
 # License: GPL3
-# 
-# FIXES (boot/reboot v2):
-# - Removed _disk_has_efi() heuristic (unreliable)
-# - OVMF_VARS created once, never reset (persists bootloader registration)
-# - Added -boot order=d for UEFI+ISO (forces CDROM priority during install)
-# - Split _launch_vm() into 3 clear paths:
-#   A) ISO+Disk (install phase)
-#   B) Disk only (post-install phase)
-#   C) Special modes (legacy, raw IMG, EasyOS)
 
 # ─── SINGLE INSTANCE LOCK (MUST BE FIRST!) ────────────────────────────────────
 import socket
