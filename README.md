@@ -84,3 +84,9 @@ Default VM directory: ~/emu/
 ## License
 
 MIT - Copyright (c) 2026 Musqz
+
+---
+
+## Disclaimer
+
+Parts of this tool were built with AI assistance (Claude Sonnet by Anthropic). All code has been reviewed and tested by me.
