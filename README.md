@@ -1,4 +1,4 @@
-# Quickbox
+# Quickbox -- frontend for quickemu
 
 GTK3-based GUI for managing QEMU virtual machines with quickemu integration.
 
