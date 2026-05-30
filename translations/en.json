@@ -67,6 +67,8 @@
     "snap_create":    "Create snapshot",
     "snap_apply":     "Apply",
     "snap_delete":    "Delete",
+    "snap_active":    "Active: {}",
+    "snap_stale":     "Last applied: {} (deleted)",
 
     "act_edit_conf":  "Edit conf",
     "act_clone":      "Clone VM",
@@ -198,7 +200,7 @@
     "dlg_del_vm_t":   "Delete VM '{}' completely?",
     "dlg_del_vm_b":   "All files removed. Cannot be undone.",
     "dlg_snap_apply_t":"Apply snapshot '{}'?",
-    "dlg_snap_apply_b":"This will overwrite the current disk state.",
+    "dlg_snap_apply_b":"The disk will be permanently rolled back. Any changes since the last snapshot will be lost.",
     "dlg_snap_del_t": "Delete snapshot '{}'?",
     "dlg_snap_del_b": "This cannot be undone.",
     "dlg_fmt_t":      "Format disk?",

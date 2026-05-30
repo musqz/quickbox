@@ -97,6 +97,8 @@ _EN_STRINGS = {
     "snap_create": "Create snapshot",
     "snap_apply": "Apply",
     "snap_delete": "Delete",
+    "snap_active": "Active: {}",
+    "snap_stale": "Last applied: {} (deleted)",
     "act_edit_conf": "Edit conf",    "act_clone": "Clone VM",
     "act_open_dir": "Open dir",
     "tt_edit_conf": "Open the VM configuration file in a text editor",
@@ -200,7 +202,7 @@ _EN_STRINGS = {
     "dlg_del_vm_t": "Delete VM '{}' completely?",
     "dlg_del_vm_b": "All files removed. Cannot be undone.",
     "dlg_snap_apply_t": "Apply snapshot '{}'?",
-    "dlg_snap_apply_b": "This will overwrite the current disk state.",
+    "dlg_snap_apply_b": "The disk will be permanently rolled back. Any changes since the last snapshot will be lost.",
     "dlg_snap_del_t": "Delete snapshot '{}'?",
     "dlg_snap_del_b": "This cannot be undone.",
     "dlg_fmt_t": "Format disk?",
@@ -1325,10 +1327,32 @@ TIPS
             snap_vbox.append(nl)
         else:
             snaps = get_snapshots(vm["_disk"])
+            current_snap = vm.get("current_snap", "")
+            snap_tags = [s["tag"] for s in snaps]
+
+            # Active snapshot indicator
+            if current_snap:
+                indicator = Gtk.Label()
+                if current_snap in snap_tags:
+                    indicator.set_markup(
+                        f'<span color="#4caf50" weight="bold">● '
+                        f'{S["snap_active"].format(current_snap)}</span>')
+                else:
+                    indicator.set_markup(
+                        f'<span color="#888">{S["snap_stale"].format(current_snap)}</span>')
+                indicator.set_halign(Gtk.Align.START)
+                indicator.set_margin_bottom(4)
+                snap_vbox.append(indicator)
+
             if snaps:
                 for snap in snaps:
+                    is_active = snap["tag"] == current_snap
                     row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-                    lbl = Gtk.Label(label=f"  * {snap['tag']}")
+                    lbl = Gtk.Label()
+                    if is_active:
+                        lbl.set_markup(f'<span weight="bold">● {snap["tag"]}</span>')
+                    else:
+                        lbl.set_markup(f'<span color="#aaa">○</span>  {snap["tag"]}')
                     lbl.set_halign(Gtk.Align.START)
                     lbl.set_hexpand(True)
                     row.append(lbl)
@@ -1635,8 +1659,16 @@ TIPS
         def on_confirm(yes):
             if not yes:
                 return
-            subprocess.run(["qemu-img", "snapshot", "-a", tag, vm["_disk"]])
+            r = subprocess.run(["qemu-img", "snapshot", "-a", tag, vm["_disk"]],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                self._warn(S["warn_snap_fail_t"], r.stderr or "qemu-img returned an error.")
+                return
+            setconf("current_snap", tag, vm["_conf"])
+            vm["current_snap"] = tag
             notify("quickbox", S["ntf_snap_applied"].format(tag))
+            self._show_panel(vm)
+            GLib.timeout_add(500, self._refresh)
         self._confirm(S["dlg_snap_apply_t"].format(tag),
                       S["dlg_snap_apply_b"],
                       on_confirm)
@@ -1646,6 +1678,9 @@ TIPS
             if not yes:
                 return
             subprocess.run(["qemu-img", "snapshot", "-d", tag, vm["_disk"]])
+            if vm.get("current_snap") == tag:
+                remove_key("current_snap", vm["_conf"])
+                vm.pop("current_snap", None)
             self._show_panel(vm)
         self._confirm(S["dlg_snap_del_t"].format(tag), S["dlg_snap_del_b"], on_confirm)
 
