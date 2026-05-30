@@ -5,7 +5,7 @@ GTK3-based GUI for managing QEMU virtual machines with quickemu integration.
 # PHASE: Development | Testing fase. 
 
     - snapshot managment is not finnished.
-    - look at ssh help section
+    - need to look at ssh help section
 
 ## Features
 
@@ -13,9 +13,9 @@ VM creation, deletion, start/stop, snapshots, cloning, ISO management, boot orde
 
 SSH copy-paste helper — auto-assigns a port per VM and gives you the ready-to-use command.
 
-![advanced](images/advanced.jpg)
+![advanced](images/advanced.png)
 
-![quickget](images/quickget.jpg)
+![quickget](images/quickget.png)
 
 ## Requirements
 
