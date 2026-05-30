@@ -458,9 +458,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         help_btn.connect("clicked", lambda b: self._show_ssh_help())
         hb.pack_start(help_btn)
 
-
-
-
         for label, icon, tooltip, cb in [
             ("Download",  "folder-download-symbolic", "Download a new distro ISO via quickget", self._dlg_download),
             ("Custom VM", "list-add-symbolic",        "Create a VM from a local ISO or IMG file", self._dlg_custom),
@@ -802,7 +799,8 @@ TIPS
 
 
     def _copy_command_to_clipboard(self, cmd):
-        Gdk.Display.get_default().get_clipboard().set(cmd)
+        Gdk.Display.get_default().get_clipboard().set_content(
+            Gdk.ContentProvider.new_for_value(cmd))
         notify("Command", f"Copied: {cmd}", "low")
 
     def _refresh_ssh_menu(self):
@@ -896,14 +894,16 @@ TIPS
         user = vm.get("ssh_user", "root")
         port = vm.get("ssh_port", "2222")
         ssh_cmd = f"ssh -p {port} {user}@localhost"
-        Gdk.Display.get_default().get_clipboard().set(ssh_cmd)
+        Gdk.Display.get_default().get_clipboard().set_content(
+            Gdk.ContentProvider.new_for_value(ssh_cmd))
         notify("SSH", f"Command copied: {ssh_cmd}", "low")
 
     def _copy_ssh_for_vm(self, vm):
         user = vm.get("ssh_user", "root")
         port = vm.get("ssh_port", "2222")
         ssh_cmd = f"ssh -p {port} {user}@localhost"
-        Gdk.Display.get_default().get_clipboard().set(ssh_cmd)
+        Gdk.Display.get_default().get_clipboard().set_content(
+            Gdk.ContentProvider.new_for_value(ssh_cmd))
         notify("SSH", f"Copied: {ssh_cmd}", "low")
 
     def _test_ssh(self, vm, btn):
@@ -1061,7 +1061,7 @@ TIPS
             f'<span size="small" color="gray">{PROFILES.get(cur_profile, PROFILES["standard"])["desc"]}</span>'
         )
         profile_desc.set_halign(Gtk.Align.START)
-        profile_desc.set_line_wrap(True)
+        profile_desc.set_wrap(True)
         profile_desc.set_max_width_chars(42)
         pc.connect("changed", self._on_profile_changed, profile_desc, vm)
         sg.attach(pl, 0, 0, 1, 1); sg.attach(pc, 1, 0, 1, 1)
@@ -1076,7 +1076,7 @@ TIPS
         compat_hint = Gtk.Label()
         compat_hint.set_markup('<span size="small" color="gray">Use minimal QEMU without VirGL — for lightweight or older distros that show a blank screen.</span>')
         compat_hint.set_halign(Gtk.Align.START)
-        compat_hint.set_line_wrap(True)
+        compat_hint.set_wrap(True)
         compat_hint.set_max_width_chars(42)
         sg.attach(compat_hint, 1, 3, 1, 1)
 
@@ -1100,7 +1100,7 @@ TIPS
         stable_hint = Gtk.Label()
         stable_hint.set_markup('<span size="small" color="gray">When on: hides launch notifications and locks the Danger Zone.</span>')
         stable_hint.set_halign(Gtk.Align.START)
-        stable_hint.set_line_wrap(True)
+        stable_hint.set_wrap(True)
         stable_hint.set_max_width_chars(42)
         sg.attach(stable_hint, 1, 6, 1, 1)
         self.right_box.append(sg)
@@ -1561,8 +1561,7 @@ TIPS
         size_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         size_lbl = Gtk.Label(label="Disk size (GB):")
         size_lbl.get_style_context().add_class("dim-label")
-        size_spin = Gtk.SpinButton()
-        size_spin.set_range(4, 500)
+        size_spin = Gtk.SpinButton.new_with_range(4, 500, 1)
         size_spin.set_increments(1, 10)
         # read current size from conf or default 20G
         current_size = vm.get("disk_size", "20G").replace("G","").replace("g","")
@@ -2277,7 +2276,7 @@ TIPS
         prof_info = Gtk.Label()
         prof_info.set_markup(f'<span size="small" color="gray">Add or edit .conf files in {PROFILES_DIR} to create custom profiles.</span>')
         prof_info.set_halign(Gtk.Align.START)
-        prof_info.set_line_wrap(True)
+        prof_info.set_wrap(True)
         prof_info.set_max_width_chars(52)
         prof_info.set_margin_bottom(12)
         box.append(prof_info)
@@ -2708,7 +2707,7 @@ def _update_distro_list(parent_win):
     box.set_margin_end(16)
     
     lbl = Gtk.Label(label="Updating distro list...")
-    lbl.set_line_wrap(True)
+    lbl.set_wrap(True)
     box.append(lbl)
 
     spinner = Gtk.Spinner()
