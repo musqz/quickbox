@@ -304,8 +304,7 @@ class VMRow(Gtk.ListBoxRow):
             sz.get_style_context().add_class("dim-label")
             box.append(sz)
 
-        self.add(box)
-        self.show_all()
+        self.set_child(box)
 
 
 # ─── main window ──────────────────────────────────────────────────────────────
@@ -344,14 +343,15 @@ class QuickboxWindow(Gtk.Window):
     def _poll_running_state(self):
         """Check if any VM's running state changed - refresh only if so."""
         changed = False
-        for row in self.listbox.get_children():
-            if not hasattr(row, "vm"):
-                continue
-            was_running = row.vm.get("_running", False)
-            now_running = is_running(row.vm["_name"])
-            if was_running != now_running:
-                changed = True
-                break
+        row = self.listbox.get_first_child()
+        while row is not None:
+            if hasattr(row, "vm"):
+                was_running = row.vm.get("_running", False)
+                now_running = is_running(row.vm["_name"])
+                if was_running != now_running:
+                    changed = True
+                    break
+            row = row.get_next_sibling()
         if changed:
             self._refresh()
         return True  # keep firing
@@ -411,7 +411,7 @@ class QuickboxWindow(Gtk.Window):
 
     def _build_ui(self):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.add(vbox)
+        self.set_child(vbox)
 
         # HeaderBar
         hb = Gtk.HeaderBar()
@@ -496,7 +496,7 @@ class QuickboxWindow(Gtk.Window):
         self.listbox.get_style_context().add_class("vm-listbox")
         self.listbox.set_filter_func(self._filter)
         self.listbox.connect("row-selected", self._on_select)
-        scroll_l.add(self.listbox)
+        scroll_l.set_child(self.listbox)
         left.append(scroll_l)
         paned.pack1(left, False, False)
 
@@ -506,7 +506,7 @@ class QuickboxWindow(Gtk.Window):
         self.right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.right_box.set_margin_top(16); self.right_box.set_margin_bottom(16)
         self.right_box.set_margin_start(20); self.right_box.set_margin_end(20)
-        self.right_scroll.add(self.right_box)
+        self.right_scroll.set_child(self.right_box)
         paned.pack2(self.right_scroll, True, False)
         self._show_welcome()
 
@@ -524,12 +524,11 @@ class QuickboxWindow(Gtk.Window):
     # ── refresh ──
 
     def _refresh(self):
-        for row in self.listbox.get_children():
+        while row := self.listbox.get_first_child():
             self.listbox.remove(row)
         self.vms = get_vms(self.vms_dir)
         for vm in self.vms:
-            self.listbox.add(VMRow(vm))
-        self.listbox.show_all()
+            self.listbox.append(VMRow(vm))
         n = len(self.vms)
         self._status.set_markup(
             f'<span size="small">{self.vms_dir}  •  {n} VM{"s" if n != 1 else ""}</span>')
@@ -537,11 +536,13 @@ class QuickboxWindow(Gtk.Window):
         # re-select
         if self.current_vm:
             name = self.current_vm["_name"]
-            for row in self.listbox.get_children():
+            row = self.listbox.get_first_child()
+            while row is not None:
                 if hasattr(row, "vm") and row.vm["_name"] == name:
                     self.listbox.select_row(row)
                     self.current_vm = row.vm
                     break
+                row = row.get_next_sibling()
         self._refresh_ssh_menu()
         return False  # stop GLib.timeout_add
 
@@ -574,7 +575,7 @@ class QuickboxWindow(Gtk.Window):
         help_win.connect("close-request", lambda w: self._on_help_closed() or False)
         
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        help_win.add(vbox)
+        help_win.set_child(vbox)
         
         # Notebook with two tabs
         notebook = Gtk.Notebook()
@@ -668,7 +669,7 @@ class QuickboxWindow(Gtk.Window):
 """
         
         setup_buffer.set_text(setup_content)
-        setup_scroll.add(setup_text)
+        setup_scroll.set_child(setup_text)
         notebook.append_page(setup_scroll, Gtk.Label(label="Setup"))
         
         # ─── TAB 2: Quick Commands ───
@@ -734,7 +735,7 @@ TIPS
 """
         
         cmd_buffer.set_text(cmd_content)
-        cmd_scroll.add(cmd_text)
+        cmd_scroll.set_child(cmd_text)
         notebook.append_page(cmd_scroll, Gtk.Label(label="Commands"))
         
         # Store window reference
@@ -845,8 +846,8 @@ TIPS
         self.right_box.show_all()
 
     def _clear_right(self):
-        for c in self.right_box.get_children():
-            self.right_box.remove(c)
+        while child := self.right_box.get_first_child():
+            self.right_box.remove(child)
 
     # ── section label helper ──
 
@@ -1356,13 +1357,14 @@ TIPS
         GLib.timeout_add(3000, self._refresh)
 
     def _select_vm_by_name(self, name):
-        """Select and show a VM by name after refresh."""
-        for row in self.listbox.get_children():
+        row = self.listbox.get_first_child()
+        while row is not None:
             if hasattr(row, "vm") and row.vm["_name"] == name:
                 self.listbox.select_row(row)
                 self.current_vm = row.vm
                 self._show_panel(row.vm)
                 return False
+            row = row.get_next_sibling()
         return False
 
     def _stop_vm(self, vm):
@@ -1769,7 +1771,7 @@ TIPS
         list_scroll.set_hexpand(True)
         listbox = Gtk.ListBox()
         listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        list_scroll.add(listbox)
+        list_scroll.set_child(listbox)
         main_hbox.append(list_scroll)
 
         # Populate
@@ -1786,8 +1788,8 @@ TIPS
                 lbl.set_markup(f'<b><span size="small" color="gray">{first}</span></b>')
                 lbl.set_halign(Gtk.Align.START)
                 lbl.set_margin_start(10); lbl.set_margin_top(6); lbl.set_margin_bottom(2)
-                hdr.add(lbl)
-                listbox.add(hdr)
+                hdr.set_child(lbl)
+                listbox.append(hdr)
                 row_map[first] = hdr
             row = Gtk.ListBoxRow()
             row._distro_name = name
@@ -1795,8 +1797,8 @@ TIPS
             rl = Gtk.Label(label=f"  {name}")
             rl.set_halign(Gtk.Align.START)
             rl.set_margin_top(5); rl.set_margin_bottom(5)
-            row.add(rl)
-            listbox.add(row)
+            row.set_child(rl)
+            listbox.append(row)
 
         # Alphabet buttons - click to jump to that letter
         for letter in sorted(row_map.keys()):
@@ -2261,8 +2263,8 @@ TIPS
         dlg.destroy()
 
     def _refresh_loc_list(self, dlg):
-        for c in self._loc_list_box.get_children():
-            self._loc_list_box.remove(c)
+        while child := self._loc_list_box.get_first_child():
+            self._loc_list_box.remove(child)
         conf = read_conf()
         found = False
         for i in range(1, 6):
@@ -2342,7 +2344,7 @@ TIPS
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.set_vexpand(True)
         list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        scroll.add(list_box)
+        scroll.set_child(list_box)
         pb.append(scroll)
 
         checks = []
@@ -2657,7 +2659,7 @@ def _update_distro_list(parent_win):
     spinner.start()
     box.append(spinner)
     
-    wait_win.add(box)
+    wait_win.set_child(box)
     wait_win.show_all()
     
     # Start update in background thread
