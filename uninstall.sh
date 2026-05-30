@@ -44,6 +44,12 @@ if [[ -f /usr/share/applications/quickbox.desktop ]]; then
     echo -e "${GREEN}✓ Removed /usr/share/applications/quickbox.desktop${NC}"
 fi
 
+# Remove translations
+if [[ -d /usr/share/quickbox ]]; then
+    rm -rf /usr/share/quickbox
+    echo -e "${GREEN}✓ Removed /usr/share/quickbox/translations${NC}"
+fi
+
 echo ""
 echo -e "${GREEN}=== Uninstall Complete ===${NC}"
 echo ""
