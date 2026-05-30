@@ -219,6 +219,7 @@ _EN_STRINGS = {
     "warn_no_disk_t": "No disk",     "warn_no_disk_b": "Disk image not found.",
     "warn_dup_snap_t": "Duplicate tag",
     "warn_dup_snap_b": "Snapshot '{}' already exists.",
+    "warn_snap_running_b": "Stop the VM before creating a snapshot.",
     "warn_snap_fail_t": "Snapshot failed",
     "warn_fmt_fail_t": "Format failed",
     "warn_fmt_fail_b": "Command failed: {}",
@@ -1009,7 +1010,7 @@ TIPS
     def _copy_command_to_clipboard(self, cmd):
         Gdk.Display.get_default().get_clipboard().set_content(
             Gdk.ContentProvider.new_for_value(cmd))
-        notify("Command", f"Copied: {cmd}", "low")
+        notify("Command", S["ntf_cmd_copied"].format(cmd), "low")
 
     def _refresh_ssh_menu(self):
         while child := self._ssh_popover_box.get_first_child():
@@ -1104,7 +1105,7 @@ TIPS
         ssh_cmd = f"ssh -p {port} {user}@localhost"
         Gdk.Display.get_default().get_clipboard().set_content(
             Gdk.ContentProvider.new_for_value(ssh_cmd))
-        notify("SSH", f"Command copied: {ssh_cmd}", "low")
+        notify("SSH", S["ntf_ssh_copied"].format(ssh_cmd), "low")
 
     def _copy_ssh_for_vm(self, vm):
         user = vm.get("ssh_user", "root")
@@ -1112,7 +1113,7 @@ TIPS
         ssh_cmd = f"ssh -p {port} {user}@localhost"
         Gdk.Display.get_default().get_clipboard().set_content(
             Gdk.ContentProvider.new_for_value(ssh_cmd))
-        notify("SSH", f"Copied: {ssh_cmd}", "low")
+        notify("SSH", S["ntf_ssh_copied2"].format(ssh_cmd), "low")
 
     def _test_ssh(self, vm, btn):
         port = int(vm.get("ssh_port", "2222"))
@@ -1442,7 +1443,7 @@ TIPS
 
         accel   = "kvm" if KVM_AVAILABLE else "tcg"
 
-        notify("quickbox", f"Launching {vmname}", "low")
+        notify("quickbox", S["ntf_launching"].format(vmname), "low")
 
         # Base QEMU args (all modes)
         base_args = [
@@ -1600,7 +1601,7 @@ TIPS
         write_default_profiles(overwrite=True)
         PROFILES = load_profiles()
         _PROFILE_KEYS = {key for p in PROFILES.values() for key in p["settings"]}
-        notify("quickbox", "Default profiles restored.", "low")
+        notify("quickbox", S["ntf_prof_reset"], "low")
 
     # ── snapshots ──
 
@@ -1609,15 +1610,15 @@ TIPS
         if not tag:
             return
         if vm["_running"]:
-            self._warn("VM is running", "Stop the VM before creating a snapshot.")
+            self._warn(S["vm_running"], S["warn_snap_running_b"])
             return
         disk = vm["_disk"]
         if not Path(disk).exists():
-            self._warn("No disk", "Disk image not found.")
+            self._warn(S["warn_no_disk_t"], S["warn_no_disk_b"])
             return
         existing = [s["tag"] for s in get_snapshots(disk)]
         if tag in existing:
-            self._warn("Duplicate tag", f"Snapshot '{tag}' already exists.")
+            self._warn(S["warn_dup_snap_t"], S["warn_dup_snap_b"].format(tag))
             return
         result = subprocess.run(
             ["qemu-img", "snapshot", "-c", tag, disk],
@@ -1625,19 +1626,19 @@ TIPS
         )
         if result.returncode == 0:
             self._snap_entry.set_text("")
-            notify("quickbox", f"Snapshot '{tag}' created.", "low")
+            notify("quickbox", S["ntf_snap_created"].format(tag), "low")
             self._show_panel(vm)
         else:
-            self._warn("Snapshot failed", result.stderr or "qemu-img returned an error.")
+            self._warn(S["warn_snap_fail_t"], result.stderr or "qemu-img returned an error.")
 
     def _snap_apply(self, vm, tag):
         def on_confirm(yes):
             if not yes:
                 return
             subprocess.run(["qemu-img", "snapshot", "-a", tag, vm["_disk"]])
-            notify("quickbox", f"Snapshot '{tag}' applied. Launch VM from menu.")
-        self._confirm(f"Apply snapshot '{tag}'?",
-                      "This will overwrite the current disk state.",
+            notify("quickbox", S["ntf_snap_applied"].format(tag))
+        self._confirm(S["dlg_snap_apply_t"].format(tag),
+                      S["dlg_snap_apply_b"],
                       on_confirm)
 
     def _snap_delete(self, vm, tag):
@@ -1646,7 +1647,7 @@ TIPS
                 return
             subprocess.run(["qemu-img", "snapshot", "-d", tag, vm["_disk"]])
             self._show_panel(vm)
-        self._confirm(f"Delete snapshot '{tag}'?", "This cannot be undone.", on_confirm)
+        self._confirm(S["dlg_snap_del_t"].format(tag), S["dlg_snap_del_b"], on_confirm)
 
     # ── clone ──
 
@@ -1696,7 +1697,7 @@ TIPS
             src_conf  = Path(vm["_conf"])
 
             if dest_dir.exists() or dest_conf.exists():
-                self._warn("Already exists", f"VM '{dest_name}' already exists.")
+                self._warn(S["warn_exists_t"], S["warn_exists_b"].format(dest_name))
                 return
 
             try:
@@ -1719,7 +1720,7 @@ TIPS
                 dest_conf.write_text("\n".join(out) + "\n")
                 dest_conf.chmod(0o755)
             except Exception as e:
-                self._warn("Clone failed", f"Could not write conf: {e}")
+                self._warn(S["warn_clone_t"], S["warn_clone_conf"].format(e))
                 return
 
             self._refresh()
@@ -1731,12 +1732,12 @@ TIPS
                 try:
                     shutil.copytree(str(src_dir), str(dest_dir))
                     flag.unlink(missing_ok=True)
-                    notify("quickbox", f"Clone complete: '{name}' — ready to use", "low")
+                    notify("quickbox", S["ntf_clone_done"].format(name), "low")
                     GLib.idle_add(self._refresh)
                     GLib.timeout_add(200, lambda: self._select_vm_by_name(dest_name) or False)
                 except Exception as e:
                     flag.unlink(missing_ok=True)
-                    GLib.idle_add(self._warn, "Clone failed", f"Directory copy failed: {str(e)}")
+                    GLib.idle_add(self._warn, S["warn_clone_t"], S["warn_clone_dir"].format(str(e)))
                     GLib.idle_add(dest_conf.unlink)
 
             threading.Thread(target=_copy_dir, daemon=True).start()
@@ -1835,7 +1836,7 @@ TIPS
                     tmp = tempfile.mktemp(suffix=".raw", dir=self.vms_dir)
                     try:
                         GLib.idle_add(notify, "quickbox-gui",
-                                      f"Formatting {size_gb}GB disk…", "low")
+                                      S["ntf_fmt_start"].format(size_gb), "low")
                         subprocess.run(["qemu-img", "create", "-f", "raw", tmp, f"{size_gb}G"],
                                        check=True)
                         if layout == "gpt_esp_ext4":
@@ -1861,11 +1862,11 @@ TIPS
                         setconf("disk_size", f"{size_gb}G", vm["_conf"])
                         vm["disk_size"] = f"{size_gb}G"
                         GLib.idle_add(notify, "quickbox-gui",
-                                      f"Disk ready: {layout}, {size_gb}GB", "low")
+                                      S["ntf_fmt_done"].format(layout, size_gb), "low")
                         GLib.idle_add(self._refresh)
                     except subprocess.CalledProcessError as e:
-                        GLib.idle_add(self._warn, "Format failed",
-                                      f"Command failed: {' '.join(str(x) for x in e.cmd)}")
+                        GLib.idle_add(self._warn, S["warn_fmt_fail_t"],
+                                      S["warn_fmt_fail_b"].format(' '.join(str(x) for x in e.cmd)))
                     finally:
                         if Path(tmp).exists():
                             Path(tmp).unlink()
@@ -1890,8 +1891,8 @@ TIPS
             if disk.exists():
                 disk.unlink()
             self._refresh()
-        self._confirm("Delete disk image?",
-                      f"Removes disk for '{vm['_pretty']}'. ISO stays.",
+        self._confirm(S["dlg_del_disk_t"],
+                      S["dlg_del_disk_b"].format(vm["_pretty"]),
                       on_confirm)
 
     def _delete_vm(self, vm):
@@ -1907,8 +1908,8 @@ TIPS
             self.current_vm = None
             self._refresh()
             self._show_welcome()
-        self._confirm(f"Delete VM '{vm['_pretty']}' completely?",
-                      "All files removed. Cannot be undone.",
+        self._confirm(S["dlg_del_vm_t"].format(vm["_pretty"]),
+                      S["dlg_del_vm_b"],
                       on_confirm)
 
     # ── download / custom ──
@@ -2316,7 +2317,7 @@ TIPS
             dest_dir  = Path(self.vms_dir) / dest_name
             dest_conf = Path(self.vms_dir) / f"{dest_name}.conf"
             if dest_dir.exists():
-                self._warn("Already exists", f"VM '{dest_name}' already exists.")
+                self._warn(S["warn_exists_t"], S["warn_exists_b"].format(dest_name))
                 return
 
             fc = Gtk.FileChooserNative(title=S["cvm_file_title"],
@@ -2339,7 +2340,7 @@ TIPS
                 ssh_port = get_next_ssh_port(self.vms_dir, dest_name)
 
                 if src_path.suffix.lower() == ".img":
-                    notify("quickbox", f"Converting {src_path.name} to qcow2…", "low")
+                    notify("quickbox", S["ntf_converting"].format(src_path.name), "low")
                     def _convert():
                         disk = str(dest_dir / "disk.qcow2")
                         subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
@@ -2357,11 +2358,11 @@ TIPS
                                      f"net_device=e1000\n")
                         dest_conf.write_text(conf_text)
                         dest_conf.chmod(0o755)
-                        notify("quickbox", f"VM <b>{vm_name}</b> created!", "low")
+                        notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
                         GLib.idle_add(self._refresh)
                     threading.Thread(target=_convert, daemon=True).start()
                 else:
-                    notify("quickbox", f"Copying {src_path.name}…", "low")
+                    notify("quickbox", S["ntf_copying"].format(src_path.name), "low")
                     def _copy():
                         shutil.copy2(str(src_path), str(dest_dir / src_path.name))
                         conf_text = (f"#!/usr/bin/quickemu --vm\n"
@@ -2372,7 +2373,7 @@ TIPS
                                      f"ssh_port=\"{ssh_port}\"\n")
                         dest_conf.write_text(conf_text)
                         dest_conf.chmod(0o755)
-                        notify("quickbox", f"VM <b>{vm_name}</b> created!", "low")
+                        notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
                         GLib.idle_add(self._refresh)
                     threading.Thread(target=_copy, daemon=True).start()
 
@@ -2557,7 +2558,7 @@ TIPS
         # Step 1: pick which VMs to migrate
         vms = get_vms(self.vms_dir)
         if not vms:
-            self._warn("No VMs", "There are no VMs in the current location.")
+            self._warn(S["warn_no_vms_t"], S["warn_no_vms_b"])
             return
 
         pick = Gtk.Window(title=S["mig_title"])
@@ -2692,7 +2693,7 @@ TIPS
                     setconf(f"vms_dir_{i}", loc)
                     self._refresh_loc_list(dlg)
                     return
-            self._warn("List full", "Maximum 5 saved locations. Remove one first.")
+            self._warn(S["warn_list_full_t"], S["warn_list_full_b"])
         self._pick_dir(S["btn_add_switch"], str(Path.home()), _on_dir)
 
     # ── dialogs helpers ──
@@ -2779,7 +2780,7 @@ TIPS
         dlg = Gtk.AlertDialog()
         dlg.set_message(title)
         dlg.set_detail(body)
-        dlg.set_buttons(["Cancel", "Yes"])
+        dlg.set_buttons([S["btn_confirm_no"], S["btn_confirm_yes"]])
         dlg.set_default_button(0)
         dlg.set_cancel_button(0)
         def _on_response(d, result):
@@ -2794,7 +2795,7 @@ TIPS
         dlg = Gtk.AlertDialog()
         dlg.set_message(title)
         dlg.set_detail(body)
-        dlg.set_buttons(["No, keep files", "Yes, delete originals"])
+        dlg.set_buttons([S["btn_keep"], S["btn_delete_orig"]])
         dlg.set_default_button(0)
         dlg.set_cancel_button(0)
         def _on_response(d, result):

@@ -221,6 +221,7 @@
     "warn_no_disk_b": "Disk image not found.",
     "warn_dup_snap_t":"Duplicate tag",
     "warn_dup_snap_b":"Snapshot '{}' already exists.",
+    "warn_snap_running_b":"Stop the VM before creating a snapshot.",
     "warn_snap_fail_t":"Snapshot failed",
     "warn_fmt_fail_t":"Format failed",
     "warn_fmt_fail_b":"Command failed: {}",
