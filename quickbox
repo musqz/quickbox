@@ -801,14 +801,8 @@ TIPS
 
 
     def _copy_command_to_clipboard(self, cmd):
-        """Copy a command to clipboard."""
-        try:
-            proc = subprocess.Popen(["xclip", "-selection", "clipboard"], 
-                                    stdin=subprocess.PIPE)
-            proc.communicate(cmd.encode())
-            notify("Command", f"Copied: {cmd}", "low")
-        except Exception:
-            self._warn("Copy Error", f"Could not copy to clipboard:\n\n{cmd}")
+        Gdk.Display.get_default().get_clipboard().set(cmd)
+        notify("Command", f"Copied: {cmd}", "low")
 
     def _refresh_ssh_menu(self):
         while child := self._ssh_popover_box.get_first_child():
@@ -897,35 +891,19 @@ TIPS
 
 
     def _ssh_copy_cmd(self, vm):
-        """Copy SSH command to clipboard."""
         self._ensure_ssh_config(vm)
-        
         user = vm.get("ssh_user", "root")
         port = vm.get("ssh_port", "2222")
-        
         ssh_cmd = f"ssh -p {port} {user}@localhost"
-        
-        try:
-            proc = subprocess.Popen(["xclip", "-selection", "clipboard"], 
-                                    stdin=subprocess.PIPE)
-            proc.communicate(ssh_cmd.encode())
-            notify("SSH", f"Command copied: {ssh_cmd}", "low")
-        except Exception:
-            self._warn("SSH Error", f"Could not copy to clipboard. Use command:\n\n{ssh_cmd}")
+        Gdk.Display.get_default().get_clipboard().set(ssh_cmd)
+        notify("SSH", f"Command copied: {ssh_cmd}", "low")
 
     def _copy_ssh_for_vm(self, vm):
-        """Copy SSH command for a specific VM to clipboard."""
         user = vm.get("ssh_user", "root")
         port = vm.get("ssh_port", "2222")
         ssh_cmd = f"ssh -p {port} {user}@localhost"
-        
-        try:
-            proc = subprocess.Popen(["xclip", "-selection", "clipboard"], 
-                                    stdin=subprocess.PIPE)
-            proc.communicate(ssh_cmd.encode())
-            notify("SSH", f"Copied: {ssh_cmd}", "low")
-        except Exception:
-            self._warn("SSH Error", f"Could not copy to clipboard. Use:\n\n{ssh_cmd}")
+        Gdk.Display.get_default().get_clipboard().set(ssh_cmd)
+        notify("SSH", f"Copied: {ssh_cmd}", "low")
 
     def _test_ssh(self, vm, btn):
         port = int(vm.get("ssh_port", "2222"))
