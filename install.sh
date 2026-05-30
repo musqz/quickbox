@@ -39,6 +39,14 @@ echo "Installing desktop file to /usr/share/applications/"
 cp quickbox.desktop /usr/share/applications/
 echo -e "${GREEN}✓ quickbox.desktop installed${NC}"
 
+# Install translations
+if [[ -d "translations" ]]; then
+    echo "Installing translations to /usr/share/quickbox/translations/"
+    mkdir -p /usr/share/quickbox/translations
+    cp translations/*.json /usr/share/quickbox/translations/
+    echo -e "${GREEN}✓ Translations installed${NC}"
+fi
+
 # Create config directory
 echo "Creating config directory..."
 mkdir -p /root/.config/quickbox
