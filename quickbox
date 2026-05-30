@@ -102,6 +102,7 @@ _EN_STRINGS = {
     "snap_boot": "Boot",
     "tt_snap_boot": "Launch from this snapshot without modifying the main disk",
     "snap_autosave_chk": "Auto-save current state first as '{}'",
+    "snap_autosave_skip": "Disk already at this snapshot — no backup needed",
     "snap_autosave_done": "Current state saved as '{}'",
     "snap_extracting": "Extracting snapshot…",
     "snap_preview_active": "⚡ Preview: snapshot '{}' — changes discarded on stop",
@@ -1607,6 +1608,11 @@ TIPS
         with open(log, "w") as logfile:
             subprocess.Popen(cmd, stdout=logfile, stderr=logfile)
 
+        # Mark disk as potentially changed — cleared when a snapshot is applied
+        if not preview_disk:
+            setconf("snap_dirty", "true", conf_path)
+            vm["snap_dirty"] = "true"
+
         GLib.timeout_add(3000, self._refresh)
 
     def _select_vm_by_name(self, name):
@@ -1702,8 +1708,17 @@ TIPS
         warn_lbl.set_wrap(True)
         box.append(warn_lbl)
 
-        chk = Gtk.CheckButton(label=S["snap_autosave_chk"].format(auto_tag))
-        chk.set_active(True)
+        # Backup is only needed if the disk changed since the last apply.
+        # snap_dirty is set on VM launch and cleared on successful apply.
+        disk_unchanged = (vm.get("current_snap") == tag and
+                          vm.get("snap_dirty") != "true")
+        if disk_unchanged:
+            chk = Gtk.CheckButton(label=S["snap_autosave_skip"])
+            chk.set_active(False)
+            chk.set_sensitive(False)
+        else:
+            chk = Gtk.CheckButton(label=S["snap_autosave_chk"].format(auto_tag))
+            chk.set_active(True)
         box.append(chk)
 
         btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -1743,6 +1758,8 @@ TIPS
                     return
                 setconf("current_snap", tag, vm["_conf"])
                 vm["current_snap"] = tag
+                remove_key("snap_dirty", vm["_conf"])
+                vm.pop("snap_dirty", None)
                 GLib.idle_add(notify, "quickbox", S["ntf_snap_applied"].format(tag))
                 GLib.idle_add(self._show_panel, vm)
                 GLib.timeout_add(500, self._refresh)

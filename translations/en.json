@@ -72,6 +72,7 @@
     "snap_boot":          "Boot",
     "tt_snap_boot":       "Launch from this snapshot without modifying the main disk",
     "snap_autosave_chk":  "Auto-save current state first as '{}'",
+    "snap_autosave_skip": "Disk already at this snapshot — no backup needed",
     "snap_autosave_done": "Current state saved as '{}'",
     "snap_extracting":    "Extracting snapshot…",
     "snap_preview_active":"⚡ Preview: snapshot '{}' — changes discarded on stop",
