@@ -314,12 +314,7 @@ class QuickboxWindow(Gtk.Window):
         super().__init__(title="Quickbox")
         self.set_default_size(960, 640)
         self.set_resizable(True)
-        self.set_position(Gtk.WindowPosition.CENTER)
-        # set window icon from theme or file
-        if ICON_PATH:
-            self.set_icon_from_file(str(ICON_PATH))
-        else:
-            self.set_icon_name("computer-vm")
+        self.set_icon_name("quickbox" if ICON_PATH else "computer-vm")
         self.conf      = read_conf()
         self.vms_dir   = self.conf.get("vms_dir", str(Path.home() / "emu"))
         self.current_vm = None
@@ -330,27 +325,20 @@ class QuickboxWindow(Gtk.Window):
         self._build_css()
         self._build_ui()
         self._refresh()
-        self.connect("delete-event", self._on_delete)
+        self.connect("close-request", self._on_close_request)
         # poll VM running state and vms_dir changes every 4 seconds
         self._timeout_handlers.append(GLib.timeout_add(4000, self._poll_running_state))
         self._timeout_handlers.append(GLib.timeout_add(4000, self._poll_vms_dir))
         # poll copying progress every 2 seconds
         self._timeout_handlers.append(GLib.timeout_add(2000, self._poll_copying))
 
-    def _on_delete(self, widget, event):
-        """Handle window close event - clean exit."""
-        # Remove all timeout handlers
+    def _on_close_request(self):
         for timeout_id in self._timeout_handlers:
             GLib.source_remove(timeout_id)
         self._timeout_handlers.clear()
-        
-        # Close help window if open
         if self._ssh_help_win and self._ssh_help_win.get_visible():
             self._ssh_help_win.destroy()
-        
-        # Exit immediately
-        import sys
-        sys.exit(0)
+        return False
 
     def _poll_running_state(self):
         """Check if any VM's running state changed - refresh only if so."""
@@ -568,12 +556,10 @@ class QuickboxWindow(Gtk.Window):
                 self._ssh_help_win.present()
                 return
         
-        help_win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+        help_win = Gtk.Window()
         help_win.set_title("SSH Setup & Commands")
         help_win.set_default_size(600, 500)
-        help_win.set_type_hint(Gdk.WindowTypeHint.UTILITY)
-        help_win.set_keep_above(True)  # Always on top
-        help_win.connect("delete-event", lambda w, e: self._on_help_closed())
+        help_win.connect("close-request", lambda w: self._on_help_closed() or False)
         
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         help_win.add(vbox)
@@ -2602,13 +2588,11 @@ def _update_distro_list(parent_win):
                 GLib.idle_add(lambda: wait_win.destroy() if wait_win else None)
     
     # Create wait window (non-blocking)
-    wait_win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+    wait_win = Gtk.Window()
     wait_win.set_transient_for(parent_win)
     wait_win.set_modal(True)
-    wait_win.set_keep_above(True)
     wait_win.set_decorated(False)
     wait_win.set_default_size(300, 80)
-    wait_win.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
     
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
     box.set_margin_top(16)
