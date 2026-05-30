@@ -99,6 +99,15 @@ _EN_STRINGS = {
     "snap_delete": "Delete",
     "snap_active": "Active: {}",
     "snap_stale": "Last applied: {} (deleted)",
+    "snap_boot": "Boot",
+    "tt_snap_boot": "Launch from this snapshot without modifying the main disk",
+    "snap_autosave_chk": "Auto-save current state first as '{}'",
+    "snap_autosave_done": "Current state saved as '{}'",
+    "snap_extracting": "Extracting snapshot…",
+    "snap_preview_active": "⚡ Preview: snapshot '{}' — changes discarded on stop",
+    "dlg_snap_boot_t": "Boot from snapshot '{}'?",
+    "dlg_snap_boot_b": "The VM will boot from this snapshot. Changes made during this session will be discarded when the VM stops. The main disk will not be modified.",
+    "ntf_snap_boot": "Booting from snapshot '{}'",
     "act_edit_conf": "Edit conf",    "act_clone": "Clone VM",
     "act_open_dir": "Open dir",
     "tt_edit_conf": "Open the VM configuration file in a text editor",
@@ -561,6 +570,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 now_running = is_running(row.vm["_name"])
                 if was_running != now_running:
                     changed = True
+                    if was_running and not now_running:
+                        self._cleanup_preview(row.vm)
                     break
             row = row.get_next_sibling()
         if changed:
@@ -1173,7 +1184,13 @@ TIPS
             launch_box.append(copying_lbl)
         elif vm["_running"]:
             running_lbl = Gtk.Label()
-            running_lbl.set_markup(f'<span color="#4caf50" weight="bold">{S["vm_running"]}</span>')
+            snap_preview = vm.get("snap_preview", "")
+            if snap_preview:
+                running_lbl.set_markup(
+                    f'<span color="#ff9800" weight="bold">'
+                    f'{S["snap_preview_active"].format(snap_preview)}</span>')
+            else:
+                running_lbl.set_markup(f'<span color="#4caf50" weight="bold">{S["vm_running"]}</span>')
             launch_box.append(running_lbl)
             stop_btn = Gtk.Button(label=S["btn_stop"])
             stop_btn.connect("clicked", lambda b: self._stop_vm(vm))
@@ -1330,6 +1347,12 @@ TIPS
             current_snap = vm.get("current_snap", "")
             snap_tags = [s["tag"] for s in snaps]
 
+            # Clear stale snap_preview if preview file no longer exists
+            preview_file = Path(self.vms_dir) / vm["_name"] / ".snap-preview.qcow2"
+            if vm.get("snap_preview") and not preview_file.exists():
+                remove_key("snap_preview", vm["_conf"])
+                vm.pop("snap_preview", None)
+
             # Active snapshot indicator
             if current_snap:
                 indicator = Gtk.Label()
@@ -1356,14 +1379,24 @@ TIPS
                     lbl.set_halign(Gtk.Align.START)
                     lbl.set_hexpand(True)
                     row.append(lbl)
-                    for action_label, action_cb in [
-                        (S["snap_delete"], lambda b, t=snap["tag"]: self._snap_delete(vm, t)),
-                        (S["snap_apply"],  lambda b, t=snap["tag"]: self._snap_apply(vm, t)),
-                    ]:
-                        btn = Gtk.Button(label=action_label)
-                        btn.set_size_request(68, -1)
-                        btn.connect("clicked", action_cb)
-                        row.append(btn)
+                    del_btn = Gtk.Button(label=S["snap_delete"])
+                    del_btn.set_size_request(68, -1)
+                    del_btn.connect("clicked",
+                        lambda b, t=snap["tag"]: self._snap_delete(vm, t))
+                    row.append(del_btn)
+
+                    boot_btn = Gtk.Button(label=S["snap_boot"])
+                    boot_btn.set_size_request(68, -1)
+                    boot_btn.set_tooltip_text(S["tt_snap_boot"])
+                    boot_btn.connect("clicked",
+                        lambda b, t=snap["tag"]: self._snap_boot(vm, t))
+                    row.append(boot_btn)
+
+                    apply_btn = Gtk.Button(label=S["snap_apply"])
+                    apply_btn.set_size_request(68, -1)
+                    apply_btn.connect("clicked",
+                        lambda b, t=snap["tag"]: self._snap_apply(vm, t))
+                    row.append(apply_btn)
                     snap_vbox.append(row)
             else:
                 nl = Gtk.Label(label=S["snap_none"])
@@ -1419,27 +1452,24 @@ TIPS
 
     # ── launch / stop ──
 
-    def _launch_vm(self, vm):
+    def _launch_vm(self, vm, preview_disk=None):
         """
         Launch VM with proper boot/reboot handling.
-        
-        FIXED BOOT CHAIN (v2):
-        - OVMF_VARS.fd created once, NEVER reset (persists EFI bootloader registration)
-        - PATH A: ISO + Disk (install phase) -> uses persistent OVMF_VARS + -boot order=d
-        - PATH B: Disk only (post-install) -> uses saved OVMF_VARS with bootloader entry
-        - PATH C: Special modes (legacy, raw IMG) -> separate handling
+        preview_disk: if set, boot from this path instead of the main disk
+                      (used by Boot-from-snapshot — main disk is not modified).
         """
         vmname    = vm["_name"]
         vmdir     = str(Path(self.vms_dir) / vmname)
         conf_path = vm["_conf"]
-        compat    = vm.get("compat_mode") == "true"
+        # preview_disk forces direct QEMU mode — quickemu can't use a custom disk path
+        compat    = True if preview_disk else vm.get("compat_mode") == "true"
         boot      = vm.get("boot", "uefi")
         confirmed = vm.get("confirmed") == "true"
         disk_if   = vm.get("disk_if", "")
         net_dev   = vm.get("net_device", "e1000")
         disk_img  = vm.get("disk_img", "")
-        iso       = vm.get("iso", "")
-        disk_path = str(Path(self.vms_dir) / disk_img) if disk_img else ""
+        iso       = "" if preview_disk else vm.get("iso", "")
+        disk_path = preview_disk or (str(Path(self.vms_dir) / disk_img) if disk_img else "")
         iso_path  = str(Path(self.vms_dir) / iso) if iso else ""
         ram       = vm.get("ram", "4G")
         cpu_cores = vm.get("cpu_cores", "2")
@@ -1457,8 +1487,8 @@ TIPS
             if not Path(ovmf_vars).exists() and OVMF_VARS_TEMPLATE:
                 shutil.copy(str(OVMF_VARS_TEMPLATE), ovmf_vars)
 
-        # Ensure disk exists (skip in live_mode — boots from ISO only)
-        if disk_path and not Path(disk_path).exists() and not live_mode:
+        # Ensure disk exists (skip in live_mode or preview_disk mode)
+        if disk_path and not Path(disk_path).exists() and not live_mode and not preview_disk:
             disk_size = vm.get("disk_size", "32G")
             subprocess.run(["qemu-img", "create", "-f", "qcow2", disk_path, disk_size])
 
@@ -1656,22 +1686,107 @@ TIPS
             self._warn(S["warn_snap_fail_t"], result.stderr or "qemu-img returned an error.")
 
     def _snap_apply(self, vm, tag):
+        import datetime
+        auto_tag = f"pre-apply-{datetime.datetime.now().strftime('%Y%m%d-%H%M')}"
+
+        win = Gtk.Window(title=S["dlg_snap_apply_t"].format(tag))
+        win.set_transient_for(self)
+        win.set_modal(True)
+        win.set_default_size(460, 200)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_margin_top(20); box.set_margin_bottom(16)
+        box.set_margin_start(20); box.set_margin_end(20)
+
+        warn_lbl = Gtk.Label(label=S["dlg_snap_apply_b"])
+        warn_lbl.set_halign(Gtk.Align.START)
+        warn_lbl.set_wrap(True)
+        box.append(warn_lbl)
+
+        chk = Gtk.CheckButton(label=S["snap_autosave_chk"].format(auto_tag))
+        chk.set_active(True)
+        box.append(chk)
+
+        btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        _sp = Gtk.Box(); _sp.set_hexpand(True)
+        btn_row.append(_sp)
+        cancel_btn = Gtk.Button(label=S["btn_cancel"])
+        cancel_btn.connect("clicked", lambda b: win.close())
+        btn_row.append(cancel_btn)
+        apply_btn = Gtk.Button(label=S["snap_apply"])
+        apply_btn.get_style_context().add_class("destructive-action")
+        btn_row.append(apply_btn)
+        box.append(btn_row)
+        win.set_child(box)
+
+        def _do_apply(b):
+            save_first = chk.get_active()
+            win.close()
+
+            def _run():
+                if save_first:
+                    r = subprocess.run(
+                        ["qemu-img", "snapshot", "-c", auto_tag, vm["_disk"]],
+                        capture_output=True, text=True)
+                    if r.returncode != 0:
+                        GLib.idle_add(self._warn, S["warn_snap_fail_t"],
+                                      f"Auto-save failed: {r.stderr}")
+                        return
+                    GLib.idle_add(notify, "quickbox",
+                                  S["snap_autosave_done"].format(auto_tag), "low")
+
+                r = subprocess.run(
+                    ["qemu-img", "snapshot", "-a", tag, vm["_disk"]],
+                    capture_output=True, text=True)
+                if r.returncode != 0:
+                    GLib.idle_add(self._warn, S["warn_snap_fail_t"],
+                                  r.stderr or "qemu-img returned an error.")
+                    return
+                setconf("current_snap", tag, vm["_conf"])
+                vm["current_snap"] = tag
+                GLib.idle_add(notify, "quickbox", S["ntf_snap_applied"].format(tag))
+                GLib.idle_add(self._show_panel, vm)
+                GLib.timeout_add(500, self._refresh)
+
+            threading.Thread(target=_run, daemon=True).start()
+
+        apply_btn.connect("clicked", _do_apply)
+        win.present()
+
+    def _snap_boot(self, vm, tag):
+        """Launch VM from snapshot without rolling back the main disk."""
         def on_confirm(yes):
             if not yes:
                 return
-            r = subprocess.run(["qemu-img", "snapshot", "-a", tag, vm["_disk"]],
-                               capture_output=True, text=True)
-            if r.returncode != 0:
-                self._warn(S["warn_snap_fail_t"], r.stderr or "qemu-img returned an error.")
-                return
-            setconf("current_snap", tag, vm["_conf"])
-            vm["current_snap"] = tag
-            notify("quickbox", S["ntf_snap_applied"].format(tag))
-            self._show_panel(vm)
-            GLib.timeout_add(500, self._refresh)
-        self._confirm(S["dlg_snap_apply_t"].format(tag),
-                      S["dlg_snap_apply_b"],
+            preview = str(Path(self.vms_dir) / vm["_name"] / ".snap-preview.qcow2")
+            if Path(preview).exists():
+                Path(preview).unlink()
+
+            def on_extracted(ok):
+                if not ok:
+                    self._warn(S["warn_snap_fail_t"], "Failed to extract snapshot.")
+                    return
+                setconf("snap_preview", tag, vm["_conf"])
+                vm["snap_preview"] = tag
+                notify("quickbox", S["ntf_snap_boot"].format(tag))
+                self._launch_vm(vm, preview_disk=preview)
+                self._show_panel(vm)
+
+            self._run_with_progress(
+                S["snap_extracting"],
+                ["qemu-img", "convert", "-O", "qcow2", "-s", tag, vm["_disk"], preview],
+                on_done=on_extracted)
+
+        self._confirm(S["dlg_snap_boot_t"].format(tag),
+                      S["dlg_snap_boot_b"],
                       on_confirm)
+
+    def _cleanup_preview(self, vm):
+        """Remove snapshot preview disk after VM stops."""
+        preview = Path(self.vms_dir) / vm["_name"] / ".snap-preview.qcow2"
+        preview.unlink(missing_ok=True)
+        if vm.get("snap_preview"):
+            remove_key("snap_preview", vm["_conf"])
+            vm.pop("snap_preview", None)
 
     def _snap_delete(self, vm, tag):
         def on_confirm(yes):
