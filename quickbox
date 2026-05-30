@@ -413,9 +413,9 @@ class QuickboxWindow(Gtk.Window):
         .ssh-btn:hover { background-color:#546e7a; }
         """
         p = Gtk.CssProvider()
-        p.load_from_data(css)
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(), p,
+        p.load_from_string(css.decode())
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(), p,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
     # ── UI skeleton ──
