@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# quickbox - GTK3 GUI / quickemu VM manager
+# quickbox - GTK4 GUI / quickemu VM manager
 # Author: musqz
 # License: GPL3
 
@@ -39,7 +39,7 @@ _lock_socket = _acquire_lock()
 # ────────────────────────────────────────────────────────────────────────────────
 
 import gi
-gi.require_version('Gtk', '3.0')
+gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Pango, Gdk
 
 import os
