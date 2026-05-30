@@ -501,7 +501,7 @@ class VMRow(Gtk.ListBoxRow):
         box.append(name)
 
         if vm["_running"]:
-            badge = Gtk.Label(label="running")
+            badge = Gtk.Label(label=S["badge_running"])
             badge.get_style_context().add_class("badge-running")
             box.append(badge)
         else:
@@ -623,7 +623,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         hb = Gtk.HeaderBar()
         hb.set_show_title_buttons(True)
         title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        title_lbl = Gtk.Label(label="Quickbox")
+        title_lbl = Gtk.Label(label=S["app_title"])
         title_lbl.set_css_classes(["title"])
         self._subtitle_lbl = Gtk.Label(label=self.vms_dir)
         self._subtitle_lbl.set_css_classes(["subtitle"])
@@ -634,13 +634,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._headerbar = hb
 
         refresh_btn = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
-        refresh_btn.set_tooltip_text("Refresh")
+        refresh_btn.set_tooltip_text(S["tt_refresh"])
         refresh_btn.connect("clicked", lambda b: self._refresh())
         hb.pack_start(refresh_btn)
 
         ssh_menu_btn = Gtk.MenuButton()
-        ssh_menu_btn.set_label("SSH")
-        ssh_menu_btn.set_tooltip_text("Quick SSH access to running VMs")
+        ssh_menu_btn.set_label(S["hdr_ssh"])
+        ssh_menu_btn.set_tooltip_text(S["tt_ssh_menu"])
         self._ssh_popover = Gtk.Popover()
         self._ssh_popover_box = Gtk.ListBox()
         self._ssh_popover_box.set_selection_mode(Gtk.SelectionMode.NONE)
@@ -651,29 +651,29 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         hb.pack_start(ssh_menu_btn)
 
         quick_ref_btn = Gtk.MenuButton()
-        quick_ref_btn.set_label("Quick Ref")
-        quick_ref_btn.set_tooltip_text("SSH/SCP command quick reference")
+        quick_ref_btn.set_label(S["hdr_quick_ref"])
+        quick_ref_btn.set_tooltip_text(S["tt_quick_ref"])
         self._quick_ref_popover = Gtk.Popover()
         quick_ref_btn.set_popover(self._quick_ref_popover)
         hb.pack_start(quick_ref_btn)
         self._build_quick_ref_menu()
 
         help_btn = Gtk.Button.new_from_icon_name("help-browser-symbolic")
-        help_btn.set_tooltip_text("SSH Setup & Commands Help")
+        help_btn.set_tooltip_text(S["tt_ssh_help"])
         help_btn.connect("clicked", lambda b: self._show_ssh_help())
         hb.pack_start(help_btn)
 
-        for label, icon, tooltip, cb in [
-            ("Download",  "folder-download-symbolic", "Download a new distro ISO via quickget", self._dlg_download),
-            ("Custom VM", "list-add-symbolic",        "Create a VM from a local ISO or IMG file", self._dlg_custom),
-            ("Advanced",  "preferences-system-symbolic", "Migrate VMs, switch location, manage saved paths", self._dlg_advanced),
+        for lbl_key, icon, tt_key, cb in [
+            ("hdr_download",  "folder-download-symbolic",      "tt_download",  self._dlg_download),
+            ("hdr_custom_vm", "list-add-symbolic",             "tt_custom_vm", self._dlg_custom),
+            ("hdr_advanced",  "preferences-system-symbolic",   "tt_advanced",  self._dlg_advanced),
         ]:
             btn = Gtk.Button()
             inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
             inner.append(Gtk.Image.new_from_icon_name(icon))
-            inner.append(Gtk.Label(label=label))
+            inner.append(Gtk.Label(label=S[lbl_key]))
             btn.set_child(inner)
-            btn.set_tooltip_text(tooltip)
+            btn.set_tooltip_text(S[tt_key])
             btn.connect("clicked", cb)
             hb.pack_end(btn)
 
@@ -689,8 +689,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         # Left — list
         left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         search = Gtk.SearchEntry()
-        search.set_placeholder_text("Filter VMs…")
-        search.set_tooltip_text("Type to filter the VM list by name")
+        search.set_placeholder_text(S["search_ph"])
+        search.set_tooltip_text(S["search_tt"])
         search.set_margin_top(8); search.set_margin_bottom(4)
         search.set_margin_start(8); search.set_margin_end(8)
         search.connect("search-changed", self._on_search)
@@ -741,8 +741,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         for vm in self.vms:
             self.listbox.append(VMRow(vm))
         n = len(self.vms)
+        vms_str = S["status_vms_pl"].format(n) if n != 1 else S["status_vms"].format(n)
         self._status.set_markup(
-            f'<span size="small">{self.vms_dir}  •  {n} VM{"s" if n != 1 else ""}</span>')
+            f'<span size="small">{self.vms_dir}  •  {vms_str}</span>')
         self._subtitle_lbl.set_label(self.vms_dir)
         # re-select
         if self.current_vm:
@@ -780,7 +781,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 return
         
         help_win = Gtk.Window()
-        help_win.set_title("SSH Setup & Commands")
+        help_win.set_title(S["ssh_help_title"])
         help_win.set_default_size(600, 500)
         help_win.connect("close-request", lambda w: self._on_help_closed() or False)
         
@@ -880,7 +881,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         
         setup_buffer.set_text(setup_content)
         setup_scroll.set_child(setup_text)
-        notebook.append_page(setup_scroll, Gtk.Label(label="Setup"))
+        notebook.append_page(setup_scroll, Gtk.Label(label=S["ssh_tab_setup"]))
         
         # ─── TAB 2: Quick Commands ───
         cmd_scroll = Gtk.ScrolledWindow()
@@ -946,13 +947,13 @@ TIPS
         
         cmd_buffer.set_text(cmd_content)
         cmd_scroll.set_child(cmd_text)
-        notebook.append_page(cmd_scroll, Gtk.Label(label="Commands"))
+        notebook.append_page(cmd_scroll, Gtk.Label(label=S["ssh_tab_cmds"]))
         
         # Store window reference
         self._ssh_help_win = help_win
         
         # Close button
-        close_btn = Gtk.Button(label="Close")
+        close_btn = Gtk.Button(label=S["ssh_help_close"])
         close_btn.connect("clicked", lambda b: help_win.hide())
         close_btn.set_margin_top(8)
         close_btn.set_margin_start(8)
@@ -976,15 +977,15 @@ TIPS
         box.set_margin_end(4)
 
         commands = [
-            ("SSH into VM",    "ssh -p 2222 root@localhost"),
+            (S["qr_ssh"],       "ssh -p 2222 root@localhost"),
             None,
-            ("Pull single file", "scp -P 2222 root@localhost:/path/to/file /local/path/"),
-            ("Push single file", "scp -P 2222 /local/file root@localhost:/remote/path/"),
+            (S["qr_pull_file"], "scp -P 2222 root@localhost:/path/to/file /local/path/"),
+            (S["qr_push_file"], "scp -P 2222 /local/file root@localhost:/remote/path/"),
             None,
-            ("Pull directory",  "scp -P 2222 -r root@localhost:/remote/dir /local/path/"),
-            ("Push directory",  "scp -P 2222 -r /local/dir root@localhost:/remote/path/"),
+            (S["qr_pull_dir"],  "scp -P 2222 -r root@localhost:/remote/dir /local/path/"),
+            (S["qr_push_dir"],  "scp -P 2222 -r /local/dir root@localhost:/remote/path/"),
             None,
-            ("Run command",    "ssh -p 2222 root@localhost 'ls /home/'"),
+            (S["qr_run_cmd"],   "ssh -p 2222 root@localhost 'ls /home/'"),
         ]
 
         for entry in commands:
@@ -1021,7 +1022,7 @@ TIPS
                 ssh_vms.append((vm["_pretty"], user, port, vm))
 
         if not ssh_vms:
-            lbl = Gtk.Label(label="No VMs running")
+            lbl = Gtk.Label(label=S["ssh_no_vms"])
             lbl.set_margin_top(8)
             lbl.set_margin_bottom(8)
             lbl.set_margin_start(12)
@@ -1051,7 +1052,7 @@ TIPS
         self._clear_right()
         self.right_box.set_valign(Gtk.Align.CENTER)
         lbl = Gtk.Label()
-        lbl.set_markup('<span size="large" color="gray">Select a VM from the list\nor use the buttons above</span>')
+        lbl.set_markup(f'<span size="large" color="gray">{S["welcome"]}</span>')
         lbl.set_halign(Gtk.Align.CENTER)
         lbl.set_vexpand(True)
         self.right_box.append(lbl)
@@ -2911,7 +2912,7 @@ def _update_distro_list(parent_win):
     box.set_margin_start(16)
     box.set_margin_end(16)
     
-    lbl = Gtk.Label(label="Updating distro list...")
+    lbl = Gtk.Label(label=S["distro_updating"])
     lbl.set_wrap(True)
     box.append(lbl)
 
