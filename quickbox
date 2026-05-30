@@ -40,7 +40,7 @@ _lock_socket = _acquire_lock()
 
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, GLib, Pango, Gdk
+from gi.repository import Gtk, GLib, Pango, Gdk, Gio
 
 import os
 import subprocess
@@ -1423,17 +1423,22 @@ TIPS
             self._warn("Snapshot failed", result.stderr or "qemu-img returned an error.")
 
     def _snap_apply(self, vm, tag):
-        if not self._confirm(f"Apply snapshot '{tag}'?",
-                             "This will overwrite the current disk state."):
-            return
-        subprocess.run(["qemu-img", "snapshot", "-a", tag, vm["_disk"]])
-        notify("quickbox", f"Snapshot '{tag}' applied. Launch VM from menu.")
+        def on_confirm(yes):
+            if not yes:
+                return
+            subprocess.run(["qemu-img", "snapshot", "-a", tag, vm["_disk"]])
+            notify("quickbox", f"Snapshot '{tag}' applied. Launch VM from menu.")
+        self._confirm(f"Apply snapshot '{tag}'?",
+                      "This will overwrite the current disk state.",
+                      on_confirm)
 
     def _snap_delete(self, vm, tag):
-        if not self._confirm(f"Delete snapshot '{tag}'?", "This cannot be undone."):
-            return
-        subprocess.run(["qemu-img", "snapshot", "-d", tag, vm["_disk"]])
-        self._show_panel(vm)
+        def on_confirm(yes):
+            if not yes:
+                return
+            subprocess.run(["qemu-img", "snapshot", "-d", tag, vm["_disk"]])
+            self._show_panel(vm)
+        self._confirm(f"Delete snapshot '{tag}'?", "This cannot be undone.", on_confirm)
 
     # ── clone ──
 
@@ -1442,10 +1447,11 @@ TIPS
         date_str  = datetime.datetime.now().strftime("%Y%m%d")
         suggested = f"{vm['_name']}-{date_str}"
 
-        dlg = Gtk.Dialog(title="Clone VM", parent=self, flags=0)
-        dlg.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Clone", Gtk.ResponseType.OK)
-        box = dlg.get_content_area()
-        box.set_spacing(8)
+        win = Gtk.Window(title="Clone VM")
+        win.set_transient_for(self)
+        win.set_modal(True)
+        win.set_default_size(380, 180)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.set_margin_top(16); box.set_margin_bottom(16)
         box.set_margin_start(16); box.set_margin_end(16)
         box.append(Gtk.Label(label=f"Clone '{vm['_pretty']}' as:"))
@@ -1457,79 +1463,87 @@ TIPS
         hint.set_markup('<span size="small" color="gray">The clone will appear in the VM list as a separate VM.</span>')
         hint.set_halign(Gtk.Align.START)
         box.append(hint)
-        r = dlg.run()
-        name = entry.get_text().strip()
-        dlg.destroy()
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_box.set_margin_top(8)
+        _sp = Gtk.Box(); _sp.set_hexpand(True)
+        btn_box.append(_sp)
+        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn.connect("clicked", lambda b: win.close())
+        btn_box.append(cancel_btn)
+        clone_btn = Gtk.Button(label="Clone")
+        clone_btn.get_style_context().add_class("suggested-action")
+        btn_box.append(clone_btn)
+        box.append(btn_box)
+        win.set_child(box)
 
-        if r != Gtk.ResponseType.OK or not name:
-            return
+        def _do_clone(b):
+            name = entry.get_text().strip()
+            win.close()
+            if not name:
+                return
+            dest_name = name.replace(" ", "-").lower()
+            dest_dir  = Path(self.vms_dir) / dest_name
+            dest_conf = Path(self.vms_dir) / f"{dest_name}.conf"
+            src_dir   = Path(self.vms_dir) / vm["_name"]
+            src_conf  = Path(vm["_conf"])
 
-        dest_name = name.replace(" ", "-").lower()
-        dest_dir  = Path(self.vms_dir) / dest_name
-        dest_conf = Path(self.vms_dir) / f"{dest_name}.conf"
-        src_dir   = Path(self.vms_dir) / vm["_name"]
-        src_conf  = Path(vm["_conf"])
+            if dest_dir.exists() or dest_conf.exists():
+                self._warn("Already exists", f"VM '{dest_name}' already exists.")
+                return
 
-        if dest_dir.exists() or dest_conf.exists():
-            self._warn("Already exists", f"VM '{dest_name}' already exists.")
-            return
-
-        try:
-            src_vm = read_vm_conf(str(src_conf))
-            skip_keys = {"vm_ram", "vm_cpu", "ssh_port"}
-
-            out = ["#!/usr/bin/quickemu --vm"]
-            for k, v in src_vm.items():
-                if k in skip_keys:
-                    continue
-                if k == "pretty":
-                    out.append(f'pretty="{name}"')
-                elif k == "disk_img" and v and vm["_name"] in v:
-                    out.append(f'{k}="{v.replace(vm["_name"], dest_name)}"')
-                elif v:
-                    out.append(f'{k}="{v}"')
-                else:
-                    out.append(f'{k}=')
-            if "pretty" not in src_vm:
-                out.append(f'pretty="{name}"')
-            dest_conf.write_text("\n".join(out) + "\n")
-            dest_conf.chmod(0o755)
-        except Exception as e:
-            self._warn("Clone failed", f"Could not write conf: {e}")
-            return
-
-        # refresh immediately so VM appears in list
-        self._refresh()
-        self._select_vm_by_name(dest_name)
-
-        # write a flag file so launch is blocked while copying
-        flag = Path(self.vms_dir) / f".{dest_name}.copying"
-        flag.touch()
-
-        # copy directory in background (may take a while for large disks)
-        def _copy_dir():
             try:
-                shutil.copytree(str(src_dir), str(dest_dir))
-                flag.unlink(missing_ok=True)
-                notify("quickbox", f"Clone complete: '{name}' — ready to use", "low")
-                GLib.idle_add(self._refresh)
-                GLib.timeout_add(200, lambda: self._select_vm_by_name(dest_name) or False)
+                src_vm = read_vm_conf(str(src_conf))
+                skip_keys = {"vm_ram", "vm_cpu", "ssh_port"}
+                out = ["#!/usr/bin/quickemu --vm"]
+                for k, v in src_vm.items():
+                    if k in skip_keys:
+                        continue
+                    if k == "pretty":
+                        out.append(f'pretty="{name}"')
+                    elif k == "disk_img" and v and vm["_name"] in v:
+                        out.append(f'{k}="{v.replace(vm["_name"], dest_name)}"')
+                    elif v:
+                        out.append(f'{k}="{v}"')
+                    else:
+                        out.append(f'{k}=')
+                if "pretty" not in src_vm:
+                    out.append(f'pretty="{name}"')
+                dest_conf.write_text("\n".join(out) + "\n")
+                dest_conf.chmod(0o755)
             except Exception as e:
-                flag.unlink(missing_ok=True)
-                GLib.idle_add(self._warn, "Clone failed", f"Directory copy failed: {str(e)}")
-                GLib.idle_add(dest_conf.unlink)
+                self._warn("Clone failed", f"Could not write conf: {e}")
+                return
 
-        threading.Thread(target=_copy_dir, daemon=True).start()
+            self._refresh()
+            self._select_vm_by_name(dest_name)
+            flag = Path(self.vms_dir) / f".{dest_name}.copying"
+            flag.touch()
+
+            def _copy_dir():
+                try:
+                    shutil.copytree(str(src_dir), str(dest_dir))
+                    flag.unlink(missing_ok=True)
+                    notify("quickbox", f"Clone complete: '{name}' — ready to use", "low")
+                    GLib.idle_add(self._refresh)
+                    GLib.timeout_add(200, lambda: self._select_vm_by_name(dest_name) or False)
+                except Exception as e:
+                    flag.unlink(missing_ok=True)
+                    GLib.idle_add(self._warn, "Clone failed", f"Directory copy failed: {str(e)}")
+                    GLib.idle_add(dest_conf.unlink)
+
+            threading.Thread(target=_copy_dir, daemon=True).start()
+
+        clone_btn.connect("clicked", _do_clone)
+        win.present()
 
     # ── delete ──
 
     def _dlg_format_disk(self, vm):
-        """Dialog to create/re-format the VM disk with a chosen partition layout."""
-        dlg = Gtk.Dialog(title="Format disk", parent=self, flags=0)
-        dlg.set_default_size(420, 320)
-        dlg.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Format", Gtk.ResponseType.OK)
-        box = dlg.get_content_area()
-        box.set_spacing(10)
+        win = Gtk.Window(title="Format disk")
+        win.set_transient_for(self)
+        win.set_modal(True)
+        win.set_default_size(420, 340)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.set_margin_top(16); box.set_margin_bottom(16)
         box.set_margin_start(16); box.set_margin_end(16)
 
@@ -1590,101 +1604,110 @@ TIPS
             radios.append(rb)
             box.append(rb)
 
-        r = dlg.run()
-        size_gb = int(size_spin.get_value())
-        layout = next((rb._layout_id for rb in radios if rb.get_active()), "blank")
-        dlg.destroy()
+        btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_row.set_margin_top(8)
+        _sp = Gtk.Box(); _sp.set_hexpand(True)
+        btn_row.append(_sp)
+        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn.connect("clicked", lambda b: win.close())
+        btn_row.append(cancel_btn)
+        format_btn = Gtk.Button(label="Format")
+        format_btn.get_style_context().add_class("destructive-action")
+        btn_row.append(format_btn)
+        box.append(btn_row)
+        win.set_child(box)
 
-        if r != Gtk.ResponseType.OK:
-            return
+        def _on_format(b):
+            size_gb = int(size_spin.get_value())
+            layout = next((rb._layout_id for rb in radios if rb.get_active()), "blank")
+            win.close()
 
-        # confirm destructive action
-        if not self._confirm(
-            "Format disk?",
-            f"This will create a new {size_gb}GB disk with layout: {layout}\n\n"
-            f"All existing data on the disk will be lost."
-        ):
-            return
+            def on_confirm(yes):
+                if not yes:
+                    return
+                disk_path = vm["_disk"] or str(Path(self.vms_dir) / vm["_name"] / "disk.qcow2")
 
-        disk_path = vm["_disk"] or str(Path(self.vms_dir) / vm["_name"] / "disk.qcow2")
+                def _do_format():
+                    import tempfile
+                    tmp = tempfile.mktemp(suffix=".raw", dir=self.vms_dir)
+                    try:
+                        GLib.idle_add(notify, "quickbox-gui",
+                                      f"Formatting {size_gb}GB disk…", "low")
+                        subprocess.run(["qemu-img", "create", "-f", "raw", tmp, f"{size_gb}G"],
+                                       check=True)
+                        if layout == "gpt_esp_ext4":
+                            subprocess.run(["parted", "-s", tmp,
+                                "mklabel", "gpt",
+                                "mkpart", "ESP", "fat32", "1MiB", "513MiB",
+                                "set", "1", "esp", "on",
+                                "mkpart", "primary", "ext4", "513MiB", "100%"],
+                                check=True)
+                        elif layout == "msdos_ext4":
+                            subprocess.run(["parted", "-s", tmp,
+                                "mklabel", "msdos",
+                                "mkpart", "primary", "ext4", "1MiB", "100%"],
+                                check=True)
+                        elif layout == "msdos_fat32":
+                            subprocess.run(["parted", "-s", tmp,
+                                "mklabel", "msdos",
+                                "mkpart", "primary", "fat32", "1MiB", "100%"],
+                                check=True)
+                        Path(disk_path).parent.mkdir(parents=True, exist_ok=True)
+                        subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
+                                         tmp, disk_path], check=True)
+                        setconf("disk_size", f"{size_gb}G", vm["_conf"])
+                        vm["disk_size"] = f"{size_gb}G"
+                        GLib.idle_add(notify, "quickbox-gui",
+                                      f"Disk ready: {layout}, {size_gb}GB", "low")
+                        GLib.idle_add(self._refresh)
+                    except subprocess.CalledProcessError as e:
+                        GLib.idle_add(self._warn, "Format failed",
+                                      f"Command failed: {' '.join(str(x) for x in e.cmd)}")
+                    finally:
+                        if Path(tmp).exists():
+                            Path(tmp).unlink()
 
-        def _do_format():
-            import tempfile
-            tmp = tempfile.mktemp(suffix=".raw", dir=self.vms_dir)
-            try:
-                GLib.idle_add(notify, "quickbox-gui",
-                              f"Formatting {size_gb}GB disk…", "low")
+                self._run_with_progress(f"Formatting disk — {size_gb}GB {layout}", ["true"])
+                threading.Thread(target=_do_format, daemon=True).start()
 
-                # create raw image
-                subprocess.run(["qemu-img", "create", "-f", "raw", tmp, f"{size_gb}G"],
-                               check=True)
+            self._confirm(
+                "Format disk?",
+                f"This will create a new {size_gb}GB disk with layout: {layout}\n\n"
+                f"All existing data on the disk will be lost.",
+                on_confirm
+            )
 
-                if layout == "gpt_esp_ext4":
-                    subprocess.run(["parted", "-s", tmp,
-                        "mklabel", "gpt",
-                        "mkpart", "ESP", "fat32", "1MiB", "513MiB",
-                        "set", "1", "esp", "on",
-                        "mkpart", "primary", "ext4", "513MiB", "100%"],
-                        check=True)
-                elif layout == "msdos_ext4":
-                    subprocess.run(["parted", "-s", tmp,
-                        "mklabel", "msdos",
-                        "mkpart", "primary", "ext4", "1MiB", "100%"],
-                        check=True)
-                elif layout == "msdos_fat32":
-                    subprocess.run(["parted", "-s", tmp,
-                        "mklabel", "msdos",
-                        "mkpart", "primary", "fat32", "1MiB", "100%"],
-                        check=True)
-                # blank — no partitions
-
-                # convert raw → qcow2
-                Path(disk_path).parent.mkdir(parents=True, exist_ok=True)
-                subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
-                                 tmp, disk_path], check=True)
-
-                setconf("disk_size", f"{size_gb}G", vm["_conf"])
-                vm["disk_size"] = f"{size_gb}G"
-
-                GLib.idle_add(notify, "quickbox-gui",
-                              f"Disk ready: {layout}, {size_gb}GB", "low")
-                GLib.idle_add(self._refresh)
-
-            except subprocess.CalledProcessError as e:
-                GLib.idle_add(self._warn, "Format failed",
-                              f"Command failed: {' '.join(str(x) for x in e.cmd)}")
-            finally:
-                if Path(tmp).exists():
-                    Path(tmp).unlink()
-
-        self._run_with_progress(
-            f"Formatting disk — {size_gb}GB {layout}",
-            ["true"],   # placeholder — real work runs in thread below
-        )
-        threading.Thread(target=_do_format, daemon=True).start()
+        format_btn.connect("clicked", _on_format)
+        win.present()
 
     def _delete_disk(self, vm):
-        if not self._confirm("Delete disk image?",
-                             f"Removes disk for '{vm['_pretty']}'. ISO stays."):
-            return
-        disk = Path(self.vms_dir) / vm.get("disk_img", "")
-        if disk.exists():
-            disk.unlink()
-        self._refresh()
+        def on_confirm(yes):
+            if not yes:
+                return
+            disk = Path(self.vms_dir) / vm.get("disk_img", "")
+            if disk.exists():
+                disk.unlink()
+            self._refresh()
+        self._confirm("Delete disk image?",
+                      f"Removes disk for '{vm['_pretty']}'. ISO stays.",
+                      on_confirm)
 
     def _delete_vm(self, vm):
-        if not self._confirm(f"Delete VM '{vm['_pretty']}' completely?",
-                             "All files removed. Cannot be undone."):
-            return
-        for p in [Path(self.vms_dir) / vm["_name"], Path(vm["_conf"])]:
-            if p.exists():
-                if p.is_dir():
-                    shutil.rmtree(str(p))
-                else:
-                    p.unlink()
-        self.current_vm = None
-        self._refresh()
-        self._show_welcome()
+        def on_confirm(yes):
+            if not yes:
+                return
+            for p in [Path(self.vms_dir) / vm["_name"], Path(vm["_conf"])]:
+                if p.exists():
+                    if p.is_dir():
+                        shutil.rmtree(str(p))
+                    else:
+                        p.unlink()
+            self.current_vm = None
+            self._refresh()
+            self._show_welcome()
+        self._confirm(f"Delete VM '{vm['_pretty']}' completely?",
+                      "All files removed. Cannot be undone.",
+                      on_confirm)
 
     # ── download / custom ──
 
@@ -1722,11 +1745,12 @@ TIPS
     def _dlg_download(self, *_):
         distros = self._parse_quickinst()
 
-        dlg = Gtk.Dialog(title="Download Distro", parent=self, flags=0)
-        dlg.set_default_size(640, 520)
-        dlg.add_buttons("Close", Gtk.ResponseType.CLOSE)
-        box = dlg.get_content_area()
-        box.set_spacing(0)
+        win = Gtk.Window(title="Download Distro")
+        win.set_transient_for(self)
+        win.set_modal(True)
+        win.set_default_size(640, 520)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        box.set_vexpand(True)
 
         # Hint text (no search bar)
         hint_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -1793,7 +1817,7 @@ TIPS
         # Alphabet buttons - click to jump to that letter
         for letter in sorted(row_map.keys()):
             btn = Gtk.Button(label=letter)
-            btn.set_relief(Gtk.ReliefStyle.NONE)
+            btn.set_has_frame(False)
             btn.set_size_request(34, 28)
             def _scroll_to(b, ltr, rm=row_map, ls=list_scroll):
                 r = rm.get(ltr)
@@ -1806,7 +1830,7 @@ TIPS
         def _on_activate(lb, row):
             if not row.get_selectable():
                 return
-            self._dlg_do_download(row._distro_name, row._distro_cmd, distros, dlg)
+            self._dlg_do_download(row._distro_name, row._distro_cmd, distros, win)
 
         listbox.connect("row-activated", _on_activate)
 
@@ -1817,12 +1841,16 @@ TIPS
         hint2.set_margin_top(6); hint2.set_margin_bottom(6)
         box.append(hint2)
 
-        dlg.run()
-        dlg.destroy()
+        close_btn = Gtk.Button(label="Close")
+        close_btn.set_margin_top(6); close_btn.set_margin_bottom(6)
+        close_btn.set_margin_start(8); close_btn.set_margin_end(8)
+        close_btn.connect("clicked", lambda b: win.close())
+        box.append(close_btn)
 
-    def _dlg_do_download(self, distro_name, distro_cmd, distros, parent_dlg):
-        """Download dialog with version picker, progress bar, optional output log."""
+        win.set_child(box)
+        win.present()
 
+    def _dlg_do_download(self, distro_name, distro_cmd, distros, parent_win):
         # Build version list for this distro family
         cmd_parts = distro_cmd.split()
         base_distro = cmd_parts[1] if len(cmd_parts) > 1 else distro_name
@@ -1832,16 +1860,15 @@ TIPS
         if not versions:
             versions = [(distro_name, distro_cmd)]
 
-        # Version labels for dropdown
         version_labels = [name for name, cmd in versions]
-        # find default (first entry that matches clicked name)
         default_idx = next((i for i, (n, c) in enumerate(versions)
                             if n == distro_name), 0)
 
-        dlg = Gtk.Dialog(title=f"Download — {base_distro}", parent=self, flags=0)
+        dlg = Gtk.Window(title=f"Download — {base_distro}")
+        dlg.set_transient_for(self)
+        dlg.set_modal(True)
         dlg.set_default_size(560, 420)
-        box = dlg.get_content_area()
-        box.set_spacing(0)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         box.set_margin_top(16); box.set_margin_bottom(16)
         box.set_margin_start(16); box.set_margin_end(16)
 
@@ -2033,7 +2060,7 @@ TIPS
 
         def _on_download(btn):
             if btn.get_label() in ("Done — Close", "Close"):
-                dlg.destroy()
+                dlg.close()
                 return
             threading.Thread(target=_run_download, daemon=True).start()
 
@@ -2041,112 +2068,134 @@ TIPS
             if self._dl_process and self._dl_process.poll() is None:
                 self._dl_cancelled = True
                 self._dl_process.terminate()
-            dlg.destroy()
+            dlg.close()
 
         dl_btn.connect("clicked", _on_download)
         cancel_btn.connect("clicked", _on_cancel)
-        dlg.connect("destroy", lambda d: _on_cancel(cancel_btn))
+        dlg.connect("close-request", lambda w: _on_cancel(cancel_btn) or False)
 
-        dlg.run()
+        box.set_vexpand(True)
+        dlg.set_child(box)
+        dlg.present()
 
 
     def _dlg_custom(self, *_):
-        # ask for VM name
-        name_dlg = Gtk.Dialog(title="Create Custom VM", parent=self, flags=0)
-        name_dlg.set_default_size(380, 140)
-        name_dlg.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Next", Gtk.ResponseType.OK)
-        nb = name_dlg.get_content_area()
-        nb.set_spacing(8); nb.set_margin_top(16); nb.set_margin_bottom(16)
+        name_win = Gtk.Window(title="Create Custom VM")
+        name_win.set_transient_for(self)
+        name_win.set_modal(True)
+        name_win.set_default_size(380, 150)
+        nb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        nb.set_margin_top(16); nb.set_margin_bottom(16)
         nb.set_margin_start(16); nb.set_margin_end(16)
         nb.append(Gtk.Label(label="Enter a name for the new VM:"))
         name_entry = Gtk.Entry()
         name_entry.set_text("My custom VM")
         nb.append(name_entry)
-        r = name_dlg.run()
-        vm_name = name_entry.get_text().strip()
-        name_dlg.destroy()
-        if r != Gtk.ResponseType.OK or not vm_name:
-            return
+        btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_row.set_margin_top(8)
+        _sp = Gtk.Box(); _sp.set_hexpand(True)
+        btn_row.append(_sp)
+        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn.connect("clicked", lambda b: name_win.close())
+        btn_row.append(cancel_btn)
+        next_btn = Gtk.Button(label="Next")
+        next_btn.get_style_context().add_class("suggested-action")
+        btn_row.append(next_btn)
+        nb.append(btn_row)
+        name_win.set_child(nb)
 
-        dest_name = vm_name.replace(" ", "-").lower()
-        dest_dir  = Path(self.vms_dir) / dest_name
-        dest_conf = Path(self.vms_dir) / f"{dest_name}.conf"
-        if dest_dir.exists():
-            self._warn("Already exists", f"VM '{dest_name}' already exists.")
-            return
+        def _on_next(b):
+            vm_name = name_entry.get_text().strip()
+            name_win.close()
+            if not vm_name:
+                return
 
-        # pick ISO or IMG
-        fc = Gtk.FileChooserDialog(title="Select ISO or IMG file", parent=self,
-                                   action=Gtk.FileChooserAction.OPEN)
-        fc.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Select", Gtk.ResponseType.OK)
-        fc.set_current_folder(str(Path.home() / "Downloads"))
-        filt = Gtk.FileFilter()
-        filt.set_name("Disk images (*.iso, *.img)")
-        filt.add_pattern("*.iso"); filt.add_pattern("*.ISO")
-        filt.add_pattern("*.img"); filt.add_pattern("*.IMG")
-        fc.add_filter(filt)
-        r2 = fc.run()
-        src_path = fc.get_filename()
-        fc.destroy()
-        if r2 != Gtk.ResponseType.OK or not src_path:
-            return
+            dest_name = vm_name.replace(" ", "-").lower()
+            dest_dir  = Path(self.vms_dir) / dest_name
+            dest_conf = Path(self.vms_dir) / f"{dest_name}.conf"
+            if dest_dir.exists():
+                self._warn("Already exists", f"VM '{dest_name}' already exists.")
+                return
 
-        src_path = Path(src_path)
-        dest_dir.mkdir(parents=True, exist_ok=True)
+            fc = Gtk.FileChooserNative(title="Select ISO or IMG file",
+                                       transient_for=self,
+                                       action=Gtk.FileChooserAction.OPEN)
+            filt = Gtk.FileFilter()
+            filt.set_name("Disk images (*.iso, *.img)")
+            filt.add_pattern("*.iso"); filt.add_pattern("*.ISO")
+            filt.add_pattern("*.img"); filt.add_pattern("*.IMG")
+            fc.add_filter(filt)
 
-        # Assign SSH port upfront
-        ssh_port = get_next_ssh_port(self.vms_dir, dest_name)
+            def _on_file(chooser, response):
+                if response != Gtk.ResponseType.ACCEPT:
+                    return
+                gfile = chooser.get_file()
+                if not gfile:
+                    return
+                src_path = Path(gfile.get_path())
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                ssh_port = get_next_ssh_port(self.vms_dir, dest_name)
 
-        if src_path.suffix.lower() == ".img":
-            # convert raw img to qcow2
-            notify("quickbox", f"Converting {src_path.name} to qcow2…", "low")
-            def _convert():
-                disk = str(dest_dir / "disk.qcow2")
-                subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
-                                 str(src_path), disk])
-                subprocess.run(["qemu-img", "resize", disk, "20G"])
-                conf_text = (f"#!/usr/bin/quickemu --vm\n"
-                             f"guest_os=\"linux\"\n"
-                             f"disk_img=\"{dest_name}/disk.qcow2\"\n"
-                             f"iso=\"\"\n"
-                             f"pretty=\"{vm_name}\"\n"
-                             f"ssh_port=\"{ssh_port}\"\n"
-                             f"boot=legacy\n"
-                             f"compat_mode=true\n"
-                             f"disk_if=ide\n"
-                             f"net_device=e1000\n")
-                dest_conf.write_text(conf_text)
-                dest_conf.chmod(0o755)
-                notify("quickbox", f"VM <b>{vm_name}</b> created!", "low")
-                GLib.idle_add(self._refresh)
-            threading.Thread(target=_convert, daemon=True).start()
-        else:
-            # copy ISO
-            notify("quickbox", f"Copying {src_path.name}…", "low")
-            def _copy():
-                shutil.copy2(str(src_path), str(dest_dir / src_path.name))
-                conf_text = (f"#!/usr/bin/quickemu --vm\n"
-                             f"guest_os=\"linux\"\n"
-                             f"disk_img=\"{dest_name}/disk.qcow2\"\n"
-                             f"iso=\"{dest_name}/{src_path.name}\"\n"
-                             f"pretty=\"{vm_name}\"\n"
-                             f"ssh_port=\"{ssh_port}\"\n")
-                dest_conf.write_text(conf_text)
-                dest_conf.chmod(0o755)
-                notify("quickbox", f"VM <b>{vm_name}</b> created!", "low")
-                GLib.idle_add(self._refresh)
-            threading.Thread(target=_copy, daemon=True).start()
+                if src_path.suffix.lower() == ".img":
+                    notify("quickbox", f"Converting {src_path.name} to qcow2…", "low")
+                    def _convert():
+                        disk = str(dest_dir / "disk.qcow2")
+                        subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
+                                         str(src_path), disk])
+                        subprocess.run(["qemu-img", "resize", disk, "20G"])
+                        conf_text = (f"#!/usr/bin/quickemu --vm\n"
+                                     f"guest_os=\"linux\"\n"
+                                     f"disk_img=\"{dest_name}/disk.qcow2\"\n"
+                                     f"iso=\"\"\n"
+                                     f"pretty=\"{vm_name}\"\n"
+                                     f"ssh_port=\"{ssh_port}\"\n"
+                                     f"boot=legacy\n"
+                                     f"compat_mode=true\n"
+                                     f"disk_if=ide\n"
+                                     f"net_device=e1000\n")
+                        dest_conf.write_text(conf_text)
+                        dest_conf.chmod(0o755)
+                        notify("quickbox", f"VM <b>{vm_name}</b> created!", "low")
+                        GLib.idle_add(self._refresh)
+                    threading.Thread(target=_convert, daemon=True).start()
+                else:
+                    notify("quickbox", f"Copying {src_path.name}…", "low")
+                    def _copy():
+                        shutil.copy2(str(src_path), str(dest_dir / src_path.name))
+                        conf_text = (f"#!/usr/bin/quickemu --vm\n"
+                                     f"guest_os=\"linux\"\n"
+                                     f"disk_img=\"{dest_name}/disk.qcow2\"\n"
+                                     f"iso=\"{dest_name}/{src_path.name}\"\n"
+                                     f"pretty=\"{vm_name}\"\n"
+                                     f"ssh_port=\"{ssh_port}\"\n")
+                        dest_conf.write_text(conf_text)
+                        dest_conf.chmod(0o755)
+                        notify("quickbox", f"VM <b>{vm_name}</b> created!", "low")
+                        GLib.idle_add(self._refresh)
+                    threading.Thread(target=_copy, daemon=True).start()
+
+            fc.connect("response", _on_file)
+            fc.show()
+
+        next_btn.connect("clicked", _on_next)
+        name_win.present()
 
     # ── Advanced dialog ──
 
     def _dlg_advanced(self, *_):
-        dlg = Gtk.Dialog(title="Advanced", parent=self, flags=0)
+        dlg = Gtk.Window(title="Advanced")
+        dlg.set_transient_for(self)
+        dlg.set_modal(True)
         dlg.set_default_size(480, 540)
-        dlg.add_buttons("Close", Gtk.ResponseType.CLOSE)
-        box = dlg.get_content_area()
-        box.set_spacing(0)
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_vexpand(True)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         box.set_margin_top(16); box.set_margin_bottom(24)
         box.set_margin_start(16); box.set_margin_end(16)
+        scroll.set_child(box)
+        outer.append(scroll)
 
         # Current vms_dir
         loc_lbl = Gtk.Label()
@@ -2245,8 +2294,14 @@ TIPS
         self._refresh_loc_list(dlg)
         box.append(self._loc_list_box)
 
-        dlg.run()
-        dlg.destroy()
+        close_btn = Gtk.Button(label="Close")
+        close_btn.set_margin_top(8); close_btn.set_margin_bottom(8)
+        close_btn.set_margin_start(16); close_btn.set_margin_end(16)
+        close_btn.connect("clicked", lambda b: dlg.close())
+        outer.append(close_btn)
+
+        dlg.set_child(outer)
+        dlg.present()
 
     def _refresh_loc_list(self, dlg):
         while child := self._loc_list_box.get_first_child():
@@ -2303,14 +2358,16 @@ TIPS
             self._warn("No VMs", "There are no VMs in the current location.")
             return
 
-        pick = Gtk.Dialog(title="Select VMs to migrate", parent=self, flags=0)
+        pick = Gtk.Window(title="Select VMs to migrate")
+        pick.set_transient_for(self)
+        pick.set_modal(True)
         pick.set_default_size(440, 480)
-        pick.add_buttons("Cancel", Gtk.ResponseType.CANCEL,
-                         "Next", Gtk.ResponseType.OK)
-        pb = pick.get_content_area()
-        pb.set_spacing(8)
+        pick_outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        pb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         pb.set_margin_top(14); pb.set_margin_bottom(14)
         pb.set_margin_start(14); pb.set_margin_end(14)
+        pb.set_vexpand(True)
+        pick_outer.append(pb)
 
         info = Gtk.Label()
         info.set_markup('<span size="small" color="gray">Tick the VMs you want to copy to the new location.</span>')
@@ -2348,91 +2405,111 @@ TIPS
         none_btn.connect("clicked",
             lambda b: [c.set_active(False) for c in checks])
 
-        r = pick.run()
-        selected = [c._vm for c in checks if c.get_active() and c.get_sensitive()]
-        pick.destroy()
+        btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_row.set_margin_top(8); btn_row.set_margin_bottom(8)
+        btn_row.set_margin_start(14); btn_row.set_margin_end(14)
+        _sp = Gtk.Box(); _sp.set_hexpand(True)
+        btn_row.append(_sp)
+        cancel_pick = Gtk.Button(label="Cancel")
+        cancel_pick.connect("clicked", lambda b: pick.close())
+        btn_row.append(cancel_pick)
+        next_pick = Gtk.Button(label="Next")
+        next_pick.get_style_context().add_class("suggested-action")
+        btn_row.append(next_pick)
+        pick_outer.append(btn_row)
+        pick.set_child(pick_outer)
 
-        if r != Gtk.ResponseType.OK or not selected:
-            return
-
-        # Step 2: pick destination
-        dest = self._pick_dir("Select destination for migration", str(Path.home()))
-        if not dest:
-            return
-        newdir = str(Path(dest) / "emu")
-        if newdir == self.vms_dir:
-            self._warn("Same location", "Destination is the same as current.")
-            return
-
-        names = "\n  • ".join(v["_pretty"] for v in selected)
-        if not self._confirm(
-            "Start migration?",
-            f"Copy {len(selected)} VM(s) to:\n{newdir}\n\n  • {names}\n\n"
-            f"Originals will remain unless you confirm removal afterwards."
-        ):
-            return
-
-        Path(newdir).mkdir(parents=True, exist_ok=True)
-
-        # Build rsync arg list: each VM dir + its .conf file
-        rsync_cmd = ["rsync", "-a", "--info=progress2"]
-        for vm in selected:
-            vm_dir = str(Path(self.vms_dir) / vm["_name"])
-            if Path(vm_dir).exists():
-                rsync_cmd.append(vm_dir)
-            rsync_cmd.append(vm["_conf"])
-        rsync_cmd.append(f"{newdir}/")
-
-        def _migration_done(ok):
-            if not ok:
-                self._warn("Migration failed", "rsync returned an error.")
+        def _on_next_pick(b):
+            selected = [c._vm for c in checks if c.get_active() and c.get_sensitive()]
+            pick.close()
+            if not selected:
                 return
-            if self._confirm_danger(
-                "Remove original files?",
-                f"Migration succeeded.\n\n"
-                f"Do you want to PERMANENTLY DELETE the {len(selected)} "
-                f"migrated VM(s) from the original location?\n\n"
-                f"{self.vms_dir}\n\n"
-                f"This cannot be undone. The copies in the new location will remain."
-            ):
-                for vm in selected:
-                    vm_dir = Path(self.vms_dir) / vm["_name"]
-                    if vm_dir.exists():
-                        shutil.rmtree(str(vm_dir))
-                    if Path(vm["_conf"]).exists():
-                        Path(vm["_conf"]).unlink()
-            self._refresh()
-            self._refresh_loc_list(dlg)
 
-        self._run_with_progress(
-            f"Migrating {len(selected)} VM(s)",
-            rsync_cmd,
-            on_done=_migration_done
-        )
+            def _on_folder(path):
+                if not path:
+                    return
+                newdir = str(Path(path) / "emu")
+                if newdir == self.vms_dir:
+                    self._warn("Same location", "Destination is the same as current.")
+                    return
+                names = "\n  • ".join(v["_pretty"] for v in selected)
+                def on_confirm(yes):
+                    if not yes:
+                        return
+                    Path(newdir).mkdir(parents=True, exist_ok=True)
+                    rsync_cmd = ["rsync", "-a", "--info=progress2"]
+                    for vm in selected:
+                        vm_dir = str(Path(self.vms_dir) / vm["_name"])
+                        if Path(vm_dir).exists():
+                            rsync_cmd.append(vm_dir)
+                        rsync_cmd.append(vm["_conf"])
+                    rsync_cmd.append(f"{newdir}/")
+
+                    def _migration_done(ok):
+                        if not ok:
+                            self._warn("Migration failed", "rsync returned an error.")
+                            return
+                        def on_danger(yes):
+                            if yes:
+                                for vm in selected:
+                                    vm_dir = Path(self.vms_dir) / vm["_name"]
+                                    if vm_dir.exists():
+                                        shutil.rmtree(str(vm_dir))
+                                    if Path(vm["_conf"]).exists():
+                                        Path(vm["_conf"]).unlink()
+                            self._refresh()
+                            self._refresh_loc_list(dlg)
+                        self._confirm_danger(
+                            "Remove original files?",
+                            f"Migration succeeded.\n\n"
+                            f"Do you want to PERMANENTLY DELETE the {len(selected)} "
+                            f"migrated VM(s) from the original location?\n\n"
+                            f"{self.vms_dir}\n\n"
+                            f"This cannot be undone. The copies in the new location will remain.",
+                            on_danger
+                        )
+
+                    self._run_with_progress(
+                        f"Migrating {len(selected)} VM(s)",
+                        rsync_cmd,
+                        on_done=_migration_done
+                    )
+                self._confirm(
+                    "Start migration?",
+                    f"Copy {len(selected)} VM(s) to:\n{newdir}\n\n  • {names}\n\n"
+                    f"Originals will remain unless you confirm removal afterwards.",
+                    on_confirm
+                )
+
+            self._pick_dir("Select destination for migration", str(Path.home()), _on_folder)
+
+        next_pick.connect("clicked", _on_next_pick)
+        pick.present()
 
     def _do_add_loc(self, dlg):
-        loc = self._pick_dir("Select directory to add to switch list", str(Path.home()))
-        if not loc:
-            return
-        conf = read_conf()
-        for i in range(1, 6):
-            if not conf.get(f"vms_dir_{i}"):
-                setconf(f"vms_dir_{i}", loc)
-                self._refresh_loc_list(dlg)
+        def _on_dir(loc):
+            if not loc:
                 return
-        self._warn("List full", "Maximum 5 saved locations. Remove one first.")
+            conf = read_conf()
+            for i in range(1, 6):
+                if not conf.get(f"vms_dir_{i}"):
+                    setconf(f"vms_dir_{i}", loc)
+                    self._refresh_loc_list(dlg)
+                    return
+            self._warn("List full", "Maximum 5 saved locations. Remove one first.")
+        self._pick_dir("Select directory to add to switch list", str(Path.home()), _on_dir)
 
     # ── dialogs helpers ──
 
     def _run_with_progress(self, title, cmd_list, cwd=None, on_done=None):
-        """Run a command in a background thread with a GUI progress dialog."""
-        dlg = Gtk.Dialog(title=title, parent=self, flags=0)
-        dlg.set_default_size(460, 160)
+        dlg = Gtk.Window(title=title)
+        dlg.set_transient_for(self)
+        dlg.set_modal(True)
         dlg.set_deletable(False)
-        box = dlg.get_content_area()
+        dlg.set_default_size(460, 160)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.set_margin_top(16); box.set_margin_bottom(16)
         box.set_margin_start(16); box.set_margin_end(16)
-        box.set_spacing(10)
 
         status_lbl = Gtk.Label(label="Please wait…")
         status_lbl.set_halign(Gtk.Align.START)
@@ -2447,6 +2524,8 @@ TIPS
         note.set_halign(Gtk.Align.START)
         box.append(note)
 
+        dlg.set_child(box)
+        dlg.present()
 
         def _pulse():
             progress.pulse()
@@ -2462,7 +2541,7 @@ TIPS
                     capture_output=True, text=True
                 )
                 rc = proc.returncode
-            except Exception as e:
+            except Exception:
                 rc = 1
 
             self._proc_running = False
@@ -2478,71 +2557,64 @@ TIPS
                     '<span size="small" color="red">Something went wrong.</span>')
 
             def _finish():
-                dlg.destroy()
+                dlg.close()
                 if on_done:
                     on_done(rc == 0)
             GLib.timeout_add(1200, _finish)
 
         threading.Thread(target=_run, daemon=True).start()
-        dlg.run()
 
-    def _pick_dir(self, title, start):
-        fc = Gtk.FileChooserDialog(title=title, parent=self,
+    def _pick_dir(self, title, start, callback):
+        fc = Gtk.FileChooserNative(title=title,
+                                   transient_for=self,
                                    action=Gtk.FileChooserAction.SELECT_FOLDER)
-        fc.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Select", Gtk.ResponseType.OK)
-        fc.set_current_folder(start)
-        r = fc.run()
-        path = fc.get_filename() if r == Gtk.ResponseType.OK else None
-        fc.destroy()
-        return path
+        initial = Gio.File.new_for_path(start)
+        fc.set_current_folder(initial)
+        def _on_response(chooser, response):
+            if response == Gtk.ResponseType.ACCEPT:
+                gfile = chooser.get_file()
+                callback(gfile.get_path() if gfile else None)
+            else:
+                callback(None)
+        fc.connect("response", _on_response)
+        fc.show()
 
-    def _confirm(self, title, body):
-        dlg = Gtk.MessageDialog(parent=self, flags=0,
-                                message_type=Gtk.MessageType.QUESTION,
-                                buttons=Gtk.ButtonsType.YES_NO,
-                                text=title)
-        dlg.format_secondary_text(body)
-        r = dlg.run()
-        dlg.destroy()
-        return r == Gtk.ResponseType.YES
+    def _confirm(self, title, body, callback):
+        dlg = Gtk.AlertDialog()
+        dlg.set_message(title)
+        dlg.set_detail(body)
+        dlg.set_buttons(["Cancel", "Yes"])
+        dlg.set_default_button(0)
+        dlg.set_cancel_button(0)
+        def _on_response(d, result):
+            try:
+                idx = d.choose_finish(result)
+                callback(idx == 1)
+            except Exception:
+                callback(False)
+        dlg.choose(self, None, _on_response)
 
-    def _confirm_danger(self, title, body):
-            """Confirmation dialog for destructive actions.
-            
-            Defaults to NO (green/safe). The YES button is styled red as a
-            deliberate visual warning to prevent accidental deletes.
-            """
-            dlg = Gtk.MessageDialog(parent=self, flags=0,
-                                    message_type=Gtk.MessageType.WARNING,
-                                    buttons=Gtk.ButtonsType.NONE,
-                                    text=title)
-            dlg.format_secondary_text(body)
-
-            # Green "No, keep files" — safe default
-            no_btn = dlg.add_button("No, keep files", Gtk.ResponseType.NO)
-            no_ctx = no_btn.get_style_context()
-            no_ctx.add_class("suggested-action")  # GTK green accent
-
-            # Red "Yes, delete" — destructive
-            yes_btn = dlg.add_button("Yes, delete originals", Gtk.ResponseType.YES)
-            yes_ctx = yes_btn.get_style_context()
-            yes_ctx.add_class("destructive-action")  # GTK red accent
-
-            # Make NO the default (Enter key = safe choice)
-            dlg.set_default_response(Gtk.ResponseType.NO)
-
-            r = dlg.run()
-            dlg.destroy()
-            return r == Gtk.ResponseType.YES
+    def _confirm_danger(self, title, body, callback):
+        dlg = Gtk.AlertDialog()
+        dlg.set_message(title)
+        dlg.set_detail(body)
+        dlg.set_buttons(["No, keep files", "Yes, delete originals"])
+        dlg.set_default_button(0)
+        dlg.set_cancel_button(0)
+        def _on_response(d, result):
+            try:
+                idx = d.choose_finish(result)
+                callback(idx == 1)
+            except Exception:
+                callback(False)
+        dlg.choose(self, None, _on_response)
 
     def _warn(self, title, body):
-        dlg = Gtk.MessageDialog(parent=self, flags=0,
-                                message_type=Gtk.MessageType.WARNING,
-                                buttons=Gtk.ButtonsType.OK,
-                                text=title)
-        dlg.format_secondary_text(body)
-        dlg.run()
-        dlg.destroy()
+        dlg = Gtk.AlertDialog()
+        dlg.set_message(title)
+        dlg.set_detail(body)
+        dlg.set_buttons(["OK"])
+        dlg.show(self)
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
