@@ -569,7 +569,6 @@ class QuickboxWindow(Gtk.Window):
                 self._ssh_help_win.hide()
                 return
             else:
-                self._ssh_help_win.show_all()
                 self._ssh_help_win.present()
                 return
         
@@ -754,7 +753,7 @@ TIPS
         close_btn.set_margin_bottom(8)
         vbox.append(close_btn)
         
-        help_win.show_all()
+        help_win.present()
 
 
     def _on_help_closed(self):
@@ -787,7 +786,6 @@ TIPS
                 item.connect("activate", lambda i, c=cmd: self._copy_command_to_clipboard(c))
                 self._quick_ref_menu.append(item)
         
-        self._quick_ref_menu.show_all()
 
     def _copy_command_to_clipboard(self, cmd):
         """Copy a command to clipboard."""
@@ -828,7 +826,6 @@ TIPS
                 item.connect("activate", lambda i, v=vm: self._copy_ssh_for_vm(v))
                 self._ssh_menu.append(item)
         
-        self._ssh_menu.show_all()
 
 
 
@@ -847,7 +844,6 @@ TIPS
         lbl.set_halign(Gtk.Align.CENTER)
         lbl.set_vexpand(True)
         self.right_box.append(lbl)
-        self.right_box.show_all()
 
     def _clear_right(self):
         while child := self.right_box.get_first_child():
@@ -1196,7 +1192,6 @@ TIPS
             dng_box.append(btn)
         self.right_box.append(dng_box)
 
-        self.right_box.show_all()
 
     # ── launch / stop ──
 
@@ -1471,7 +1466,6 @@ TIPS
         hint.set_markup('<span size="small" color="gray">The clone will appear in the VM list as a separate VM.</span>')
         hint.set_halign(Gtk.Align.START)
         box.append(hint)
-        dlg.show_all()
         r = dlg.run()
         name = entry.get_text().strip()
         dlg.destroy()
@@ -1603,7 +1597,6 @@ TIPS
             radios.append(rb)
             box.append(rb)
 
-        dlg.show_all()
         r = dlg.run()
         size_gb = int(size_spin.get_value())
         layout = next((rb._layout_id for rb in radios if rb.get_active()), "blank")
@@ -1831,7 +1824,6 @@ TIPS
         hint2.set_margin_top(6); hint2.set_margin_bottom(6)
         box.append(hint2)
 
-        dlg.show_all()
         dlg.run()
         dlg.destroy()
 
@@ -1936,7 +1928,6 @@ TIPS
         btn_box.append(dl_btn)
         box.append(btn_box)
 
-        dlg.show_all()
 
         # State
         self._dl_process  = None
@@ -2078,7 +2069,6 @@ TIPS
         name_entry = Gtk.Entry()
         name_entry.set_text("My custom VM")
         nb.append(name_entry)
-        name_dlg.show_all()
         r = name_dlg.run()
         vm_name = name_entry.get_text().strip()
         name_dlg.destroy()
@@ -2262,7 +2252,6 @@ TIPS
         self._refresh_loc_list(dlg)
         box.append(self._loc_list_box)
 
-        dlg.show_all()
         dlg.run()
         dlg.destroy()
 
@@ -2302,7 +2291,6 @@ TIPS
             nl.get_style_context().add_class("dim-label")
             nl.set_halign(Gtk.Align.START)
             self._loc_list_box.append(nl)
-        self._loc_list_box.show_all()
 
     def _switch_loc(self, loc, dlg):
         setconf("vms_dir", loc)
@@ -2367,7 +2355,6 @@ TIPS
         none_btn.connect("clicked",
             lambda b: [c.set_active(False) for c in checks])
 
-        pick.show_all()
         r = pick.run()
         selected = [c._vm for c in checks if c.get_active() and c.get_sensitive()]
         pick.destroy()
@@ -2467,7 +2454,6 @@ TIPS
         note.set_halign(Gtk.Align.START)
         box.append(note)
 
-        dlg.show_all()
 
         def _pulse():
             progress.pulse()
@@ -2664,7 +2650,7 @@ def _update_distro_list(parent_win):
     box.append(spinner)
     
     wait_win.set_child(box)
-    wait_win.show_all()
+    wait_win.present()
     
     # Start update in background thread
     t = threading.Thread(target=run_update, daemon=True)
@@ -2673,7 +2659,7 @@ def _update_distro_list(parent_win):
 
 def main():
     win = QuickboxWindow()
-    win.show_all()
+    win.present()
     Gtk.main()
 
 if __name__ == "__main__":
