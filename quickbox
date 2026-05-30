@@ -414,13 +414,19 @@ class QuickboxWindow(Gtk.Window):
 
         # HeaderBar
         hb = Gtk.HeaderBar()
-        hb.set_show_close_button(True)
-        hb.set_title("Quickbox")
-        hb.set_subtitle(self.vms_dir)
+        hb.set_show_title_buttons(True)
+        title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        title_lbl = Gtk.Label(label="Quickbox")
+        title_lbl.set_css_classes(["title"])
+        self._subtitle_lbl = Gtk.Label(label=self.vms_dir)
+        self._subtitle_lbl.set_css_classes(["subtitle"])
+        title_box.append(title_lbl)
+        title_box.append(self._subtitle_lbl)
+        hb.set_title_widget(title_box)
         self.set_titlebar(hb)
         self._headerbar = hb
 
-        refresh_btn = Gtk.Button.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.BUTTON)
+        refresh_btn = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
         refresh_btn.set_tooltip_text("Refresh")
         refresh_btn.connect("clicked", lambda b: self._refresh())
         hb.pack_start(refresh_btn)
@@ -441,7 +447,7 @@ class QuickboxWindow(Gtk.Window):
         hb.pack_start(quick_ref_btn)
         self._build_quick_ref_menu()
 
-        help_btn = Gtk.Button.new_from_icon_name("help-browser-symbolic", Gtk.IconSize.BUTTON)
+        help_btn = Gtk.Button.new_from_icon_name("help-browser-symbolic")
         help_btn.set_tooltip_text("SSH Setup & Commands Help")
         help_btn.connect("clicked", lambda b: self._show_ssh_help())
         hb.pack_start(help_btn)
@@ -454,9 +460,11 @@ class QuickboxWindow(Gtk.Window):
             ("Custom VM", "list-add-symbolic",        "Create a VM from a local ISO or IMG file", self._dlg_custom),
             ("Advanced",  "preferences-system-symbolic", "Migrate VMs, switch location, manage saved paths", self._dlg_advanced),
         ]:
-            btn = Gtk.Button(label=f"  {label}")
-            btn.set_image(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.BUTTON))
-            btn.set_always_show_image(True)
+            btn = Gtk.Button()
+            inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+            inner.append(Gtk.Image.new_from_icon_name(icon))
+            inner.append(Gtk.Label(label=label))
+            btn.set_child(inner)
             btn.set_tooltip_text(tooltip)
             btn.connect("clicked", cb)
             hb.pack_end(btn)
@@ -521,7 +529,7 @@ class QuickboxWindow(Gtk.Window):
         n = len(self.vms)
         self._status.set_markup(
             f'<span size="small">{self.vms_dir}  •  {n} VM{"s" if n != 1 else ""}</span>')
-        self._headerbar.set_subtitle(self.vms_dir)
+        self._subtitle_lbl.set_label(self.vms_dir)
         # re-select
         if self.current_vm:
             name = self.current_vm["_name"]
@@ -2254,7 +2262,7 @@ TIPS
         setconf("vms_dir", loc)
         self.vms_dir = loc
         self._refresh_loc_list(dlg)
-        self._headerbar.set_subtitle(loc)
+        self._subtitle_lbl.set_label(loc)
         self._refresh()
 
     def _remove_loc(self, idx, dlg):
