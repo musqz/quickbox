@@ -2,6 +2,11 @@
 
 GTK3-based GUI for managing QEMU virtual machines with quickemu integration.
 
+# PHASE: Development | Testing fase. 
+
+    - snap managment is not finnished.
+    - look at ssh help section
+
 ## Features
 
 VM creation, deletion, start/stop, snapshots, cloning, ISO management, boot order control, UEFI/BIOS support, distro downloads via quickget.
@@ -87,11 +92,6 @@ MIT - Copyright (c) 2026 Musqz
 
 ---
 
-## Disclaimer
-
-Parts of this tool were built with AI assistance (Claude Sonnet by Anthropic). All code has been reviewed and tested by me.
-
-
 ![quickget](images/running.png)
 
 ![quickget](images/ssh-commands.png)
@@ -99,4 +99,7 @@ Parts of this tool were built with AI assistance (Claude Sonnet by Anthropic). A
 ![quickget](images/ssh-help.png)
 
 
+## Disclaimer
+
+Parts of this tool were built with AI assistance (Claude Sonnet by Anthropic). All code has been reviewed and tested by me.
 
