@@ -309,9 +309,9 @@ class VMRow(Gtk.ListBoxRow):
 
 # ─── main window ──────────────────────────────────────────────────────────────
 
-class QuickboxWindow(Gtk.Window):
-    def __init__(self):
-        super().__init__(title="Quickbox")
+class QuickboxWindow(Gtk.ApplicationWindow):
+    def __init__(self, **kwargs):
+        super().__init__(title="Quickbox", **kwargs)
         self.set_default_size(960, 640)
         self.set_resizable(True)
         self.set_icon_name("quickbox" if ICON_PATH else "computer-vm")
@@ -338,6 +338,7 @@ class QuickboxWindow(Gtk.Window):
         self._timeout_handlers.clear()
         if self._ssh_help_win and self._ssh_help_win.get_visible():
             self._ssh_help_win.destroy()
+        self.get_application().quit()
         return False
 
     def _poll_running_state(self):
@@ -2722,10 +2723,18 @@ def _update_distro_list(parent_win):
     t.start()
 
 
+class QuickboxApp(Gtk.Application):
+    def __init__(self):
+        super().__init__(application_id="io.github.musqz.quickbox")
+
+    def do_activate(self):
+        win = QuickboxWindow(application=self)
+        win.present()
+
+
 def main():
-    win = QuickboxWindow()
-    win.present()
-    Gtk.main()
+    app = QuickboxApp()
+    app.run(sys.argv)
 
 if __name__ == "__main__":
     main()
