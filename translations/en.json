@@ -65,6 +65,8 @@
     "snap_none":      "No snapshots yet",
     "snap_entry_ph":  "New snapshot tag…",
     "snap_create":    "Create snapshot",
+    "snap_apply":     "Apply",
+    "snap_delete":    "Delete",
 
     "act_edit_conf":  "Edit conf",
     "act_clone":      "Clone VM",

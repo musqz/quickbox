@@ -95,6 +95,8 @@ _EN_STRINGS = {
     "snap_none": "No snapshots yet",
     "snap_entry_ph": "New snapshot tag…",
     "snap_create": "Create snapshot",
+    "snap_apply": "Apply",
+    "snap_delete": "Delete",
     "act_edit_conf": "Edit conf",    "act_clone": "Clone VM",
     "act_open_dir": "Open dir",
     "tt_edit_conf": "Open the VM configuration file in a text editor",
@@ -1115,7 +1117,7 @@ TIPS
     def _test_ssh(self, vm, btn):
         port = int(vm.get("ssh_port", "2222"))
         btn.set_sensitive(False)
-        btn.set_label("Testing…")
+        btn.set_label(S["ssh_testing"])
 
         def do_test():
             try:
@@ -1128,10 +1130,10 @@ TIPS
 
         def _show_result(ok):
             if ok:
-                btn.set_label("Reachable")
+                btn.set_label(S["ssh_ok"])
                 btn.get_style_context().add_class("launch-btn")
             else:
-                btn.set_label("Not reachable")
+                btn.set_label(S["ssh_fail"])
             btn.set_sensitive(True)
 
         threading.Thread(target=do_test, daemon=True).start()
@@ -1157,24 +1159,24 @@ TIPS
         self.right_box.append(_sep)
 
         # Launch / Stop
-        self.right_box.append(self._section("LAUNCH"))
+        self.right_box.append(self._section(S["sec_launch"]))
         launch_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
 
         # check if VM is still being copied
         flag = Path(self.vms_dir) / f".{vm['_name']}.copying"
         if flag.exists():
             copying_lbl = Gtk.Label()
-            copying_lbl.set_markup('<span color="#ff9800" weight="bold">⏳ Disk still copying — please wait…</span>')
+            copying_lbl.set_markup(f'<span color="#ff9800" weight="bold">{S["vm_copying"]}</span>')
             launch_box.append(copying_lbl)
         elif vm["_running"]:
             running_lbl = Gtk.Label()
-            running_lbl.set_markup('<span color="#4caf50" weight="bold">VM is running</span>')
+            running_lbl.set_markup(f'<span color="#4caf50" weight="bold">{S["vm_running"]}</span>')
             launch_box.append(running_lbl)
-            stop_btn = Gtk.Button(label="Stop VM")
+            stop_btn = Gtk.Button(label=S["btn_stop"])
             stop_btn.connect("clicked", lambda b: self._stop_vm(vm))
             launch_box.append(stop_btn)
         else:
-            launch_btn = Gtk.Button(label="Launch VM")
+            launch_btn = Gtk.Button(label=S["btn_launch"])
             launch_btn.get_style_context().add_class("launch-btn")
             launch_btn.connect("clicked", lambda b: self._launch_vm(vm))
             launch_box.append(launch_btn)
@@ -1183,7 +1185,7 @@ TIPS
 
         # SSH section — only when VM is running
         if vm["_running"]:
-            self.right_box.append(self._section("SSH"))
+            self.right_box.append(self._section(S["sec_ssh"]))
 
             self._ensure_ssh_config(vm)
             ssh_user = vm.get("ssh_user", "root")
@@ -1199,14 +1201,14 @@ TIPS
 
             ssh_btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
 
-            copy_btn = Gtk.Button(label="Copy")
+            copy_btn = Gtk.Button(label=S["ssh_copy"])
             copy_btn.get_style_context().add_class("ssh-btn")
-            copy_btn.set_tooltip_text("Copy SSH command to clipboard")
+            copy_btn.set_tooltip_text(S["tt_ssh_copy"])
             copy_btn.connect("clicked", lambda b: self._ssh_copy_cmd(vm))
             ssh_btn_box.append(copy_btn)
 
-            test_btn = Gtk.Button(label="Test SSH")
-            test_btn.set_tooltip_text("Check if SSH port is reachable on localhost")
+            test_btn = Gtk.Button(label=S["ssh_test"])
+            test_btn.set_tooltip_text(S["tt_ssh_test"])
             test_btn.connect("clicked", lambda b, tb=test_btn: self._test_ssh(vm, tb))
             ssh_btn_box.append(test_btn)
 
@@ -1214,16 +1216,16 @@ TIPS
             self.right_box.append(ssh_btn_box)
 
         # Info
-        self.right_box.append(self._section("INFO"))
+        self.right_box.append(self._section(S["sec_info"]))
         grid = Gtk.Grid()
         grid.set_column_spacing(16)
         grid.set_row_spacing(5)
         infos = [
-            ("Guest OS",  vm.get("guest_os", "linux")),
-            ("Boot mode", vm.get("boot", "uefi")),
-            ("SSH port",  vm.get("ssh_port", "—") or "—"),
-            ("Disk",      vm.get("disk_img", "—")),
-            ("ISO",       vm.get("iso", "—") or "—"),
+            (S["info_guest_os"],  vm.get("guest_os", "linux")),
+            (S["info_boot_mode"], vm.get("boot", "uefi")),
+            (S["info_ssh_port"],  vm.get("ssh_port", "—") or "—"),
+            (S["info_disk"],      vm.get("disk_img", "—")),
+            (S["info_iso"],       vm.get("iso", "—") or "—"),
         ]
         for i, (k, v) in enumerate(infos):
             kl = Gtk.Label(label=k + ":")
@@ -1238,7 +1240,7 @@ TIPS
         self.right_box.append(grid)
 
         # Settings
-        self.right_box.append(self._section("SETTINGS"))
+        self.right_box.append(self._section(S["sec_settings"]))
         sg = Gtk.Grid()
         sg.set_column_spacing(16)
         sg.set_row_spacing(8)
@@ -1254,7 +1256,7 @@ TIPS
             return lbl, sw
 
         # Profile chooser row
-        pl = Gtk.Label(label="Profile:")
+        pl = Gtk.Label(label=S["set_profile"])
         pl.set_halign(Gtk.Align.END)
         pl.get_style_context().add_class("dim-label")
         pc = Gtk.ComboBoxText()
@@ -1273,38 +1275,38 @@ TIPS
         sg.attach(pl, 0, 0, 1, 1); sg.attach(pc, 1, 0, 1, 1)
         sg.attach(profile_desc, 1, 1, 1, 1)
 
-        cl, cs = sw_row("Compatibility mode",
+        cl, cs = sw_row(S["set_compat"].rstrip(":"),
                         vm.get("compat_mode") == "true",
                         lambda sw, p, v=vm: setconf("compat_mode",
                             "true" if sw.get_active() else "false", v["_conf"]) or
                             v.update({"compat_mode": "true" if sw.get_active() else "false"}))
         sg.attach(cl, 0, 2, 1, 1); sg.attach(cs, 1, 2, 1, 1)
         compat_hint = Gtk.Label()
-        compat_hint.set_markup('<span size="small" color="gray">Use minimal QEMU without VirGL — for lightweight or older distros that show a blank screen.</span>')
+        compat_hint.set_markup(f'<span size="small" color="gray">{S["set_compat_hint"]}</span>')
         compat_hint.set_halign(Gtk.Align.START)
         compat_hint.set_wrap(True)
         compat_hint.set_max_width_chars(42)
         sg.attach(compat_hint, 1, 3, 1, 1)
 
-        bl = Gtk.Label(label="Boot mode:")
+        bl = Gtk.Label(label=S["set_boot"])
         bl.set_halign(Gtk.Align.END)
         bl.get_style_context().add_class("dim-label")
         bc = Gtk.ComboBoxText()
-        for bid, blbl in [("uefi","UEFI"),("legacy","Legacy (BIOS)")]:
+        for bid, blbl in [("uefi", S["boot_uefi"]), ("legacy", S["boot_legacy"])]:
             bc.append(bid, blbl)
         cur = vm.get("boot", "uefi")
         bc.set_active_id(cur if cur in ("uefi","legacy") else "uefi")
         bc.connect("changed", self._on_boot_changed, vm)
         sg.attach(bl, 0, 4, 1, 1); sg.attach(bc, 1, 4, 1, 1)
 
-        stl, sts = sw_row("Mark as stable",
+        stl, sts = sw_row(S["set_stable"].rstrip(":"),
                           vm.get("confirmed") == "true",
                           lambda sw, p, v=vm: setconf("confirmed",
                               "true" if sw.get_active() else "false", v["_conf"]) or
                               v.update({"confirmed": "true" if sw.get_active() else "false"}))
         sg.attach(stl, 0, 5, 1, 1); sg.attach(sts, 1, 5, 1, 1)
         stable_hint = Gtk.Label()
-        stable_hint.set_markup('<span size="small" color="gray">When on: hides launch notifications and locks the Danger Zone.</span>')
+        stable_hint.set_markup(f'<span size="small" color="gray">{S["set_stable_hint"]}</span>')
         stable_hint.set_halign(Gtk.Align.START)
         stable_hint.set_wrap(True)
         stable_hint.set_max_width_chars(42)
@@ -1312,11 +1314,11 @@ TIPS
         self.right_box.append(sg)
 
         # Snapshots — always show
-        self.right_box.append(self._section("SNAPSHOTS"))
+        self.right_box.append(self._section(S["sec_snapshots"]))
         snap_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
 
         if not vm["_has_disk"]:
-            nl = Gtk.Label(label="No disk yet — launch VM first to create one")
+            nl = Gtk.Label(label=S["snap_no_disk"])
             nl.get_style_context().add_class("dim-label")
             nl.set_halign(Gtk.Align.START)
             snap_vbox.append(nl)
@@ -1330,8 +1332,8 @@ TIPS
                     lbl.set_hexpand(True)
                     row.append(lbl)
                     for action_label, action_cb in [
-                        ("Delete", lambda b, t=snap["tag"]: self._snap_delete(vm, t)),
-                        ("Apply",  lambda b, t=snap["tag"]: self._snap_apply(vm, t)),
+                        (S["snap_delete"], lambda b, t=snap["tag"]: self._snap_delete(vm, t)),
+                        (S["snap_apply"],  lambda b, t=snap["tag"]: self._snap_apply(vm, t)),
                     ]:
                         btn = Gtk.Button(label=action_label)
                         btn.set_size_request(68, -1)
@@ -1339,7 +1341,7 @@ TIPS
                         row.append(btn)
                     snap_vbox.append(row)
             else:
-                nl = Gtk.Label(label="No snapshots yet")
+                nl = Gtk.Label(label=S["snap_none"])
                 nl.get_style_context().add_class("dim-label")
                 nl.set_halign(Gtk.Align.START)
                 snap_vbox.append(nl)
@@ -1347,9 +1349,9 @@ TIPS
             # Create snapshot row
             create_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             self._snap_entry = Gtk.Entry()
-            self._snap_entry.set_placeholder_text("New snapshot tag…")
+            self._snap_entry.set_placeholder_text(S["snap_entry_ph"])
             self._snap_entry.set_size_request(160, -1)
-            create_btn = Gtk.Button(label="Create snapshot")
+            create_btn = Gtk.Button(label=S["snap_create"])
             create_btn.connect("clicked", lambda b: self._snap_create(vm))
             create_row.append(self._snap_entry)
             create_row.append(create_btn)
@@ -1359,31 +1361,30 @@ TIPS
         self.right_box.append(snap_vbox)
 
         # Actions
-        self.right_box.append(self._section("ACTIONS"))
+        self.right_box.append(self._section(S["sec_actions"]))
         act_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        for label, tooltip, cb in [
-            ("Edit conf",   "Open the VM configuration file in a text editor",  lambda b: subprocess.Popen(["geany", vm["_conf"]])),
-            ("Clone VM",    "Create a full copy of this VM with a new name",     lambda b: self._clone_vm(vm)),
-            ("Open dir",    "Open the VM directory in the file manager",          lambda b: subprocess.Popen(["xdg-open", str(Path(self.vms_dir) / vm["_name"])])),
+        for lbl_key, tt_key, cb in [
+            ("act_edit_conf", "tt_edit_conf", lambda b: subprocess.Popen(["geany", vm["_conf"]])),
+            ("act_clone",     "tt_clone",     lambda b: self._clone_vm(vm)),
+            ("act_open_dir",  "tt_open_dir",  lambda b: subprocess.Popen(["xdg-open", str(Path(self.vms_dir) / vm["_name"])])),
         ]:
-            btn = Gtk.Button(label=label)
-            btn.set_tooltip_text(tooltip)
+            btn = Gtk.Button(label=S[lbl_key])
+            btn.set_tooltip_text(S[tt_key])
             btn.connect("clicked", cb)
             act_box.append(btn)
         self.right_box.append(act_box)
 
         # Danger zone
-        self.right_box.append(self._section("DANGER ZONE"))
+        self.right_box.append(self._section(S["sec_danger"]))
         dng_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         is_stable = vm.get("confirmed") == "true"
-        stable_tip = "Mark VM as unstable first to enable this action"
-        for label, tooltip, cb in [
-            ("Delete disk",  "Remove the disk image only — keeps ISO and config",         lambda b: self._delete_disk(vm)),
-            ("Format disk",  "Create or re-format the disk — erases all data",            lambda b: self._dlg_format_disk(vm)),
-            ("Delete VM",    "Permanently remove all VM files including disk and config",  lambda b: self._delete_vm(vm)),
+        for lbl_key, tt_key, cb in [
+            ("dng_del_disk", "tt_del_disk", lambda b: self._delete_disk(vm)),
+            ("dng_fmt_disk", "tt_fmt_disk", lambda b: self._dlg_format_disk(vm)),
+            ("dng_del_vm",   "tt_del_vm",   lambda b: self._delete_vm(vm)),
         ]:
-            btn = Gtk.Button(label=label)
-            btn.set_tooltip_text(stable_tip if is_stable else tooltip)
+            btn = Gtk.Button(label=S[lbl_key])
+            btn.set_tooltip_text(S["tt_stable_lock"] if is_stable else S[tt_key])
             btn.get_style_context().add_class("danger-btn")
             btn.set_sensitive(not is_stable)
             btn.connect("clicked", cb)
