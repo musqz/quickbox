@@ -90,3 +90,13 @@ MIT - Copyright (c) 2026 Musqz
 ## Disclaimer
 
 Parts of this tool were built with AI assistance (Claude Sonnet by Anthropic). All code has been reviewed and tested by me.
+
+
+![quickget](images/running.png)
+
+![quickget](images/ssh-commands.png)
+
+![quickget](images/ssh-help.png)
+
+
+
