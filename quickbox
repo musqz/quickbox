@@ -1655,30 +1655,30 @@ TIPS
         date_str  = datetime.datetime.now().strftime("%Y%m%d")
         suggested = f"{vm['_name']}-{date_str}"
 
-        win = Gtk.Window(title="Clone VM")
+        win = Gtk.Window(title=S["clone_title"])
         win.set_transient_for(self)
         win.set_modal(True)
         win.set_default_size(380, 180)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.set_margin_top(16); box.set_margin_bottom(16)
         box.set_margin_start(16); box.set_margin_end(16)
-        box.append(Gtk.Label(label=f"Clone '{vm['_pretty']}' as:"))
+        box.append(Gtk.Label(label=S["clone_label"].format(vm["_pretty"])))
         entry = Gtk.Entry()
         entry.set_text(suggested)
-        entry.set_tooltip_text("Name for the cloned VM — date suffix helps track when it was made")
+        entry.set_tooltip_text(S["clone_tt"])
         box.append(entry)
         hint = Gtk.Label()
-        hint.set_markup('<span size="small" color="gray">The clone will appear in the VM list as a separate VM.</span>')
+        hint.set_markup(f'<span size="small" color="gray">{S["clone_hint"]}</span>')
         hint.set_halign(Gtk.Align.START)
         box.append(hint)
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         btn_box.set_margin_top(8)
         _sp = Gtk.Box(); _sp.set_hexpand(True)
         btn_box.append(_sp)
-        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn = Gtk.Button(label=S["btn_cancel"])
         cancel_btn.connect("clicked", lambda b: win.close())
         btn_box.append(cancel_btn)
-        clone_btn = Gtk.Button(label="Clone")
+        clone_btn = Gtk.Button(label=S["btn_clone"])
         clone_btn.get_style_context().add_class("suggested-action")
         btn_box.append(clone_btn)
         box.append(btn_box)
@@ -1747,7 +1747,7 @@ TIPS
     # ── delete ──
 
     def _dlg_format_disk(self, vm):
-        win = Gtk.Window(title="Format disk")
+        win = Gtk.Window(title=S["fmt_title"])
         win.set_transient_for(self)
         win.set_modal(True)
         win.set_default_size(420, 340)
@@ -1757,7 +1757,7 @@ TIPS
 
         # Warning
         warn = Gtk.Label()
-        warn.set_markup('<span color="#f44336" weight="bold">⚠ This will ERASE all data on the disk!</span>')
+        warn.set_markup(f'<span color="#f44336" weight="bold">{S["fmt_warn"]}</span>')
         warn.set_halign(Gtk.Align.START)
         box.append(warn)
         _sep = Gtk.Separator()
@@ -1766,7 +1766,7 @@ TIPS
 
         # Disk size
         size_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        size_lbl = Gtk.Label(label="Disk size (GB):")
+        size_lbl = Gtk.Label(label=S["fmt_size_lbl"])
         size_lbl.get_style_context().add_class("dim-label")
         size_spin = Gtk.SpinButton.new_with_range(4, 500, 1)
         size_spin.set_increments(1, 10)
@@ -1782,20 +1782,16 @@ TIPS
         box.append(size_box)
 
         # Partition layout
-        layout_lbl = Gtk.Label(label="Partition layout:")
+        layout_lbl = Gtk.Label(label=S["fmt_layout_lbl"])
         layout_lbl.set_halign(Gtk.Align.START)
         layout_lbl.get_style_context().add_class("dim-label")
         box.append(layout_lbl)
 
         layouts = [
-            ("gpt_esp_ext4",  "GPT — 512MB FAT32 ESP  +  ext4 (rest)",
-             "UEFI boot — recommended for modern distros"),
-            ("msdos_ext4",    "MSDOS — ext4 (whole disk)",
-             "Legacy/BIOS boot — for SliTaz, TinyCore, older distros"),
-            ("msdos_fat32",   "MSDOS — FAT32 (whole disk)",
-             "For distros that need FAT32 working partition (e.g. EasyOS style)"),
-            ("blank",         "Blank — no partitions (raw qcow2)",
-             "Let the distro installer handle partitioning"),
+            ("gpt_esp_ext4", S["fmt_layout_gpt"], S["tt_fmt_gpt"]),
+            ("msdos_ext4",   S["fmt_layout_msd"], S["tt_fmt_msd"]),
+            ("msdos_fat32",  S["fmt_layout_fat"], S["tt_fmt_fat"]),
+            ("blank",        S["fmt_layout_raw"], S["tt_fmt_raw"]),
         ]
 
         radios = []
@@ -1815,10 +1811,10 @@ TIPS
         btn_row.set_margin_top(8)
         _sp = Gtk.Box(); _sp.set_hexpand(True)
         btn_row.append(_sp)
-        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn = Gtk.Button(label=S["btn_cancel"])
         cancel_btn.connect("clicked", lambda b: win.close())
         btn_row.append(cancel_btn)
-        format_btn = Gtk.Button(label="Format")
+        format_btn = Gtk.Button(label=S["btn_format"])
         format_btn.get_style_context().add_class("destructive-action")
         btn_row.append(format_btn)
         box.append(btn_row)
@@ -1878,9 +1874,8 @@ TIPS
                 threading.Thread(target=_do_format, daemon=True).start()
 
             self._confirm(
-                "Format disk?",
-                f"This will create a new {size_gb}GB disk with layout: {layout}\n\n"
-                f"All existing data on the disk will be lost.",
+                S["dlg_fmt_t"],
+                S["dlg_fmt_b"].format(size_gb, layout),
                 on_confirm
             )
 
@@ -1952,7 +1947,7 @@ TIPS
     def _dlg_download(self, *_):
         distros = self._parse_quickinst()
 
-        win = Gtk.Window(title="Download Distro")
+        win = Gtk.Window(title=S["dl_title"])
         win.set_transient_for(self)
         win.set_modal(True)
         win.set_default_size(640, 520)
@@ -1964,7 +1959,7 @@ TIPS
         hint_box.set_margin_top(8); hint_box.set_margin_bottom(8)
         hint_box.set_margin_start(12); hint_box.set_margin_end(12)
         hint_lbl = Gtk.Label()
-        hint_lbl.set_markup('<span size="small" color="gray">Use alphabet buttons to jump to distro</span>')
+        hint_lbl.set_markup(f'<span size="small" color="gray">{S["dl_hint1"]}</span>')
         hint_lbl.set_halign(Gtk.Align.START)
         hint_box.append(hint_lbl)
         box.append(hint_box)
@@ -2043,12 +2038,12 @@ TIPS
 
         box.append(Gtk.Separator())
         hint2 = Gtk.Label()
-        hint2.set_markup('<span size="small" color="gray">  Click a distro to select version and download</span>')
+        hint2.set_markup(f'<span size="small" color="gray">  {S["dl_hint2"]}</span>')
         hint2.set_halign(Gtk.Align.START)
         hint2.set_margin_top(6); hint2.set_margin_bottom(6)
         box.append(hint2)
 
-        close_btn = Gtk.Button(label="Close")
+        close_btn = Gtk.Button(label=S["btn_close"])
         close_btn.set_margin_top(6); close_btn.set_margin_bottom(6)
         close_btn.set_margin_start(8); close_btn.set_margin_end(8)
         close_btn.connect("clicked", lambda b: win.close())
@@ -2090,7 +2085,7 @@ TIPS
         box.append(_sep)
 
         # Version/edition selector
-        ver_lbl = Gtk.Label(label="Version / edition:")
+        ver_lbl = Gtk.Label(label=S["dl2_ver_lbl"])
         ver_lbl.set_halign(Gtk.Align.START)
         ver_lbl.get_style_context().add_class("dim-label")
         ver_lbl.set_margin_top(2)
@@ -2104,7 +2099,7 @@ TIPS
         box.append(ver_combo)
 
         # Command preview / manual edit
-        cmd_lbl = Gtk.Label(label="Command (editable):")
+        cmd_lbl = Gtk.Label(label=S["dl2_cmd_lbl"])
         cmd_lbl.set_halign(Gtk.Align.START)
         cmd_lbl.get_style_context().add_class("dim-label")
         cmd_lbl.set_margin_top(6)
@@ -2129,13 +2124,13 @@ TIPS
 
         # Progress bar
         progress = Gtk.ProgressBar()
-        progress.set_text("Ready to download")
+        progress.set_text(S["dl2_ready"])
         progress.set_show_text(True)
         progress.set_fraction(0)
         box.append(progress)
 
         note = Gtk.Label()
-        note.set_markup('<span size="small" color="gray">Download time varies depending on ISO size and server speed.</span>')
+        note.set_markup(f'<span size="small" color="gray">{S["dl2_note"]}</span>')
         note.set_halign(Gtk.Align.START)
         note.set_margin_top(2)
         box.append(note)
@@ -2145,8 +2140,8 @@ TIPS
         # Buttons — spacer pushes cancel+download to the right
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         btn_box.set_margin_top(12)
-        cancel_btn = Gtk.Button(label="Cancel")
-        dl_btn     = Gtk.Button(label="Download")
+        cancel_btn = Gtk.Button(label=S["btn_cancel"])
+        dl_btn     = Gtk.Button(label=S["btn_download"])
         dl_btn.get_style_context().add_class("launch-btn")
         _spacer = Gtk.Box()
         _spacer.set_hexpand(True)
@@ -2208,13 +2203,13 @@ TIPS
                             speed = (size - last_size) / (1024 * 1024)
                             GLib.idle_add(progress.set_fraction, fraction)
                             GLib.idle_add(progress.set_text,
-                                f"Downloading… {mb:.0f} MB  ({speed:.1f} MB/s)")
+                                S["dl2_progress"].format(f"{mb:.0f}", f"{speed:.1f}"))
                             last_size = size
                         else:
                             stall_count += 1
                             if stall_count > 5:
                                 # file not growing — verifying/extracting phase
-                                GLib.idle_add(progress.set_text, "Verifying…")
+                                GLib.idle_add(progress.set_text, S["dl2_verifying"])
                     except Exception:
                         pass
                 else:
@@ -2222,11 +2217,11 @@ TIPS
                     fraction = math.log1p(elapsed / 10) / (math.log1p(elapsed / 10) + 6)
                     fraction = min(fraction, 0.4)
                     GLib.idle_add(progress.set_fraction, fraction)
-                    GLib.idle_add(progress.set_text, f"Connecting… ({elapsed}s)")
+                    GLib.idle_add(progress.set_text, S["dl2_connecting"].format(elapsed))
 
         def _run_download():
             cmd = cmd_entry.get_text().strip().split()
-            GLib.idle_add(progress.set_text, f"Starting download…")
+            GLib.idle_add(progress.set_text, S["dl2_starting"])
             GLib.idle_add(dl_btn.set_sensitive, False)
             GLib.idle_add(ver_combo.set_sensitive, False)
             GLib.idle_add(cmd_entry.set_editable, False)
@@ -2252,21 +2247,21 @@ TIPS
             _time.sleep(1.2)  # wait for watcher thread to finish its last iteration
 
             if self._dl_cancelled:
-                GLib.idle_add(progress.set_text, "Cancelled")
+                GLib.idle_add(progress.set_text, S["dl2_cancelled"])
                 GLib.idle_add(progress.set_fraction, 0)
             elif rc == 0:
                 GLib.idle_add(progress.set_fraction, 1.0)
-                GLib.idle_add(progress.set_text, "Download complete!")
-                GLib.idle_add(dl_btn.set_label, "Done — Close")
+                GLib.idle_add(progress.set_text, S["dl2_done"])
+                GLib.idle_add(dl_btn.set_label, S["dl2_done_close"])
                 GLib.idle_add(dl_btn.set_sensitive, True)
                 GLib.idle_add(self._refresh)
             else:
-                GLib.idle_add(progress.set_text, "Download failed.")
-                GLib.idle_add(dl_btn.set_label, "Close")
+                GLib.idle_add(progress.set_text, S["dl2_failed"])
+                GLib.idle_add(dl_btn.set_label, S["btn_close"])
                 GLib.idle_add(dl_btn.set_sensitive, True)
 
         def _on_download(btn):
-            if btn.get_label() in ("Done — Close", "Close"):
+            if btn.get_label() in (S["dl2_done_close"], S["btn_close"]):
                 dlg.close()
                 return
             threading.Thread(target=_run_download, daemon=True).start()
@@ -2287,25 +2282,25 @@ TIPS
 
 
     def _dlg_custom(self, *_):
-        name_win = Gtk.Window(title="Create Custom VM")
+        name_win = Gtk.Window(title=S["cvm_title"])
         name_win.set_transient_for(self)
         name_win.set_modal(True)
         name_win.set_default_size(380, 150)
         nb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         nb.set_margin_top(16); nb.set_margin_bottom(16)
         nb.set_margin_start(16); nb.set_margin_end(16)
-        nb.append(Gtk.Label(label="Enter a name for the new VM:"))
+        nb.append(Gtk.Label(label=S["cvm_name_lbl"]))
         name_entry = Gtk.Entry()
-        name_entry.set_text("My custom VM")
+        name_entry.set_text(S["cvm_name_def"])
         nb.append(name_entry)
         btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         btn_row.set_margin_top(8)
         _sp = Gtk.Box(); _sp.set_hexpand(True)
         btn_row.append(_sp)
-        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn = Gtk.Button(label=S["btn_cancel"])
         cancel_btn.connect("clicked", lambda b: name_win.close())
         btn_row.append(cancel_btn)
-        next_btn = Gtk.Button(label="Next")
+        next_btn = Gtk.Button(label=S["btn_next"])
         next_btn.get_style_context().add_class("suggested-action")
         btn_row.append(next_btn)
         nb.append(btn_row)
@@ -2324,11 +2319,11 @@ TIPS
                 self._warn("Already exists", f"VM '{dest_name}' already exists.")
                 return
 
-            fc = Gtk.FileChooserNative(title="Select ISO or IMG file",
+            fc = Gtk.FileChooserNative(title=S["cvm_file_title"],
                                        transient_for=self,
                                        action=Gtk.FileChooserAction.OPEN)
             filt = Gtk.FileFilter()
-            filt.set_name("Disk images (*.iso, *.img)")
+            filt.set_name(S["cvm_filter"])
             filt.add_pattern("*.iso"); filt.add_pattern("*.ISO")
             filt.add_pattern("*.img"); filt.add_pattern("*.IMG")
             fc.add_filter(filt)
@@ -2406,7 +2401,7 @@ TIPS
 
         # Current vms_dir
         loc_lbl = Gtk.Label()
-        loc_lbl.set_markup(f'<b>Current VMs directory:</b>\n<span size="small" color="gray">{self.vms_dir}</span>')
+        loc_lbl.set_markup(f'<b>{S["adv_cur_dir"]}</b>\n<span size="small" color="gray">{self.vms_dir}</span>')
         loc_lbl.set_halign(Gtk.Align.START)
         loc_lbl.set_margin_bottom(12)
         box.append(loc_lbl)
@@ -2415,7 +2410,7 @@ TIPS
         box.append(_sep)
 
         # ── Location management ──
-        hdr1 = Gtk.Label(label="LOCATION MANAGEMENT")
+        hdr1 = Gtk.Label(label=S["adv_sec_loc"])
         hdr1.set_halign(Gtk.Align.START)
         hdr1.get_style_context().add_class("section-hdr")
         box.append(hdr1)
@@ -2425,11 +2420,11 @@ TIPS
         btn_grid.set_row_spacing(8)
         btn_grid.set_margin_top(8)
 
-        migrate_btn = Gtk.Button(label="Migrate VMs to new location")
+        migrate_btn = Gtk.Button(label=S["adv_migrate"])
         migrate_btn.connect("clicked", lambda b: self._do_migrate(dlg))
         btn_grid.attach(migrate_btn, 0, 0, 2, 1)
 
-        add_btn = Gtk.Button(label="Add to switch list")
+        add_btn = Gtk.Button(label=S["adv_add_loc"])
         add_btn.connect("clicked", lambda b: self._do_add_loc(dlg))
         btn_grid.attach(add_btn, 0, 1, 2, 1)
 
@@ -2439,18 +2434,18 @@ TIPS
         box.append(_sep2)
 
         # ── Distro list management ──
-        hdr_distro = Gtk.Label(label="DISTRO LIST MANAGEMENT")
+        hdr_distro = Gtk.Label(label=S["adv_sec_distro"])
         hdr_distro.set_halign(Gtk.Align.START)
         hdr_distro.get_style_context().add_class("section-hdr")
         box.append(hdr_distro)
 
-        update_btn = Gtk.Button(label="Update Distro List from quickget")
+        update_btn = Gtk.Button(label=S["adv_update_dl"])
         update_btn.set_margin_top(8)
         update_btn.connect("clicked", lambda b: _update_distro_list(self))
         box.append(update_btn)
 
         upd_info = Gtk.Label()
-        upd_info.set_markup('<span size="small" color="gray">Updates ~/.config/quickbox/quickinst.csv (takes ~30s)</span>')
+        upd_info.set_markup(f'<span size="small" color="gray">{S["adv_update_hint"]}</span>')
         upd_info.set_halign(Gtk.Align.START)
         upd_info.set_margin_bottom(12)
         box.append(upd_info)
@@ -2459,7 +2454,7 @@ TIPS
         box.append(_sep3)
 
         # ── Profiles management ──
-        hdr_prof = Gtk.Label(label="PROFILES MANAGEMENT")
+        hdr_prof = Gtk.Label(label=S["adv_sec_prof"])
         hdr_prof.set_halign(Gtk.Align.START)
         hdr_prof.get_style_context().add_class("section-hdr")
         box.append(hdr_prof)
@@ -2468,20 +2463,20 @@ TIPS
         prof_btn_box.set_margin_top(8)
         prof_btn_box.set_margin_bottom(4)
 
-        open_prof_btn = Gtk.Button(label="Open profiles folder")
+        open_prof_btn = Gtk.Button(label=S["adv_open_prof"])
         open_prof_btn.set_tooltip_text(str(PROFILES_DIR))
         open_prof_btn.connect("clicked", lambda b: subprocess.Popen(["xdg-open", str(PROFILES_DIR)]))
         prof_btn_box.append(open_prof_btn)
 
-        reset_prof_btn = Gtk.Button(label="Reset default profiles")
-        reset_prof_btn.set_tooltip_text("Restore the 5 built-in profiles (Standard, Live ISO, Lightweight, Performance, Server). Custom profiles are kept.")
+        reset_prof_btn = Gtk.Button(label=S["adv_reset_prof"])
+        reset_prof_btn.set_tooltip_text(S["tt_reset_prof"])
         reset_prof_btn.connect("clicked", lambda b: self._reset_default_profiles())
         prof_btn_box.append(reset_prof_btn)
 
         box.append(prof_btn_box)
 
         prof_info = Gtk.Label()
-        prof_info.set_markup(f'<span size="small" color="gray">Add or edit .conf files in {PROFILES_DIR} to create custom profiles.</span>')
+        prof_info.set_markup(f'<span size="small" color="gray">{S["adv_prof_hint"].format(PROFILES_DIR)}</span>')
         prof_info.set_halign(Gtk.Align.START)
         prof_info.set_wrap(True)
         prof_info.set_max_width_chars(52)
@@ -2491,7 +2486,7 @@ TIPS
         _sep4.set_margin_top(8)
         box.append(_sep4)
 
-        hdr2 = Gtk.Label(label="SAVED LOCATIONS (click to switch)")
+        hdr2 = Gtk.Label(label=S["adv_sec_saved"])
         hdr2.set_halign(Gtk.Align.START)
         hdr2.get_style_context().add_class("section-hdr")
         box.append(hdr2)
@@ -2501,7 +2496,7 @@ TIPS
         self._refresh_loc_list(dlg)
         box.append(self._loc_list_box)
 
-        close_btn = Gtk.Button(label="Close")
+        close_btn = Gtk.Button(label=S["btn_close"])
         close_btn.set_margin_top(8); close_btn.set_margin_bottom(8)
         close_btn.set_margin_start(16); close_btn.set_margin_end(16)
         close_btn.connect("clicked", lambda b: dlg.close())
@@ -2528,12 +2523,12 @@ TIPS
                 lbl.set_hexpand(True)
                 row.append(lbl)
 
-                rm_btn = Gtk.Button(label="Remove")
+                rm_btn = Gtk.Button(label=S["btn_remove"])
                 rm_btn.set_size_request(70, -1)
                 rm_btn.connect("clicked", lambda b, idx=i: self._remove_loc(idx, dlg))
                 row.append(rm_btn)
 
-                sw_btn = Gtk.Button(label="Switch")
+                sw_btn = Gtk.Button(label=S["btn_switch"])
                 sw_btn.set_size_request(70, -1)
                 sw_btn.set_sensitive(not is_current)
                 if not is_current:
@@ -2542,7 +2537,7 @@ TIPS
 
                 self._loc_list_box.append(row)
         if not found:
-            nl = Gtk.Label(label="No saved locations yet")
+            nl = Gtk.Label(label=S["adv_no_locs"])
             nl.get_style_context().add_class("dim-label")
             nl.set_halign(Gtk.Align.START)
             self._loc_list_box.append(nl)
@@ -2565,7 +2560,7 @@ TIPS
             self._warn("No VMs", "There are no VMs in the current location.")
             return
 
-        pick = Gtk.Window(title="Select VMs to migrate")
+        pick = Gtk.Window(title=S["mig_title"])
         pick.set_transient_for(self)
         pick.set_modal(True)
         pick.set_default_size(440, 480)
@@ -2577,14 +2572,14 @@ TIPS
         pick_outer.append(pb)
 
         info = Gtk.Label()
-        info.set_markup('<span size="small" color="gray">Tick the VMs you want to copy to the new location.</span>')
+        info.set_markup(f'<span size="small" color="gray">{S["mig_hint"]}</span>')
         info.set_halign(Gtk.Align.START)
         pb.append(info)
 
         # Select all / none
         sel_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        all_btn  = Gtk.Button(label="Select all")
-        none_btn = Gtk.Button(label="Select none")
+        all_btn  = Gtk.Button(label=S["mig_all"])
+        none_btn = Gtk.Button(label=S["mig_none"])
         sel_box.append(all_btn)
         sel_box.append(none_btn)
         pb.append(sel_box)
@@ -2598,12 +2593,11 @@ TIPS
 
         checks = []
         for vm in vms:
-            running_tag = "  [running]" if vm["_running"] else ""
+            running_tag = S["mig_running_tag"] if vm["_running"] else ""
             cb = Gtk.CheckButton(label=f"{vm['_pretty']}  ({vm['_size']}){running_tag}")
             cb._vm = vm
             cb.set_sensitive(not vm["_running"])
-            cb.set_tooltip_text("Stop the VM before migrating" if vm["_running"]
-                                else f"{vm['_name']}")
+            cb.set_tooltip_text(S["mig_stop_tt"] if vm["_running"] else vm["_name"])
             list_box.append(cb)
             checks.append(cb)
 
@@ -2617,10 +2611,10 @@ TIPS
         btn_row.set_margin_start(14); btn_row.set_margin_end(14)
         _sp = Gtk.Box(); _sp.set_hexpand(True)
         btn_row.append(_sp)
-        cancel_pick = Gtk.Button(label="Cancel")
+        cancel_pick = Gtk.Button(label=S["btn_cancel"])
         cancel_pick.connect("clicked", lambda b: pick.close())
         btn_row.append(cancel_pick)
-        next_pick = Gtk.Button(label="Next")
+        next_pick = Gtk.Button(label=S["btn_next"])
         next_pick.get_style_context().add_class("suggested-action")
         btn_row.append(next_pick)
         pick_outer.append(btn_row)
@@ -2637,7 +2631,7 @@ TIPS
                     return
                 newdir = str(Path(path) / "emu")
                 if newdir == self.vms_dir:
-                    self._warn("Same location", "Destination is the same as current.")
+                    self._warn(S["warn_same_loc_t"], S["warn_same_loc_b"])
                     return
                 names = "\n  • ".join(v["_pretty"] for v in selected)
                 def on_confirm(yes):
@@ -2654,7 +2648,7 @@ TIPS
 
                     def _migration_done(ok):
                         if not ok:
-                            self._warn("Migration failed", "rsync returned an error.")
+                            self._warn(S["warn_mig_fail_t"], S["warn_mig_fail_b"])
                             return
                         def on_danger(yes):
                             if yes:
@@ -2667,12 +2661,8 @@ TIPS
                             self._refresh()
                             self._refresh_loc_list(dlg)
                         self._confirm_danger(
-                            "Remove original files?",
-                            f"Migration succeeded.\n\n"
-                            f"Do you want to PERMANENTLY DELETE the {len(selected)} "
-                            f"migrated VM(s) from the original location?\n\n"
-                            f"{self.vms_dir}\n\n"
-                            f"This cannot be undone. The copies in the new location will remain.",
+                            S["dlg_danger_t"],
+                            S["dlg_danger_b"].format(len(selected), self.vms_dir),
                             on_danger
                         )
 
@@ -2682,13 +2672,12 @@ TIPS
                         on_done=_migration_done
                     )
                 self._confirm(
-                    "Start migration?",
-                    f"Copy {len(selected)} VM(s) to:\n{newdir}\n\n  • {names}\n\n"
-                    f"Originals will remain unless you confirm removal afterwards.",
+                    S["dlg_migrate_t"],
+                    S["dlg_migrate_b"].format(len(selected), newdir, names),
                     on_confirm
                 )
 
-            self._pick_dir("Select destination for migration", str(Path.home()), _on_folder)
+            self._pick_dir(S["btn_pick_dest"], str(Path.home()), _on_folder)
 
         next_pick.connect("clicked", _on_next_pick)
         pick.present()
@@ -2704,7 +2693,7 @@ TIPS
                     self._refresh_loc_list(dlg)
                     return
             self._warn("List full", "Maximum 5 saved locations. Remove one first.")
-        self._pick_dir("Select directory to add to switch list", str(Path.home()), _on_dir)
+        self._pick_dir(S["btn_add_switch"], str(Path.home()), _on_dir)
 
     # ── dialogs helpers ──
 
@@ -2718,7 +2707,7 @@ TIPS
         box.set_margin_top(16); box.set_margin_bottom(16)
         box.set_margin_start(16); box.set_margin_end(16)
 
-        status_lbl = Gtk.Label(label="Please wait…")
+        status_lbl = Gtk.Label(label=S["prog_wait"])
         status_lbl.set_halign(Gtk.Align.START)
         box.append(status_lbl)
 
@@ -2727,7 +2716,7 @@ TIPS
         box.append(progress)
 
         note = Gtk.Label()
-        note.set_markup('<span size="small" color="gray">This may take a while depending on size.</span>')
+        note.set_markup(f'<span size="small" color="gray">{S["prog_note"]}</span>')
         note.set_halign(Gtk.Align.START)
         box.append(note)
 
@@ -2755,13 +2744,13 @@ TIPS
 
             if rc == 0:
                 GLib.idle_add(progress.set_fraction, 1.0)
-                GLib.idle_add(status_lbl.set_text, "Done!")
+                GLib.idle_add(status_lbl.set_text, S["prog_done"])
                 GLib.idle_add(note.set_markup,
-                    '<span size="small" color="gray">Completed successfully.</span>')
+                    f'<span size="small" color="gray">{S["prog_ok"]}</span>')
             else:
-                GLib.idle_add(status_lbl.set_text, "Failed.")
+                GLib.idle_add(status_lbl.set_text, S["prog_fail"])
                 GLib.idle_add(note.set_markup,
-                    '<span size="small" color="red">Something went wrong.</span>')
+                    f'<span size="small" color="red">{S["prog_err"]}</span>')
 
             def _finish():
                 dlg.close()
