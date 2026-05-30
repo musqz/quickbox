@@ -4,7 +4,7 @@ GTK3-based GUI for managing QEMU virtual machines with quickemu integration.
 
 # PHASE: Development | Testing fase. 
 
-    - snap managment is not finnished.
+    - snapshot managment is not finnished.
     - look at ssh help section
 
 ## Features
