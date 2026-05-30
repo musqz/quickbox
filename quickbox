@@ -1580,10 +1580,12 @@ TIPS
         radios = []
         first = None
         for lid, lname, ldesc in layouts:
-            rb = Gtk.RadioButton.new_with_label_from_widget(first, lname)
+            rb = Gtk.CheckButton(label=lname)
             rb._layout_id = lid
             if first is None:
                 first = rb
+            else:
+                rb.set_group(first)
             rb.set_tooltip_text(ldesc)
             radios.append(rb)
             box.append(rb)
