@@ -100,15 +100,14 @@ _EN_STRINGS = {
     "snap_active": "Active: {}",
     "snap_stale": "Last applied: {} (deleted)",
     "snap_boot": "Boot",
-    "tt_snap_boot": "Launch from this snapshot without modifying the main disk",
+    "tt_snap_boot": "Save current state, then switch disk to this snapshot",
     "snap_autosave_chk": "Auto-save current state first as '{}'",
     "snap_autosave_skip": "Disk already at this snapshot — no backup needed",
     "snap_autosave_done": "Current state saved as '{}'",
-    "snap_extracting": "Extracting snapshot…",
-    "snap_preview_active": "⚡ Preview: snapshot '{}' — changes discarded on stop",
-    "dlg_snap_boot_t": "Boot from snapshot '{}'?",
-    "dlg_snap_boot_b": "The VM will boot from this snapshot. Changes made during this session will be discarded when the VM stops. The main disk will not be modified.",
-    "ntf_snap_boot": "Booting from snapshot '{}'",
+    "snap_applying": "Applying snapshot…",
+    "dlg_snap_boot_t": "Switch to snapshot '{}'?",
+    "dlg_snap_boot_b": "The current disk state will be saved as a new snapshot first, then the disk is switched to '{}'. You can restore the previous state from the snapshots list at any time.",
+    "ntf_snap_boot": "Switched to snapshot '{}' — launching VM",
     "act_edit_conf": "Edit conf",    "act_clone": "Clone VM",
     "act_open_dir": "Open dir",
     "tt_edit_conf": "Open the VM configuration file in a text editor",
@@ -562,8 +561,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 now_running = is_running(row.vm["_name"])
                 if was_running != now_running:
                     changed = True
-                    if was_running and not now_running:
-                        self._cleanup_preview(row.vm)
                     break
             row = row.get_next_sibling()
         if changed:
@@ -924,13 +921,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             launch_box.append(copying_lbl)
         elif vm["_running"]:
             running_lbl = Gtk.Label()
-            snap_preview = vm.get("snap_preview", "")
-            if snap_preview:
-                running_lbl.set_markup(
-                    f'<span color="#ff9800" weight="bold">'
-                    f'{S["snap_preview_active"].format(snap_preview)}</span>')
-            else:
-                running_lbl.set_markup(f'<span color="#4caf50" weight="bold">{S["vm_running"]}</span>')
+            running_lbl.set_markup(f'<span color="#4caf50" weight="bold">{S["vm_running"]}</span>')
             launch_box.append(running_lbl)
             stop_btn = Gtk.Button(label=S["btn_stop"])
             stop_btn.connect("clicked", lambda b: self._stop_vm(vm))
@@ -1099,12 +1090,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             snaps = get_snapshots(vm["_disk"])
             current_snap = vm.get("current_snap", "")
             snap_tags = [s["tag"] for s in snaps]
-
-            # Clear stale snap_preview if preview file no longer exists
-            preview_file = Path(self.vms_dir) / vm["_name"] / ".snap-preview.qcow2"
-            if vm.get("snap_preview") and not preview_file.exists():
-                remove_key("snap_preview", vm["_conf"])
-                vm.pop("snap_preview", None)
 
             # Active snapshot indicator
             if current_snap:
@@ -1523,43 +1508,33 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         win.present()
 
     def _snap_boot(self, vm, tag):
-        """Launch VM from snapshot without rolling back the main disk."""
+        """Save current disk state, apply snapshot, then launch VM."""
+        from datetime import datetime
         def on_confirm(yes):
             if not yes:
                 return
-            preview = str(Path(self.vms_dir) / vm["_name"] / ".snap-preview.qcow2")
-            if Path(preview).exists():
-                Path(preview).unlink()
-
-            def on_extracted(ok):
-                if not ok:
-                    self._warn(S["warn_snap_fail_t"], "Failed to extract snapshot.")
-                    return
-                setconf("snap_preview", tag, vm["_conf"])
-                vm["snap_preview"] = tag
-                notify("quickbox", S["ntf_snap_boot"].format(tag))
-                self._launch_vm(vm, preview_disk=preview)
-                self._show_panel(vm)
-
+            save_tag = "pre-{}-{}".format(tag, datetime.now().strftime("%Y%m%d-%H%M"))
             import shlex
             self._run_with_progress(
-                S["snap_extracting"],
+                S["snap_applying"],
                 ["sh", "-c",
-                 f"cp -- {shlex.quote(vm['_disk'])} {shlex.quote(preview)} && "
-                 f"qemu-img snapshot -a {shlex.quote(tag)} {shlex.quote(preview)}"],
-                on_done=on_extracted)
+                 f"qemu-img snapshot -c {shlex.quote(save_tag)} {shlex.quote(vm['_disk'])} && "
+                 f"qemu-img snapshot -a {shlex.quote(tag)} {shlex.quote(vm['_disk'])}"],
+                on_done=lambda ok: self._on_snap_applied(ok, vm, tag))
 
         self._confirm(S["dlg_snap_boot_t"].format(tag),
-                      S["dlg_snap_boot_b"],
+                      S["dlg_snap_boot_b"].format(tag),
                       on_confirm)
 
-    def _cleanup_preview(self, vm):
-        """Remove snapshot preview disk after VM stops."""
-        preview = Path(self.vms_dir) / vm["_name"] / ".snap-preview.qcow2"
-        preview.unlink(missing_ok=True)
-        if vm.get("snap_preview"):
-            remove_key("snap_preview", vm["_conf"])
-            vm.pop("snap_preview", None)
+    def _on_snap_applied(self, ok, vm, tag):
+        if not ok:
+            self._warn(S["warn_snap_fail_t"], "Failed to apply snapshot.")
+            return
+        notify("quickbox", S["ntf_snap_boot"].format(tag))
+        self._launch_vm(vm)
+        GLib.timeout_add(500, self._refresh)
+
+
 
     def _snap_delete(self, vm, tag):
         def on_confirm(yes):
