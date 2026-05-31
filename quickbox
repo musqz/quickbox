@@ -605,6 +605,16 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .ssh-btn { background-color:#455a64; color:white;
                    border-radius:4px; padding:6px 12px; }
         .ssh-btn:hover { background-color:#546e7a; }
+        .snap-row { background-color:alpha(@theme_fg_color,0.06);
+                    border-radius:5px;
+                    border:1px solid alpha(@theme_fg_color,0.12);
+                    padding:4px 6px;
+                    margin-bottom:3px; }
+        .snap-row-active { background-color:alpha(#4caf50,0.10);
+                           border-radius:5px;
+                           border:1px solid alpha(#4caf50,0.30);
+                           padding:4px 6px;
+                           margin-bottom:3px; }
         """
         p = Gtk.CssProvider()
         p.load_from_string(css.decode())
@@ -1096,16 +1106,21 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     indicator.set_markup(
                         f'<span color="#888">{S["snap_stale"].format(current_snap)}</span>')
                 indicator.set_halign(Gtk.Align.START)
-                indicator.set_margin_bottom(4)
+                indicator.set_margin_bottom(6)
                 snap_vbox.append(indicator)
+                sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+                sep.set_margin_bottom(6)
+                snap_vbox.append(sep)
 
             if snaps:
                 for snap in snaps:
                     is_active = snap["tag"] == current_snap
                     row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+                    row.get_style_context().add_class(
+                        "snap-row-active" if is_active else "snap-row")
                     lbl = Gtk.Label()
                     if is_active:
-                        lbl.set_markup(f'<span weight="bold">● {snap["tag"]}</span>')
+                        lbl.set_markup(f'<b>● {snap["tag"]}</b>')
                     else:
                         lbl.set_markup(f'<span color="#aaa">○</span>  {snap["tag"]}')
                     lbl.set_halign(Gtk.Align.START)
@@ -1130,6 +1145,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 snap_vbox.append(nl)
 
             # Create snapshot row
+            sep2 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+            sep2.set_margin_top(6)
+            sep2.set_margin_bottom(6)
+            snap_vbox.append(sep2)
             create_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             self._snap_entry = Gtk.Entry()
             self._snap_entry.set_placeholder_text(S["snap_entry_ph"])
@@ -1138,7 +1157,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             create_btn.connect("clicked", lambda b: self._snap_create(vm))
             create_row.append(self._snap_entry)
             create_row.append(create_btn)
-            create_row.set_margin_top(6)
             snap_vbox.append(create_row)
 
         self.right_box.append(snap_vbox)
