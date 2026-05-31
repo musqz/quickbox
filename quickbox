@@ -99,7 +99,7 @@ _EN_STRINGS = {
     "snap_delete": "Delete",
     "snap_active": "Active: {}",
     "snap_stale": "Last applied: {} (deleted)",
-    "snap_autosave_chk": "Auto-save current state first as '{}'",
+    "snap_autosave_chk": "Save current state first as:",
     "snap_autosave_skip": "Disk already at this snapshot — no backup needed",
     "snap_autosave_done": "Current state saved as '{}'",
     "act_edit_conf": "Edit conf",    "act_clone": "Clone VM",
@@ -1455,14 +1455,23 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         # snap_dirty is set on VM launch and cleared on successful apply.
         disk_unchanged = (vm.get("current_snap") == tag and
                           vm.get("snap_dirty") != "true")
+
+        save_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         if disk_unchanged:
             chk = Gtk.CheckButton(label=S["snap_autosave_skip"])
             chk.set_active(False)
             chk.set_sensitive(False)
+            save_row.append(chk)
         else:
-            chk = Gtk.CheckButton(label=S["snap_autosave_chk"].format(auto_tag))
+            chk = Gtk.CheckButton(label=S["snap_autosave_chk"])
             chk.set_active(True)
-        box.append(chk)
+            name_entry = Gtk.Entry()
+            name_entry.set_text(auto_tag)
+            name_entry.set_hexpand(True)
+            chk.connect("toggled", lambda c: name_entry.set_sensitive(c.get_active()))
+            save_row.append(chk)
+            save_row.append(name_entry)
+        box.append(save_row)
 
         btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         _sp = Gtk.Box(); _sp.set_hexpand(True)
@@ -1478,19 +1487,20 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         def _do_apply(b):
             save_first = chk.get_active()
+            save_name = name_entry.get_text().strip() if (save_first and not disk_unchanged) else auto_tag
             win.close()
 
             def _run():
                 if save_first:
                     r = subprocess.run(
-                        ["qemu-img", "snapshot", "-c", auto_tag, vm["_disk"]],
+                        ["qemu-img", "snapshot", "-c", save_name, vm["_disk"]],
                         capture_output=True, text=True)
                     if r.returncode != 0:
                         GLib.idle_add(self._warn, S["warn_snap_fail_t"],
                                       f"Auto-save failed: {r.stderr}")
                         return
                     GLib.idle_add(notify, "quickbox",
-                                  S["snap_autosave_done"].format(auto_tag), "low")
+                                  S["snap_autosave_done"].format(save_name), "low")
 
                 r = subprocess.run(
                     ["qemu-img", "snapshot", "-a", tag, vm["_disk"]],
