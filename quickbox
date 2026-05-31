@@ -1543,7 +1543,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
             self._run_with_progress(
                 S["snap_extracting"],
-                ["qemu-img", "convert", "-O", "qcow2", "-s", tag, vm["_disk"], preview],
+                ["qemu-img", "convert", "-f", "qcow2", "-O", "qcow2",
+                 "-l", f"snapshot.name={tag}", vm["_disk"], preview],
                 on_done=on_extracted)
 
         self._confirm(S["dlg_snap_boot_t"].format(tag),
