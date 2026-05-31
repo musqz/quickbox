@@ -48,6 +48,7 @@ import glob
 import shutil
 import threading
 import locale as _locale
+from datetime import datetime
 import json as _json
 from pathlib import Path
 
@@ -58,11 +59,8 @@ _EN_STRINGS = {
     "app_title": "Quickbox",
     "hdr_download": "Download",       "hdr_custom_vm": "Custom VM",
     "hdr_advanced": "Advanced",       "hdr_ssh": "SSH",
-    "hdr_quick_ref": "Quick Ref",
     "tt_refresh": "Refresh",
-    "tt_ssh_help": "SSH Setup & Commands Help",
     "tt_ssh_menu": "Quick SSH access to running VMs",
-    "tt_quick_ref": "SSH/SCP command quick reference",
     "tt_download": "Download a new distro ISO via quickget",
     "tt_custom_vm": "Create a VM from a local ISO or IMG file",
     "tt_advanced": "Migrate VMs, switch location, manage saved paths",
@@ -87,9 +85,11 @@ _EN_STRINGS = {
     "info_ssh_port": "SSH port",     "info_disk": "Disk",
     "info_iso": "ISO",
     "set_profile": "Profile:",       "set_compat": "Compatibility mode:",
-    "set_boot": "Boot mode:",        "set_stable": "Mark as stable:",
+    "set_boot": "Boot mode:",        "set_quiet": "Quiet launch:",
+    "set_danger_lock": "Lock Danger Zone:",
     "set_compat_hint": "Use minimal QEMU without VirGL — for lightweight or older distros that show a blank screen.",
-    "set_stable_hint": "When on: hides launch notifications and locks the Danger Zone.",
+    "set_quiet_hint": "Suppress the desktop notification when this VM starts.",
+    "set_danger_lock_hint": "Disable delete and format actions to prevent accidents.",
     "boot_uefi": "UEFI",             "boot_legacy": "Legacy (BIOS)",
     "snap_no_disk": "No disk yet — launch VM first to create one",
     "snap_none": "No snapshots yet",
@@ -119,7 +119,7 @@ _EN_STRINGS = {
     "tt_del_disk": "Remove the disk image only — keeps ISO and config",
     "tt_fmt_disk": "Create or re-format the disk — erases all data",
     "tt_del_vm": "Permanently remove all VM files including disk and config",
-    "tt_stable_lock": "Mark VM as unstable first to enable this action",
+    "tt_danger_lock": "Unlock Danger Zone first to enable this action",
     "clone_title": "Clone VM",
     "clone_label": "Clone '{}' as:",
     "clone_tt": "Name for the cloned VM — date suffix helps track when it was made",
@@ -174,6 +174,7 @@ _EN_STRINGS = {
     "adv_no_locs": "No saved locations yet",
     "tt_reset_prof": "Restore the 5 built-in profiles (Standard, Live ISO, Lightweight, Performance, Server). Custom profiles are kept.",
     "btn_switch": "Switch",          "btn_remove": "Remove",
+    "btn_open_loc": "Open",
     "mig_title": "Select VMs to migrate",
     "mig_hint": "Tick the VMs you want to copy to the new location.",
     "mig_all": "Select all",         "mig_none": "Select none",
@@ -187,13 +188,6 @@ _EN_STRINGS = {
     "prog_fail": "Failed.",          "prog_err": "Something went wrong.",
     "ssh_no_vms": "No VMs running",
     "distro_updating": "Updating distro list...",
-    "qr_ssh": "SSH into VM",
-    "qr_pull_file": "Pull single file", "qr_push_file": "Push single file",
-    "qr_pull_dir": "Pull directory",    "qr_push_dir": "Push directory",
-    "qr_run_cmd": "Run command",
-    "ssh_help_title": "SSH Setup & Commands",
-    "ssh_tab_setup": "Setup",        "ssh_tab_cmds": "Commands",
-    "ssh_help_close": "Close",
     "ntf_launching": "Launching {}",
     "ntf_snap_created": "Snapshot '{}' created.",
     "ntf_snap_applied": "Snapshot '{}' applied. Launch VM from menu.",
@@ -540,7 +534,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.current_vm = None
         self._search_text = ""
         self._vms_dir_mtime = 0
-        self._ssh_help_win = None
         self._timeout_handlers = []  # Track timeout IDs
         self._build_css()
         self._build_ui()
@@ -556,8 +549,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         for timeout_id in self._timeout_handlers:
             GLib.source_remove(timeout_id)
         self._timeout_handlers.clear()
-        if self._ssh_help_win and self._ssh_help_win.get_visible():
-            self._ssh_help_win.destroy()
         self.get_application().quit()
         return False
 
@@ -667,19 +658,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         ssh_menu_btn.set_popover(self._ssh_popover)
         hb.pack_start(ssh_menu_btn)
 
-        quick_ref_btn = Gtk.MenuButton()
-        quick_ref_btn.set_label(S["hdr_quick_ref"])
-        quick_ref_btn.set_tooltip_text(S["tt_quick_ref"])
-        self._quick_ref_popover = Gtk.Popover()
-        quick_ref_btn.set_popover(self._quick_ref_popover)
-        hb.pack_start(quick_ref_btn)
-        self._build_quick_ref_menu()
-
-        help_btn = Gtk.Button.new_from_icon_name("help-browser-symbolic")
-        help_btn.set_tooltip_text(S["tt_ssh_help"])
-        help_btn.connect("clicked", lambda b: self._show_ssh_help())
-        hb.pack_start(help_btn)
-
         for lbl_key, icon, tt_key, cb in [
             ("hdr_download",  "folder-download-symbolic",      "tt_download",  self._dlg_download),
             ("hdr_custom_vm", "list-add-symbolic",             "tt_custom_vm", self._dlg_custom),
@@ -786,245 +764,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             return True
         return (self._search_text in row.vm["_pretty"].lower() or
                 self._search_text in row.vm["_name"].lower())
-
-    def _show_ssh_help(self):
-        """Toggle SSH help window - show/hide."""
-        if self._ssh_help_win is not None:
-            if self._ssh_help_win.get_visible():
-                self._ssh_help_win.hide()
-                return
-            else:
-                self._ssh_help_win.present()
-                return
-        
-        help_win = Gtk.Window()
-        help_win.set_title(S["ssh_help_title"])
-        help_win.set_default_size(600, 500)
-        help_win.connect("close-request", lambda w: self._on_help_closed() or False)
-        
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        help_win.set_child(vbox)
-        
-        # Notebook with two tabs
-        notebook = Gtk.Notebook()
-        notebook.set_vexpand(True)
-        notebook.set_hexpand(True)
-        vbox.append(notebook)
-        
-        # ─── TAB 1: Quick Setup ───
-        setup_scroll = Gtk.ScrolledWindow()
-        setup_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        setup_text = Gtk.TextView()
-        setup_text.set_editable(False)
-        setup_text.set_wrap_mode(Gtk.WrapMode.WORD)
-        setup_buffer = setup_text.get_buffer()
-        
-        setup_content = """SSH SETUP FOR GUEST VM
-
-1. EDIT /etc/ssh/sshd_config
-
-   sudo nano /etc/ssh/sshd_config
-   
-   Ensure these lines are present and uncommented:
-   ===============================================================
-   Port 22
-   PermitRootLogin yes
-   PasswordAuthentication yes
-   PubkeyAuthentication yes
-   ===============================================================
-   
-   Note: SSH is case-sensitive. Use exact capitalization shown above.
-   After editing, validate with: sudo sshd -t
-
-2. RESTART SSH SERVICE
-
-   sudo systemctl restart sshd.service
-   sudo systemctl enable sshd.service
-
-3. VERIFY SSH IS ACTUALLY LISTENING
-
-   CRITICAL: Check if sshd is listening on port 22 in the guest:
-   -------------------------------------------
-   sudo ss -tlnp | grep :22
-   
-   You should see output like:
-   LISTEN  0  128  0.0.0.0:22  0.0.0.0:*  pid/sshd
-   
-   If NO output -> sshd is NOT listening. Fix it before trying SSH.
-
-4. TROUBLESHOOT "CONNECTION REFUSED"
-
-   This means quickbox CANNOT reach SSH on the forwarded port.
-   
-   Step A: Is sshd actually running in guest?
-   -------------------------------------------
-   sudo systemctl status sshd
-   sudo ss -tlnp | grep :22
-   
-   If not listening:
-   - sudo sshd -t          (check for config errors)
-   - sudo systemctl restart sshd
-   - sudo journalctl -u sshd -n 20  (view logs)
-
-   Step B: Is guest firewall blocking port 22?
-   -------------------------------------------
-   sudo iptables -L -n | grep 22
-   sudo ufw status
-   
-   If blocked, open SSH:
-   sudo ufw allow 22/tcp
-   sudo firewall-cmd --add-service=ssh --permanent
-
-   Step C: Verify quickbox port forwarding
-   -------------------------------------------
-   From HOST terminal (not guest), test if port is forwarded:
-   
-   telnet localhost 2222
-   
-   If it connects, type: quit
-   If "Connection refused" -> QEMU forwarding is misconfigured
-   
-   Check quickbox configuration for -netdev flags
-
-5. TEST FROM HOST
-
-   Once sshd is confirmed listening in guest:
-   
-   ssh -v -p 2222 root@localhost
-   
-   The -v flag shows connection details to help debug
-   any remaining issues
-"""
-        
-        setup_buffer.set_text(setup_content)
-        setup_scroll.set_child(setup_text)
-        notebook.append_page(setup_scroll, Gtk.Label(label=S["ssh_tab_setup"]))
-        
-        # ─── TAB 2: Quick Commands ───
-        cmd_scroll = Gtk.ScrolledWindow()
-        cmd_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        cmd_text = Gtk.TextView()
-        cmd_text.set_editable(False)
-        cmd_text.set_wrap_mode(Gtk.WrapMode.WORD)
-        cmd_text.set_monospace(True)
-        cmd_buffer = cmd_text.get_buffer()
-        
-        cmd_content = """SSH/SCP QUICK COMMANDS
-
-Replace: PORT with actual port (2222, 2223, etc)
-         USER with ssh_user (root, ubuntu, etc)
-
-INTERACTIVE SHELL
--------------------------------------------
-ssh -p PORT USER@localhost
-ssh -p 2222 root@localhost
-
-
-PULL FILES FROM VM TO HOST
--------------------------------------------
-# Single file:
-scp -P PORT USER@localhost:/remote/path/file /local/path/
-
-# Example:
-scp -P 2222 root@localhost:/etc/ssh/sshd_config ~/backup/
-
-# Directory:
-scp -P PORT -r USER@localhost:/remote/dir /local/path/
-
-
-PUSH FILES FROM HOST TO VM
--------------------------------------------
-# Single file:
-scp -P PORT /local/file USER@localhost:/remote/path/
-
-# Example:
-scp -P 2222 ~/my-file.txt root@localhost:/home/
-
-# Directory:
-scp -P PORT -r /local/dir USER@localhost:/remote/path/
-
-
-RUN COMMAND (NO SHELL)
--------------------------------------------
-ssh -p PORT USER@localhost 'ls -la /home/'
-ssh -p 2222 root@localhost 'systemctl status sshd'
-
-View file without copying:
-ssh -p PORT USER@localhost 'cat /etc/ssh/sshd_config'
-
-
-TIPS
--------------------------------------------
-* Use -P (capital) for port in scp
-* Use -p (lowercase) for port in ssh
-* Add -r flag to scp for directories
-* Use -C flag to compress transfers
-* Check quickbox SSH menu for exact ports
-"""
-        
-        cmd_buffer.set_text(cmd_content)
-        cmd_scroll.set_child(cmd_text)
-        notebook.append_page(cmd_scroll, Gtk.Label(label=S["ssh_tab_cmds"]))
-        
-        # Store window reference
-        self._ssh_help_win = help_win
-        
-        # Close button
-        close_btn = Gtk.Button(label=S["ssh_help_close"])
-        close_btn.connect("clicked", lambda b: help_win.hide())
-        close_btn.set_margin_top(8)
-        close_btn.set_margin_start(8)
-        close_btn.set_margin_end(8)
-        close_btn.set_margin_bottom(8)
-        vbox.append(close_btn)
-        
-        help_win.present()
-
-
-    def _on_help_closed(self):
-        """Handle help window close button."""
-        self._ssh_help_win = None
-        return False  # Allow window to close
-
-    def _build_quick_ref_menu(self):
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        box.set_margin_top(4)
-        box.set_margin_bottom(4)
-        box.set_margin_start(4)
-        box.set_margin_end(4)
-
-        commands = [
-            (S["qr_ssh"],       "ssh -p 2222 root@localhost"),
-            None,
-            (S["qr_pull_file"], "scp -P 2222 root@localhost:/path/to/file /local/path/"),
-            (S["qr_push_file"], "scp -P 2222 /local/file root@localhost:/remote/path/"),
-            None,
-            (S["qr_pull_dir"],  "scp -P 2222 -r root@localhost:/remote/dir /local/path/"),
-            (S["qr_push_dir"],  "scp -P 2222 -r /local/dir root@localhost:/remote/path/"),
-            None,
-            (S["qr_run_cmd"],   "ssh -p 2222 root@localhost 'ls /home/'"),
-        ]
-
-        for entry in commands:
-            if entry is None:
-                box.append(Gtk.Separator())
-            else:
-                label, cmd = entry
-                btn = Gtk.Button(label=label)
-                btn.set_has_frame(False)
-                btn.set_tooltip_text(cmd)
-                btn.connect("clicked",
-                    lambda b, c=cmd: (self._quick_ref_popover.popdown(),
-                                      self._copy_command_to_clipboard(c)))
-                box.append(btn)
-
-        self._quick_ref_popover.set_child(box)
-
-
-    def _copy_command_to_clipboard(self, cmd):
-        Gdk.Display.get_default().get_clipboard().set_content(
-            Gdk.ContentProvider.new_for_value(cmd))
-        notify("Command", S["ntf_cmd_copied"].format(cmd), "low")
 
     def _refresh_ssh_menu(self):
         while child := self._ssh_popover_box.get_first_child():
@@ -1320,18 +1059,31 @@ TIPS
         bc.connect("changed", self._on_boot_changed, vm)
         sg.attach(bl, 0, 4, 1, 1); sg.attach(bc, 1, 4, 1, 1)
 
-        stl, sts = sw_row(S["set_stable"].rstrip(":"),
-                          vm.get("confirmed") == "true",
-                          lambda sw, p, v=vm: setconf("confirmed",
+        qtl, qts = sw_row(S["set_quiet"].rstrip(":"),
+                          vm.get("quiet_launch") == "true",
+                          lambda sw, p, v=vm: setconf("quiet_launch",
                               "true" if sw.get_active() else "false", v["_conf"]) or
-                              v.update({"confirmed": "true" if sw.get_active() else "false"}))
-        sg.attach(stl, 0, 5, 1, 1); sg.attach(sts, 1, 5, 1, 1)
-        stable_hint = Gtk.Label()
-        stable_hint.set_markup(f'<span size="small" color="gray">{S["set_stable_hint"]}</span>')
-        stable_hint.set_halign(Gtk.Align.START)
-        stable_hint.set_wrap(True)
-        stable_hint.set_max_width_chars(42)
-        sg.attach(stable_hint, 1, 6, 1, 1)
+                              v.update({"quiet_launch": "true" if sw.get_active() else "false"}))
+        sg.attach(qtl, 0, 5, 1, 1); sg.attach(qts, 1, 5, 1, 1)
+        quiet_hint = Gtk.Label()
+        quiet_hint.set_markup(f'<span size="small" color="gray">{S["set_quiet_hint"]}</span>')
+        quiet_hint.set_halign(Gtk.Align.START)
+        quiet_hint.set_wrap(True)
+        quiet_hint.set_max_width_chars(42)
+        sg.attach(quiet_hint, 1, 6, 1, 1)
+
+        dlt, dls = sw_row(S["set_danger_lock"].rstrip(":"),
+                          vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true",
+                          lambda sw, p, v=vm: setconf("danger_locked",
+                              "true" if sw.get_active() else "false", v["_conf"]) or
+                              v.update({"danger_locked": "true" if sw.get_active() else "false"}))
+        sg.attach(dlt, 0, 7, 1, 1); sg.attach(dls, 1, 7, 1, 1)
+        dl_hint = Gtk.Label()
+        dl_hint.set_markup(f'<span size="small" color="gray">{S["set_danger_lock_hint"]}</span>')
+        dl_hint.set_halign(Gtk.Align.START)
+        dl_hint.set_wrap(True)
+        dl_hint.set_max_width_chars(42)
+        sg.attach(dl_hint, 1, 8, 1, 1)
         self.right_box.append(sg)
 
         # Snapshots — always show
@@ -1436,16 +1188,16 @@ TIPS
         # Danger zone
         self.right_box.append(self._section(S["sec_danger"]))
         dng_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        is_stable = vm.get("confirmed") == "true"
+        is_locked = vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true"
         for lbl_key, tt_key, cb in [
             ("dng_del_disk", "tt_del_disk", lambda b: self._delete_disk(vm)),
             ("dng_fmt_disk", "tt_fmt_disk", lambda b: self._dlg_format_disk(vm)),
             ("dng_del_vm",   "tt_del_vm",   lambda b: self._delete_vm(vm)),
         ]:
             btn = Gtk.Button(label=S[lbl_key])
-            btn.set_tooltip_text(S["tt_stable_lock"] if is_stable else S[tt_key])
+            btn.set_tooltip_text(S["tt_danger_lock"] if is_locked else S[tt_key])
             btn.get_style_context().add_class("danger-btn")
-            btn.set_sensitive(not is_stable)
+            btn.set_sensitive(not is_locked)
             btn.connect("clicked", cb)
             dng_box.append(btn)
         self.right_box.append(dng_box)
@@ -1465,7 +1217,7 @@ TIPS
         # preview_disk forces direct QEMU mode — quickemu can't use a custom disk path
         compat    = True if preview_disk else vm.get("compat_mode") == "true"
         boot      = vm.get("boot", "uefi")
-        confirmed = vm.get("confirmed") == "true"
+        quiet     = vm.get("quiet_launch") == "true"
         disk_if   = vm.get("disk_if", "")
         net_dev   = vm.get("net_device", "e1000")
         disk_img  = vm.get("disk_img", "")
@@ -1498,7 +1250,8 @@ TIPS
 
         accel   = "kvm" if KVM_AVAILABLE else "tcg"
 
-        notify("quickbox", S["ntf_launching"].format(vmname), "low")
+        if not quiet:
+            notify("quickbox", S["ntf_launching"].format(vmname), "low")
 
         # Base QEMU args (all modes)
         base_args = [
@@ -2612,8 +2365,19 @@ TIPS
         update_btn.connect("clicked", lambda b: _update_distro_list(self))
         box.append(update_btn)
 
+        _csv = Path.home() / ".config/quickbox/quickinst.csv"
+        if _csv.exists():
+            _mtime = _csv.stat().st_mtime
+            _date_str = datetime.fromtimestamp(_mtime).strftime("%-d %b %Y")
+            _stale = (datetime.now().timestamp() - _mtime) > (90 * 86400)
+        else:
+            _date_str = "never"
+            _stale = False
         upd_info = Gtk.Label()
-        upd_info.set_markup(f'<span size="small" color="gray">{S["adv_update_hint"]}</span>')
+        _hint = f'{S["adv_update_hint"]}  ·  Last updated: {_date_str}'
+        if _stale:
+            _hint += '  ·  <span color="#e65100">Consider updating — list may be outdated</span>'
+        upd_info.set_markup(f'<span size="small" color="gray">{_hint}</span>')
         upd_info.set_halign(Gtk.Align.START)
         upd_info.set_margin_bottom(12)
         box.append(upd_info)
@@ -2690,6 +2454,11 @@ TIPS
                 lbl.set_max_width_chars(36)
                 lbl.set_hexpand(True)
                 row.append(lbl)
+
+                op_btn = Gtk.Button(label=S["btn_open_loc"])
+                op_btn.set_size_request(70, -1)
+                op_btn.connect("clicked", lambda b, l=loc: subprocess.Popen(["xdg-open", l]))
+                row.append(op_btn)
 
                 rm_btn = Gtk.Button(label=S["btn_remove"])
                 rm_btn.set_size_request(70, -1)
