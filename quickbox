@@ -1541,10 +1541,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 self._launch_vm(vm, preview_disk=preview)
                 self._show_panel(vm)
 
+            import shlex
             self._run_with_progress(
                 S["snap_extracting"],
-                ["qemu-img", "convert", "-f", "qcow2", "-O", "qcow2",
-                 "-l", f"snapshot.name={tag}", vm["_disk"], preview],
+                ["sh", "-c",
+                 f"cp -- {shlex.quote(vm['_disk'])} {shlex.quote(preview)} && "
+                 f"qemu-img snapshot -a {shlex.quote(tag)} {shlex.quote(preview)}"],
                 on_done=on_extracted)
 
         self._confirm(S["dlg_snap_boot_t"].format(tag),
