@@ -99,15 +99,9 @@ _EN_STRINGS = {
     "snap_delete": "Delete",
     "snap_active": "Active: {}",
     "snap_stale": "Last applied: {} (deleted)",
-    "snap_boot": "Boot",
-    "tt_snap_boot": "Save current state, then switch disk to this snapshot",
     "snap_autosave_chk": "Auto-save current state first as '{}'",
     "snap_autosave_skip": "Disk already at this snapshot — no backup needed",
     "snap_autosave_done": "Current state saved as '{}'",
-    "snap_applying": "Applying snapshot…",
-    "dlg_snap_boot_t": "Switch to snapshot '{}'?",
-    "dlg_snap_boot_b": "The current disk state will be saved as a new snapshot first, then the disk is switched to '{}'. You can restore the previous state from the snapshots list at any time.",
-    "ntf_snap_boot": "Switched to snapshot '{}' — launching VM",
     "act_edit_conf": "Edit conf",    "act_clone": "Clone VM",
     "act_open_dir": "Open dir",
     "tt_edit_conf": "Open the VM configuration file in a text editor",
@@ -1123,13 +1117,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         lambda b, t=snap["tag"]: self._snap_delete(vm, t))
                     row.append(del_btn)
 
-                    boot_btn = Gtk.Button(label=S["snap_boot"])
-                    boot_btn.set_size_request(68, -1)
-                    boot_btn.set_tooltip_text(S["tt_snap_boot"])
-                    boot_btn.connect("clicked",
-                        lambda b, t=snap["tag"]: self._snap_boot(vm, t))
-                    row.append(boot_btn)
-
                     apply_btn = Gtk.Button(label=S["snap_apply"])
                     apply_btn.set_size_request(68, -1)
                     apply_btn.connect("clicked",
@@ -1506,33 +1493,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         apply_btn.connect("clicked", _do_apply)
         win.present()
-
-    def _snap_boot(self, vm, tag):
-        """Save current disk state, apply snapshot, then launch VM."""
-        from datetime import datetime
-        def on_confirm(yes):
-            if not yes:
-                return
-            save_tag = "pre-{}-{}".format(tag, datetime.now().strftime("%Y%m%d-%H%M"))
-            import shlex
-            self._run_with_progress(
-                S["snap_applying"],
-                ["sh", "-c",
-                 f"qemu-img snapshot -c {shlex.quote(save_tag)} {shlex.quote(vm['_disk'])} && "
-                 f"qemu-img snapshot -a {shlex.quote(tag)} {shlex.quote(vm['_disk'])}"],
-                on_done=lambda ok: self._on_snap_applied(ok, vm, tag))
-
-        self._confirm(S["dlg_snap_boot_t"].format(tag),
-                      S["dlg_snap_boot_b"].format(tag),
-                      on_confirm)
-
-    def _on_snap_applied(self, ok, vm, tag):
-        if not ok:
-            self._warn(S["warn_snap_fail_t"], "Failed to apply snapshot.")
-            return
-        notify("quickbox", S["ntf_snap_boot"].format(tag))
-        self._launch_vm(vm)
-        GLib.timeout_add(500, self._refresh)
 
 
 
