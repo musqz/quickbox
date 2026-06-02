@@ -33,6 +33,14 @@ A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/
 
 ## Installation
 
+### Debian / Ubuntu — .deb package
+
+Download the latest `.deb` from the [Releases page](https://github.com/musqz/quickbox/releases) and install:
+
+```bash
+sudo apt install ./quickbox_1.2.3_all.deb
+```
+
 ### Arch Linux / Manjaro — local PKGBUILD
 
 ```bash
