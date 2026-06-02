@@ -1787,6 +1787,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         out.append(f'{k}=')
                 if "pretty" not in src_vm:
                     out.append(f'pretty="{name}"')
+                new_port = get_next_ssh_port(self.vms_dir, dest_name)
+                out.append(f'ssh_port="{new_port}"')
                 dest_conf.write_text("\n".join(out) + "\n")
                 dest_conf.chmod(0o755)
             except Exception as e:
