@@ -1281,6 +1281,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.right_box.append(act_box)
 
         dng_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        dng_box.set_margin_top(8)
         is_locked = vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true"
         for lbl_key, tt_key, cb in [
             ("dng_del_disk", "tt_del_disk", lambda b: self._delete_disk(vm)),
