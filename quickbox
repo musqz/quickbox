@@ -613,7 +613,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             return
         try:
             self._tray_proc = subprocess.Popen(
-                ["python3", "-c", _TRAY_HELPER, "system-search"],
+                ["python3", "-c", _TRAY_HELPER, "qemu"],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
             GLib.io_add_watch(
                 self._tray_proc.stdout.fileno(),
