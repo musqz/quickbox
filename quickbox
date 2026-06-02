@@ -42,6 +42,21 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Pango, Gdk, Gio
 
+# Optional system tray support
+_AppIndicator = None
+for _tray_mod, _tray_ver in [("AyatanaAppIndicator3", "0.1"), ("AppIndicator3", "0.1")]:
+    try:
+        gi.require_version(_tray_mod, _tray_ver)
+        from gi.repository import AyatanaAppIndicator3 as _AppIndicator
+        break
+    except Exception:
+        try:
+            from gi.repository import AppIndicator3 as _AppIndicator
+            break
+        except Exception:
+            pass
+HAVE_TRAY = _AppIndicator is not None
+
 import os
 import subprocess
 import glob
@@ -151,6 +166,10 @@ _EN_STRINGS = {
     "cvm_file_title": "Select ISO or IMG file",
     "cvm_filter": "Disk images (*.iso, *.img)",
     "btn_next": "Next",
+    "adv_sec_tray": "SYSTEM TRAY",
+    "adv_tray_sw": "Enable system tray icon",
+    "adv_tray_hint": "Hides window to tray on close. Click tray icon to show/hide.",
+    "adv_tray_unavail": "Not available — install libayatana-appindicator3 or libappindicator3.",
     "adv_title": "Advanced",
     "adv_cur_dir": "Current VMs directory:",
     "adv_sec_loc": "LOCATION MANAGEMENT",
@@ -568,10 +587,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.current_vm = None
         self._search_text = ""
         self._vms_dir_mtime = 0
-        self._timeout_handlers = []  # Track timeout IDs
+        self._timeout_handlers = []
+        self._indicator = None
         self._build_css()
         self._build_ui()
         self._refresh()
+        self._init_systray()
         self.connect("close-request", self._on_close_request)
         # poll VM running state and vms_dir changes every 4 seconds
         self._timeout_handlers.append(GLib.timeout_add(4000, self._poll_running_state))
@@ -579,7 +600,33 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         # poll copying progress every 2 seconds
         self._timeout_handlers.append(GLib.timeout_add(2000, self._poll_copying))
 
+    # ── system tray ──
+
+    def _init_systray(self):
+        if not HAVE_TRAY or self.conf.get("systray") != "true":
+            return
+        icon = "quickbox" if ICON_PATH else "computer-vm"
+        self._indicator = _AppIndicator.Indicator.new(
+            "quickbox", icon,
+            _AppIndicator.IndicatorCategory.APPLICATION_STATUS)
+        self._indicator.set_status(_AppIndicator.IndicatorStatus.ACTIVE)
+        self._indicator.connect("secondary-activate", self._tray_toggle)
+
+    def _teardown_systray(self):
+        if self._indicator:
+            self._indicator.set_status(_AppIndicator.IndicatorStatus.PASSIVE)
+            self._indicator = None
+
+    def _tray_toggle(self, *_):
+        if self.is_visible():
+            self.hide()
+        else:
+            self.present()
+
     def _on_close_request(self):
+        if self._indicator and self.conf.get("systray") == "true":
+            self.hide()
+            return True
         for timeout_id in self._timeout_handlers:
             GLib.source_remove(timeout_id)
         self._timeout_handlers.clear()
@@ -2444,6 +2491,50 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         _sep4 = Gtk.Separator()
         _sep4.set_margin_top(8)
         box.append(_sep4)
+
+        # ── System tray ──
+        hdr_tray = Gtk.Label(label=S["adv_sec_tray"])
+        hdr_tray.set_halign(Gtk.Align.START)
+        hdr_tray.add_css_class("section-hdr")
+        box.append(hdr_tray)
+
+        tray_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        tray_row.set_margin_top(8)
+        tray_lbl = Gtk.Label(label=S["adv_tray_sw"])
+        tray_lbl.set_halign(Gtk.Align.START)
+        tray_lbl.set_hexpand(True)
+        tray_sw = Gtk.Switch()
+        tray_sw.set_active(self.conf.get("systray") == "true")
+        tray_sw.set_halign(Gtk.Align.END)
+        tray_sw.set_sensitive(HAVE_TRAY)
+        tray_row.append(tray_lbl)
+        tray_row.append(tray_sw)
+        box.append(tray_row)
+
+        tray_hint = Gtk.Label()
+        hint_text = S["adv_tray_hint"] if HAVE_TRAY else S["adv_tray_unavail"]
+        hint_color = "gray" if HAVE_TRAY else "#e65100"
+        tray_hint.set_markup(f'<span size="small" color="{hint_color}">{hint_text}</span>')
+        tray_hint.set_halign(Gtk.Align.START)
+        tray_hint.set_wrap(True)
+        tray_hint.set_max_width_chars(52)
+        tray_hint.set_margin_bottom(12)
+        box.append(tray_hint)
+
+        def _on_tray_sw(sw, _):
+            val = "true" if sw.get_active() else "false"
+            setconf("systray", val)
+            self.conf["systray"] = val
+            if sw.get_active():
+                self._init_systray()
+            else:
+                self._teardown_systray()
+
+        tray_sw.connect("notify::active", _on_tray_sw)
+
+        _sep5 = Gtk.Separator()
+        _sep5.set_margin_top(8)
+        box.append(_sep5)
 
         hdr2 = Gtk.Label(label=S["adv_sec_saved"])
         hdr2.set_halign(Gtk.Align.START)
