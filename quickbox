@@ -126,6 +126,7 @@ _EN_STRINGS = {
     "welcome": "Select a VM from the list\nor use the buttons above",
     "sec_launch": "LAUNCH",
     "sec_info": "INFO",              "sec_settings": "SETTINGS",
+    "btn_hide": "Hide",              "btn_show": "Show",
     "sec_snapshots": "SNAPSHOTS",    "sec_actions": "ACTIONS",
     "sec_danger": "DANGER ZONE",
     "vm_copying": "⏳ Disk still copying — please wait…",
@@ -1038,13 +1039,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         settings_lbl = Gtk.Label(label=S["sec_settings"])
         settings_lbl.set_halign(Gtk.Align.START)
         settings_lbl.add_css_class("section-hdr")
-        settings_chevron = Gtk.Label(label="▾" if settings_expanded[0] else "▸")
-        settings_chevron.add_css_class("section-hdr")
+        settings_lbl.set_hexpand(True)
+        settings_toggle_btn = Gtk.Button(
+            label=S["btn_hide"] if settings_expanded[0] else S["btn_show"])
+        settings_toggle_btn.set_has_frame(False)
+        settings_toggle_btn.add_css_class("section-hdr")
         settings_hdr.append(settings_lbl)
-        settings_hdr.append(settings_chevron)
-        settings_hdr.set_cursor(Gdk.Cursor.new_from_name("pointer"))
-        gesture = Gtk.GestureClick()
-        settings_hdr.add_controller(gesture)
+        settings_hdr.append(settings_toggle_btn)
         self.right_box.append(settings_hdr)
 
         sg = Gtk.Grid()
@@ -1143,12 +1144,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         sg.set_visible(settings_expanded[0])
         self.right_box.append(sg)
 
-        def _toggle_settings(_gesture, _n, _x, _y):
+        def _toggle_settings(_btn):
             settings_expanded[0] = not settings_expanded[0]
             sg.set_visible(settings_expanded[0])
-            settings_chevron.set_label("▾" if settings_expanded[0] else "▸")
+            settings_toggle_btn.set_label(
+                S["btn_hide"] if settings_expanded[0] else S["btn_show"])
             setconf("settings_expanded", "true" if settings_expanded[0] else "false")
-        gesture.connect("pressed", _toggle_settings)
+        settings_toggle_btn.connect("clicked", _toggle_settings)
 
         # Snapshots — always show
         self.right_box.append(self._section(S["sec_snapshots"]))
