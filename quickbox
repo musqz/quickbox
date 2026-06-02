@@ -617,7 +617,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.current_vm = None
         self._search_text = ""
         self._vms_dir_mtime = 0
-        self._programmatic_select = False
         self._conf_mtimes = {}
         self._timeout_handlers = []
         self._indicator = None
@@ -915,9 +914,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             row = self.listbox.get_first_child()
             while row is not None:
                 if hasattr(row, "vm") and row.vm["_name"] == name:
-                    self._programmatic_select = True
                     self.listbox.select_row(row)
-                    self._programmatic_select = False
                     self.current_vm = row.vm
                     break
                 row = row.get_next_sibling()
@@ -941,7 +938,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _on_select(self, lb, row):
         if row:
             self.current_vm = row.vm
-            self._show_panel(row.vm, reset_scroll=not self._programmatic_select)
+            self._show_panel(row.vm)
 
     # ── welcome ──
 
@@ -968,8 +965,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     # ── VM detail panel ──
 
-    def _show_panel(self, vm, reset_scroll=False):
-        scroll_val = 0 if reset_scroll else self.right_scroll.get_vadjustment().get_value()
+    def _show_panel(self, vm):
         self._clear_right()
         self.right_box.set_valign(Gtk.Align.FILL)
 
@@ -1107,11 +1103,20 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         quiet_hint.set_max_width_chars(42)
         sg.attach(quiet_hint, 1, 6, 1, 1)
 
+        _dng_btns = []  # filled after danger zone buttons are created
+
         def _on_danger_lock(sw, p, v=vm):
             val = "true" if sw.get_active() else "false"
             setconf("danger_locked", val, v["_conf"])
-            v.update({"danger_locked": val})
-            self._show_panel(v)
+            v["danger_locked"] = val
+            locked = val == "true"
+            for b, tt in _dng_btns:
+                b.set_sensitive(not locked)
+                b.set_tooltip_text(S["tt_danger_lock"] if locked else tt)
+                if locked:
+                    b.remove_css_class("destructive-action")
+                else:
+                    b.add_css_class("destructive-action")
         dlt, dls = sw_row(S["set_danger_lock"].rstrip(":"),
                           vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true",
                           _on_danger_lock)
@@ -1234,8 +1239,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             btn.set_sensitive(not is_locked)
             btn.connect("clicked", cb)
             dng_box.append(btn)
+            _dng_btns.append((btn, S[tt_key]))
         self.right_box.append(dng_box)
-        GLib.idle_add(lambda v=scroll_val: self.right_scroll.get_vadjustment().set_value(v))
 
     # ── launch / stop ──
 
