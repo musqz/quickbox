@@ -66,7 +66,7 @@ _EN_STRINGS = {
     "tt_advanced": "Migrate VMs, switch location, manage saved paths",
     "search_ph": "Filter VMs…",
     "search_tt": "Type to filter the VM list by name",
-    "badge_running": "running",
+    "badge_running": "running",     "badge_copying": "importing…",
     "status_vms": "{} VM",           "status_vms_pl": "{} VMs",
     "welcome": "Select a VM from the list\nor use the buttons above",
     "sec_launch": "LAUNCH",          "sec_ssh": "SSH",
@@ -436,6 +436,7 @@ def get_vms(vms_dir):
         disk = vm.get("disk_img", "")
         vm["_disk"]    = str(Path(vms_dir) / disk) if disk else ""
         vm["_has_disk"] = Path(vm["_disk"]).exists() if vm["_disk"] else False
+        vm["_copying"] = (Path(vms_dir) / f".{vm['_name']}.copying").exists()
         vm["_size"]    = dir_size(str(Path(vms_dir) / vm["_name"]))
         vms.append(vm)
     return vms
@@ -502,7 +503,17 @@ class VMRow(Gtk.ListBoxRow):
         name.set_hexpand(True)
         box.append(name)
 
-        if vm["_running"]:
+        if vm.get("_copying"):
+            spinner = Gtk.Spinner()
+            spinner.start()
+            box.append(spinner)
+            sz = Gtk.Label(label=vm["_size"])
+            sz.add_css_class("dim-label")
+            box.append(sz)
+            badge = Gtk.Label(label=S["badge_copying"])
+            badge.add_css_class("badge-copying")
+            box.append(badge)
+        elif vm["_running"]:
             badge = Gtk.Label(label=S["badge_running"])
             badge.add_css_class("badge-running")
             box.append(badge)
@@ -593,6 +604,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .vm-listbox row:selected { background-color:alpha(@theme_selected_bg_color,0.8); }
         .vm-listbox row:hover    { background-color:alpha(@theme_selected_bg_color,0.25); }
         .badge-running { background-color:#2e7d32; color:white;
+                         border-radius:4px; padding:1px 6px; font-size:11px; }
+        .badge-copying { background-color:#e65100; color:white;
                          border-radius:4px; padding:1px 6px; font-size:11px; }
         .section-hdr { font-weight:bold; font-size:11px;
                        color:alpha(@theme_fg_color,0.55);
