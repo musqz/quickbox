@@ -1150,7 +1150,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             sg.set_visible(settings_expanded[0])
             settings_toggle_btn.set_label(
                 S["btn_hide"] if settings_expanded[0] else S["btn_show"])
-            setconf("settings_expanded", "true" if settings_expanded[0] else "false")
+            v = "true" if settings_expanded[0] else "false"
+            setconf("settings_expanded", v); self.conf["settings_expanded"] = v
         settings_toggle_btn.connect("clicked", _toggle_settings)
 
         # Snapshots — collapsible
@@ -1251,7 +1252,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             snap_vbox.set_visible(snaps_expanded[0])
             snaps_toggle_btn.set_label(
                 S["btn_hide"] if snaps_expanded[0] else S["btn_show"])
-            setconf("snaps_expanded", "true" if snaps_expanded[0] else "false")
+            v = "true" if snaps_expanded[0] else "false"
+            setconf("snaps_expanded", v); self.conf["snaps_expanded"] = v
         snaps_toggle_btn.connect("clicked", _toggle_snaps)
 
         # Actions + Danger zone — collapsible together
@@ -1306,7 +1308,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             dng_box.set_visible(acts_expanded[0])
             acts_toggle_btn.set_label(
                 S["btn_hide"] if acts_expanded[0] else S["btn_show"])
-            setconf("acts_expanded", "true" if acts_expanded[0] else "false")
+            v = "true" if acts_expanded[0] else "false"
+            setconf("acts_expanded", v); self.conf["acts_expanded"] = v
         acts_toggle_btn.connect("clicked", _toggle_acts)
 
     # ── launch / stop ──
