@@ -2224,39 +2224,51 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 ssh_port = get_next_ssh_port(self.vms_dir, dest_name)
 
                 if src_path.suffix.lower() == ".img":
+                    conf_text = (f"#!/usr/bin/quickemu --vm\n"
+                                 f"guest_os=\"linux\"\n"
+                                 f"disk_img=\"{dest_name}/disk.qcow2\"\n"
+                                 f"iso=\"\"\n"
+                                 f"pretty=\"{vm_name}\"\n"
+                                 f"ssh_port=\"{ssh_port}\"\n"
+                                 f"boot=legacy\n"
+                                 f"compat_mode=true\n"
+                                 f"disk_if=ide\n"
+                                 f"net_device=e1000\n")
+                    dest_conf.write_text(conf_text)
+                    dest_conf.chmod(0o755)
+                    flag = Path(self.vms_dir) / f".{dest_name}.copying"
+                    flag.touch()
+                    self._refresh()
                     notify("quickbox", S["ntf_converting"].format(src_path.name), "low")
                     def _convert():
                         disk = str(dest_dir / "disk.qcow2")
-                        subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
-                                         str(src_path), disk])
-                        subprocess.run(["qemu-img", "resize", disk, "20G"])
-                        conf_text = (f"#!/usr/bin/quickemu --vm\n"
-                                     f"guest_os=\"linux\"\n"
-                                     f"disk_img=\"{dest_name}/disk.qcow2\"\n"
-                                     f"iso=\"\"\n"
-                                     f"pretty=\"{vm_name}\"\n"
-                                     f"ssh_port=\"{ssh_port}\"\n"
-                                     f"boot=legacy\n"
-                                     f"compat_mode=true\n"
-                                     f"disk_if=ide\n"
-                                     f"net_device=e1000\n")
-                        dest_conf.write_text(conf_text)
-                        dest_conf.chmod(0o755)
+                        try:
+                            subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
+                                             str(src_path), disk])
+                            subprocess.run(["qemu-img", "resize", disk, "20G"])
+                        finally:
+                            flag.unlink(missing_ok=True)
                         notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
                         GLib.idle_add(self._refresh)
                     threading.Thread(target=_convert, daemon=True).start()
                 else:
+                    conf_text = (f"#!/usr/bin/quickemu --vm\n"
+                                 f"guest_os=\"linux\"\n"
+                                 f"disk_img=\"{dest_name}/disk.qcow2\"\n"
+                                 f"iso=\"{dest_name}/{src_path.name}\"\n"
+                                 f"pretty=\"{vm_name}\"\n"
+                                 f"ssh_port=\"{ssh_port}\"\n")
+                    dest_conf.write_text(conf_text)
+                    dest_conf.chmod(0o755)
+                    flag = Path(self.vms_dir) / f".{dest_name}.copying"
+                    flag.touch()
+                    self._refresh()
                     notify("quickbox", S["ntf_copying"].format(src_path.name), "low")
                     def _copy():
-                        shutil.copy2(str(src_path), str(dest_dir / src_path.name))
-                        conf_text = (f"#!/usr/bin/quickemu --vm\n"
-                                     f"guest_os=\"linux\"\n"
-                                     f"disk_img=\"{dest_name}/disk.qcow2\"\n"
-                                     f"iso=\"{dest_name}/{src_path.name}\"\n"
-                                     f"pretty=\"{vm_name}\"\n"
-                                     f"ssh_port=\"{ssh_port}\"\n")
-                        dest_conf.write_text(conf_text)
-                        dest_conf.chmod(0o755)
+                        try:
+                            shutil.copy2(str(src_path), str(dest_dir / src_path.name))
+                        finally:
+                            flag.unlink(missing_ok=True)
                         notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
                         GLib.idle_add(self._refresh)
                     threading.Thread(target=_copy, daemon=True).start()
