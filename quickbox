@@ -403,6 +403,14 @@ def is_running(vmname):
     return r.returncode == 0
 
 
+def fmt_size(n):
+    for unit in ("B", "K", "M", "G", "T"):
+        if n < 1024:
+            return f"{n:.0f}{unit}" if unit == "B" else f"{n:.1f}{unit}"
+        n /= 1024
+    return f"{n:.1f}P"
+
+
 def dir_size(path):
     try:
         r = subprocess.run(["du", "-sh", path], capture_output=True, text=True)
@@ -436,7 +444,14 @@ def get_vms(vms_dir):
         disk = vm.get("disk_img", "")
         vm["_disk"]    = str(Path(vms_dir) / disk) if disk else ""
         vm["_has_disk"] = Path(vm["_disk"]).exists() if vm["_disk"] else False
-        vm["_copying"] = (Path(vms_dir) / f".{vm['_name']}.copying").exists()
+        flag_path = Path(vms_dir) / f".{vm['_name']}.copying"
+        vm["_copying"] = flag_path.exists()
+        vm["_copy_total"] = ""
+        if vm["_copying"]:
+            try:
+                vm["_copy_total"] = fmt_size(int(flag_path.read_text().strip()))
+            except Exception:
+                pass
         vm["_size"]    = dir_size(str(Path(vms_dir) / vm["_name"]))
         vms.append(vm)
     return vms
@@ -507,7 +522,9 @@ class VMRow(Gtk.ListBoxRow):
             spinner = Gtk.Spinner()
             spinner.start()
             box.append(spinner)
-            sz = Gtk.Label(label=vm["_size"])
+            total = vm.get("_copy_total", "")
+            size_text = f"{vm['_size']} / {total}" if total else vm["_size"]
+            sz = Gtk.Label(label=size_text)
             sz.add_css_class("dim-label")
             box.append(sz)
             badge = Gtk.Label(label=S["badge_copying"])
@@ -2250,7 +2267,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     dest_conf.write_text(conf_text)
                     dest_conf.chmod(0o755)
                     flag = Path(self.vms_dir) / f".{dest_name}.copying"
-                    flag.touch()
+                    flag.write_text(str(src_path.stat().st_size))
                     self._refresh()
                     notify("quickbox", S["ntf_converting"].format(src_path.name), "low")
                     def _convert():
