@@ -11,27 +11,23 @@ from pathlib import Path
 SOCKET_PATH = Path.home() / ".config/quickbox/quickbox.sock"
 
 def _acquire_lock():
-    """Acquire exclusive socket lock - BEFORE anything else runs"""
+    """Bind the lock socket; if already taken, raise the existing window and exit."""
     SOCKET_PATH.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        SOCKET_PATH.unlink()
-    except FileNotFoundError:
-        pass
-    
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
         sock.bind(str(SOCKET_PATH))
+        sock.listen(1)
         return sock
     except OSError:
-        # Another process has the lock!
+        # Already running — tell it to show itself, then exit silently
         try:
-            import subprocess
-            subprocess.run(["notify-send", "-u", "normal", "Quickbox", 
-                          "ERROR: GUI is already running!"], timeout=5)
+            c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            c.connect(str(SOCKET_PATH))
+            c.sendall(b"activate\n")
+            c.close()
         except Exception:
             pass
-        print("ERROR: Quickbox GUI is already running!", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(0)
 
 # ACQUIRE LOCK IMMEDIATELY - BEFORE GTK!
 _lock_socket = _acquire_lock()
@@ -632,12 +628,30 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._build_ui()
         self._refresh()
         self._init_systray()
+        self._init_ipc()
         self.connect("close-request", self._on_close_request)
         # poll VM running state and vms_dir changes every 4 seconds
         self._timeout_handlers.append(GLib.timeout_add(4000, self._poll_running_state))
         self._timeout_handlers.append(GLib.timeout_add(4000, self._poll_vms_dir))
         # poll copying progress every 2 seconds
         self._timeout_handlers.append(GLib.timeout_add(2000, self._poll_copying))
+
+    # ── IPC: raise window when a second instance tries to start ──
+
+    def _init_ipc(self):
+        GLib.io_add_watch(_lock_socket.fileno(), GLib.IOCondition.IN, self._on_ipc)
+
+    def _on_ipc(self, fd, condition):
+        try:
+            conn, _ = _lock_socket.accept()
+            msg = conn.recv(64).decode().strip()
+            conn.close()
+            if "activate" in msg:
+                self.set_visible(True)
+                self.present()
+        except Exception:
+            pass
+        return True
 
     # ── system tray ──
 
