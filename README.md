@@ -4,6 +4,8 @@ A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/
 
 ![quickbox](images/running.png)
 
+![quickbox](images/advanced.png)
+
 ## Features
 
 - **VM list** — browse all VMs with running status, disk size, filter by name
