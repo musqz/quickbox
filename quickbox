@@ -140,7 +140,9 @@ _EN_STRINGS = {
     "set_danger_lock": "Lock Danger Zone:",
     "set_compat_hint": "Use minimal QEMU without VirGL — for lightweight or older distros that show a blank screen.",
     "set_quiet_hint": "Suppress the desktop notification when this VM starts.",
+    "set_quiet_note": "No launch notification",
     "set_danger_lock_hint": "Disable delete and format actions to prevent accidents.",
+    "set_danger_note": "Locks delete and format",
     "boot_uefi": "UEFI",             "boot_legacy": "Legacy (BIOS)",
     "snap_no_disk": "No disk yet — launch VM first to create one",
     "snap_none": "No snapshots yet",
@@ -1234,31 +1236,28 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         acts_hdr.append(acts_lbl)
         acts_hdr.append(acts_toggle_btn)
         self.right_box.append(acts_hdr)
-        act_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        for lbl_key, tt_key, cb in [
-            ("act_edit_conf", "tt_edit_conf", lambda b: subprocess.Popen(["geany", vm["_conf"]])),
-            ("act_clone",     "tt_clone",     lambda b: self._clone_vm(vm)),
-            ("act_open_dir",  "tt_open_dir",  lambda b: subprocess.Popen(["xdg-open", str(Path(self.vms_dir) / vm["_name"])])),
-        ]:
-            btn = Gtk.Button(label=S[lbl_key])
-            btn.set_tooltip_text(S[tt_key])
-            btn.connect("clicked", cb)
-            act_box.append(btn)
-        act_box.set_visible(acts_expanded[0])
-        self.right_box.append(act_box)
 
-        # Quiet launch + Danger lock toggles in actions area
+        def _note(text):
+            l = Gtk.Label()
+            l.set_markup(f'<span size="small" color="gray">{text}</span>')
+            l.set_halign(Gtk.Align.START)
+            return l
+
+        # Toggles right after the header
         tog_grid = Gtk.Grid()
-        tog_grid.set_column_spacing(16)
+        tog_grid.set_column_spacing(10)
         tog_grid.set_row_spacing(4)
-        tog_grid.set_margin_top(8)
+        tog_grid.set_margin_top(6)
+        tog_grid.set_margin_bottom(6)
 
         qtl, qts = sw_row(S["set_quiet"].rstrip(":"),
                           vm.get("quiet_launch") == "true",
                           lambda sw, p, v=vm: setconf("quiet_launch",
                               "true" if sw.get_active() else "false", v["_conf"]) or
                               v.update({"quiet_launch": "true" if sw.get_active() else "false"}))
-        tog_grid.attach(qtl, 0, 0, 1, 1); tog_grid.attach(qts, 1, 0, 1, 1)
+        tog_grid.attach(qtl, 0, 0, 1, 1)
+        tog_grid.attach(qts, 1, 0, 1, 1)
+        tog_grid.attach(_note(S["set_quiet_note"]), 2, 0, 1, 1)
 
         def _on_danger_lock(sw, p, v=vm):
             val = "true" if sw.get_active() else "false"
@@ -1275,10 +1274,25 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         dlt, dls = sw_row(S["set_danger_lock"].rstrip(":"),
                           vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true",
                           _on_danger_lock)
-        tog_grid.attach(dlt, 0, 1, 1, 1); tog_grid.attach(dls, 1, 1, 1, 1)
+        tog_grid.attach(dlt, 0, 1, 1, 1)
+        tog_grid.attach(dls, 1, 1, 1, 1)
+        tog_grid.attach(_note(S["set_danger_note"]), 2, 1, 1, 1)
 
         tog_grid.set_visible(acts_expanded[0])
         self.right_box.append(tog_grid)
+
+        act_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        for lbl_key, tt_key, cb in [
+            ("act_edit_conf", "tt_edit_conf", lambda b: subprocess.Popen(["geany", vm["_conf"]])),
+            ("act_clone",     "tt_clone",     lambda b: self._clone_vm(vm)),
+            ("act_open_dir",  "tt_open_dir",  lambda b: subprocess.Popen(["xdg-open", str(Path(self.vms_dir) / vm["_name"])])),
+        ]:
+            btn = Gtk.Button(label=S[lbl_key])
+            btn.set_tooltip_text(S[tt_key])
+            btn.connect("clicked", cb)
+            act_box.append(btn)
+        act_box.set_visible(acts_expanded[0])
+        self.right_box.append(act_box)
 
         dng_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         dng_box.set_margin_top(8)
