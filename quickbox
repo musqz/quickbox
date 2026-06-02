@@ -766,8 +766,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                       border-radius:6px; padding:7px 18px;
                       font-size:13px; font-weight:bold; }
         .launch-btn:hover { background-color:#1976d2; }
-        .danger-btn { color:#c62828 !important; font-weight:bold !important; }
-        .danger-btn:disabled { color:alpha(#c62828,0.35) !important; font-weight:normal !important; }
+
         .ssh-btn { background-color:#455a64; color:white;
                    border-radius:4px; padding:6px 12px; }
         .ssh-btn:hover { background-color:#546e7a; }
@@ -1358,7 +1357,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         ]:
             btn = Gtk.Button(label=S[lbl_key])
             btn.set_tooltip_text(S["tt_danger_lock"] if is_locked else S[tt_key])
-            btn.add_css_class("danger-btn")
+            if not is_locked:
+                btn.add_css_class("destructive-action")
             btn.set_sensitive(not is_locked)
             btn.connect("clicked", cb)
             dng_box.append(btn)
