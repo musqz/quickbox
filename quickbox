@@ -828,6 +828,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._headerbar = hb
 
 
+        self._hdr_action_btns = []
         for lbl_key, icon, tt_key, cb in [
             ("hdr_download",  "folder-download-symbolic",      "tt_download",  self._dlg_download),
             ("hdr_custom_vm", "list-add-symbolic",             "tt_custom_vm", self._dlg_custom),
@@ -841,6 +842,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             btn.set_tooltip_text(S[tt_key])
             btn.connect("clicked", cb)
             hb.pack_end(btn)
+            self._hdr_action_btns.append(btn)
 
         # Paned
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
@@ -907,6 +909,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             self.listbox.append(VMRow(vm))
         importing = any(vm.get("_copying") for vm in self.vms)
         self._any_importing = importing
+        for b in self._hdr_action_btns:
+            b.set_sensitive(not importing)
         n = len(self.vms)
         vms_str = S["status_vms_pl"].format(n) if n != 1 else S["status_vms"].format(n)
         self._status.set_markup(
