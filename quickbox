@@ -622,6 +622,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._search_text = ""
         self._vms_dir_mtime = 0
         self._conf_mtimes = {}
+        self._any_importing = False
         self._timeout_handlers = []
         self._indicator = None
         self._build_css()
@@ -906,7 +907,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         for vm in self.vms:
             self.listbox.append(VMRow(vm))
         importing = any(vm.get("_copying") for vm in self.vms)
-        self.set_sensitive(not importing)
+        self._any_importing = importing
         n = len(self.vms)
         vms_str = S["status_vms_pl"].format(n) if n != 1 else S["status_vms"].format(n)
         self._status.set_markup(
@@ -972,6 +973,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _show_panel(self, vm):
         self._clear_right()
         self.right_box.set_valign(Gtk.Align.FILL)
+        read_only = self._any_importing
 
         # Title
         t = Gtk.Label()
@@ -986,6 +988,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         _sep = Gtk.Separator()
         _sep.set_margin_top(10)
         self.right_box.append(_sep)
+
+        if read_only:
+            notice = Gtk.Label()
+            notice.set_markup('<span size="small" color="#ff9800">⏳ Import in progress — settings locked</span>')
+            notice.set_halign(Gtk.Align.START)
+            notice.set_margin_top(4)
+            self.right_box.append(notice)
 
         # Launch / Stop
         self.right_box.append(self._section(S["sec_launch"]))
@@ -1008,6 +1017,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             launch_btn = Gtk.Button(label=S["btn_launch"])
             launch_btn.add_css_class("launch-btn")
             launch_btn.connect("clicked", lambda b: self._launch_vm(vm))
+            launch_btn.set_sensitive(not read_only)
             launch_box.append(launch_btn)
         launch_box.set_margin_top(4)
         self.right_box.append(launch_box)
@@ -1104,6 +1114,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         profile_desc.set_wrap(True)
         profile_desc.set_max_width_chars(42)
         pc.connect("notify::selected", self._on_profile_changed, profile_desc, vm, _profile_ids)
+        pc.set_sensitive(not read_only)
         sg.attach(pl, 0, 0, 1, 1); sg.attach(pc, 1, 0, 1, 1)
         sg.attach(profile_desc, 1, 1, 1, 1)
 
@@ -1112,6 +1123,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         lambda sw, p, v=vm: setconf("compat_mode",
                             "true" if sw.get_active() else "false", v["_conf"]) or
                             v.update({"compat_mode": "true" if sw.get_active() else "false"}))
+        cs.set_sensitive(not read_only)
         sg.attach(cl, 0, 2, 1, 1); sg.attach(cs, 1, 2, 1, 1)
         compat_hint = Gtk.Label()
         compat_hint.set_markup(f'<span size="small" color="gray">{S["set_compat_hint"]}</span>')
@@ -1128,6 +1140,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         cur = vm.get("boot", "uefi")
         bc.set_selected(_boot_ids.index(cur) if cur in _boot_ids else 0)
         bc.connect("notify::selected", self._on_boot_changed, vm, _boot_ids)
+        bc.set_sensitive(not read_only)
         sg.attach(bl, 0, 4, 1, 1); sg.attach(bc, 1, 4, 1, 1)
 
         _dng_btns = []  # filled after danger zone buttons are created
@@ -1202,12 +1215,14 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     row.append(lbl)
                     del_btn = Gtk.Button(label=S["snap_delete"])
                     del_btn.set_size_request(68, -1)
+                    del_btn.set_sensitive(not read_only)
                     del_btn.connect("clicked",
                         lambda b, t=snap["tag"]: self._snap_delete(vm, t))
                     row.append(del_btn)
 
                     apply_btn = Gtk.Button(label=S["snap_apply"])
                     apply_btn.set_size_request(68, -1)
+                    apply_btn.set_sensitive(not read_only)
                     apply_btn.connect("clicked",
                         lambda b, t=snap["tag"]: self._snap_apply(vm, t))
                     row.append(apply_btn)
@@ -1228,6 +1243,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             self._snap_entry.set_placeholder_text(S["snap_entry_ph"])
             self._snap_entry.set_size_request(160, -1)
             create_btn = Gtk.Button(label=S["snap_create"])
+            create_btn.set_sensitive(not read_only)
             create_btn.connect("clicked", lambda b: self._snap_create(vm))
             create_row.append(self._snap_entry)
             create_row.append(create_btn)
@@ -1278,6 +1294,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                           lambda sw, p, v=vm: setconf("quiet_launch",
                               "true" if sw.get_active() else "false", v["_conf"]) or
                               v.update({"quiet_launch": "true" if sw.get_active() else "false"}))
+        qts.set_sensitive(not read_only)
         tog_grid.attach(qtl, 0, 0, 1, 1)
         tog_grid.attach(qts, 1, 0, 1, 1)
         tog_grid.attach(_note(S["set_quiet_note"]), 2, 0, 1, 1)
@@ -1297,6 +1314,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         dlt, dls = sw_row(S["set_danger_lock"].rstrip(":"),
                           vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true",
                           _on_danger_lock)
+        dls.set_sensitive(not read_only)
         tog_grid.attach(dlt, 0, 1, 1, 1)
         tog_grid.attach(dls, 1, 1, 1, 1)
         tog_grid.attach(_note(S["set_danger_note"]), 2, 1, 1, 1)
@@ -1313,6 +1331,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             btn = Gtk.Button(label=S[lbl_key])
             btn.set_tooltip_text(S[tt_key])
             btn.connect("clicked", cb)
+            btn.set_sensitive(not read_only)
             act_box.append(btn)
         act_box.set_visible(acts_expanded[0])
         self.right_box.append(act_box)
@@ -1329,7 +1348,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             btn.set_tooltip_text(S["tt_danger_lock"] if is_locked else S[tt_key])
             if not is_locked:
                 btn.add_css_class("destructive-action")
-            btn.set_sensitive(not is_locked)
+            btn.set_sensitive(not is_locked and not read_only)
             btn.connect("clicked", cb)
             dng_box.append(btn)
             _dng_btns.append((btn, S[tt_key]))
