@@ -95,6 +95,20 @@ from datetime import datetime
 import json as _json
 from pathlib import Path
 
+# ─── locale-aware date helper ─────────────────────────────────────────────────
+def _date_tag(with_time=False):
+    """Return a date string in locale order: D-M-Y (EU), M-D-Y (US), or Y-M-D (ISO)."""
+    try:
+        fmt = _locale.nl_langinfo(_locale.D_FMT)  # e.g. '%d/%m/%Y'
+        d, m, y = fmt.index('%d'), fmt.find('%m'), max(fmt.find('%Y'), fmt.find('%y'))
+        if d < m:        date_fmt = '%d-%m-%Y'   # European
+        elif y > m:      date_fmt = '%m-%d-%Y'   # US
+        else:            date_fmt = '%Y-%m-%d'   # ISO / Asian
+    except Exception:
+        date_fmt = '%Y-%m-%d'
+    now = datetime.now()
+    return now.strftime(date_fmt) + (now.strftime('-%H%M') if with_time else '')
+
 # ─── i18n ─────────────────────────────────────────────────────────────────────
 _lang = (_locale.getlocale()[0] or "en")[:2]
 
@@ -1459,8 +1473,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             self._warn(S["warn_snap_fail_t"], result.stderr or "qemu-img returned an error.")
 
     def _snap_apply(self, vm, tag):
-        import datetime
-        auto_tag = f"pre-apply-{datetime.datetime.now().strftime('%Y%m%d-%H%M')}"
+        auto_tag = f"pre-apply-{_date_tag(with_time=True)}"
 
         win = Gtk.Window(title=S["dlg_snap_apply_t"].format(tag))
         win.set_transient_for(self)
@@ -1562,9 +1575,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     # ── clone ──
 
     def _clone_vm(self, vm):
-        import datetime
-        date_str  = datetime.datetime.now().strftime("%Y%m%d")
-        suggested = f"{vm['_name']}-{date_str}"
+        suggested = f"{vm['_name']}-{_date_tag()}"
 
         win = Gtk.Window(title=S["clone_title"])
         win.set_transient_for(self)
