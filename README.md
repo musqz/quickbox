@@ -21,7 +21,7 @@ A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/
 - **Collapsible sections** — Info, Settings, Snapshots, Actions hide/show per preference
 - **Read-only mode during import** — browse freely while an import runs, settings locked until done
 
-![quickbox](images/advanced.png)
+![quickbox](images/download.png)
 
 ## Requirements
 
