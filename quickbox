@@ -1105,43 +1105,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         bc.connect("notify::selected", self._on_boot_changed, vm, _boot_ids)
         sg.attach(bl, 0, 4, 1, 1); sg.attach(bc, 1, 4, 1, 1)
 
-        qtl, qts = sw_row(S["set_quiet"].rstrip(":"),
-                          vm.get("quiet_launch") == "true",
-                          lambda sw, p, v=vm: setconf("quiet_launch",
-                              "true" if sw.get_active() else "false", v["_conf"]) or
-                              v.update({"quiet_launch": "true" if sw.get_active() else "false"}))
-        sg.attach(qtl, 0, 5, 1, 1); sg.attach(qts, 1, 5, 1, 1)
-        quiet_hint = Gtk.Label()
-        quiet_hint.set_markup(f'<span size="small" color="gray">{S["set_quiet_hint"]}</span>')
-        quiet_hint.set_halign(Gtk.Align.START)
-        quiet_hint.set_wrap(True)
-        quiet_hint.set_max_width_chars(42)
-        sg.attach(quiet_hint, 1, 6, 1, 1)
-
         _dng_btns = []  # filled after danger zone buttons are created
-
-        def _on_danger_lock(sw, p, v=vm):
-            val = "true" if sw.get_active() else "false"
-            setconf("danger_locked", val, v["_conf"])
-            v["danger_locked"] = val
-            locked = val == "true"
-            for b, tt in _dng_btns:
-                b.set_sensitive(not locked)
-                b.set_tooltip_text(S["tt_danger_lock"] if locked else tt)
-                if locked:
-                    b.remove_css_class("destructive-action")
-                else:
-                    b.add_css_class("destructive-action")
-        dlt, dls = sw_row(S["set_danger_lock"].rstrip(":"),
-                          vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true",
-                          _on_danger_lock)
-        sg.attach(dlt, 0, 7, 1, 1); sg.attach(dls, 1, 7, 1, 1)
-        dl_hint = Gtk.Label()
-        dl_hint.set_markup(f'<span size="small" color="gray">{S["set_danger_lock_hint"]}</span>')
-        dl_hint.set_halign(Gtk.Align.START)
-        dl_hint.set_wrap(True)
-        dl_hint.set_max_width_chars(42)
-        sg.attach(dl_hint, 1, 8, 1, 1)
         sg.set_visible(settings_expanded[0])
         self.right_box.append(sg)
 
@@ -1283,6 +1247,39 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         act_box.set_visible(acts_expanded[0])
         self.right_box.append(act_box)
 
+        # Quiet launch + Danger lock toggles in actions area
+        tog_grid = Gtk.Grid()
+        tog_grid.set_column_spacing(16)
+        tog_grid.set_row_spacing(4)
+        tog_grid.set_margin_top(8)
+
+        qtl, qts = sw_row(S["set_quiet"].rstrip(":"),
+                          vm.get("quiet_launch") == "true",
+                          lambda sw, p, v=vm: setconf("quiet_launch",
+                              "true" if sw.get_active() else "false", v["_conf"]) or
+                              v.update({"quiet_launch": "true" if sw.get_active() else "false"}))
+        tog_grid.attach(qtl, 0, 0, 1, 1); tog_grid.attach(qts, 1, 0, 1, 1)
+
+        def _on_danger_lock(sw, p, v=vm):
+            val = "true" if sw.get_active() else "false"
+            setconf("danger_locked", val, v["_conf"])
+            v["danger_locked"] = val
+            locked = val == "true"
+            for b, tt in _dng_btns:
+                b.set_sensitive(not locked)
+                b.set_tooltip_text(S["tt_danger_lock"] if locked else tt)
+                if locked:
+                    b.remove_css_class("destructive-action")
+                else:
+                    b.add_css_class("destructive-action")
+        dlt, dls = sw_row(S["set_danger_lock"].rstrip(":"),
+                          vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true",
+                          _on_danger_lock)
+        tog_grid.attach(dlt, 0, 1, 1, 1); tog_grid.attach(dls, 1, 1, 1, 1)
+
+        tog_grid.set_visible(acts_expanded[0])
+        self.right_box.append(tog_grid)
+
         dng_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         dng_box.set_margin_top(8)
         is_locked = vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true"
@@ -1305,6 +1302,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         def _toggle_acts(_btn):
             acts_expanded[0] = not acts_expanded[0]
             act_box.set_visible(acts_expanded[0])
+            tog_grid.set_visible(acts_expanded[0])
             dng_box.set_visible(acts_expanded[0])
             acts_toggle_btn.set_label(
                 S["btn_hide"] if acts_expanded[0] else S["btn_show"])
