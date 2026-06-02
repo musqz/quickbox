@@ -988,7 +988,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         _sep.set_margin_top(10)
         self.right_box.append(_sep)
 
-        if read_only:
+        this_vm_copying = (Path(self.vms_dir) / f".{vm['_name']}.copying").exists()
+        if read_only and not this_vm_copying:
             notice = Gtk.Label()
             notice.set_markup('<span size="small" color="#ff9800">⏳ Import in progress — settings locked</span>')
             notice.set_halign(Gtk.Align.START)
@@ -999,9 +1000,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.right_box.append(self._section(S["sec_launch"]))
         launch_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
 
-        # check if VM is still being copied
-        flag = Path(self.vms_dir) / f".{vm['_name']}.copying"
-        if flag.exists():
+        if this_vm_copying:
             copying_lbl = Gtk.Label()
             copying_lbl.set_markup(f'<span color="#ff9800" weight="bold">{S["vm_copying"]}</span>')
             launch_box.append(copying_lbl)
