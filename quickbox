@@ -775,6 +775,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .section-hdr { font-weight:bold; font-size:11px;
                        color:alpha(@theme_fg_color,0.55);
                        margin-top:14px; margin-bottom:2px; }
+        .alpha-active { background-color:alpha(@theme_selected_bg_color,0.75);
+                        border-radius:4px; }
         .launch-btn { background-color:#1565c0; color:white;
                       border-radius:6px; padding:7px 18px;
                       font-size:13px; font-weight:bold; }
@@ -2059,14 +2061,21 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             listbox.append(row)
 
         # Alphabet buttons - click to jump to that letter
+        alpha_btns = {}
+        active_btn = [None]
         for letter in sorted(row_map.keys()):
             btn = Gtk.Button(label=letter)
             btn.set_has_frame(False)
             btn.set_size_request(34, 28)
-            def _scroll_to(b, ltr, rm=row_map, ls=list_scroll):
+            alpha_btns[letter] = btn
+            def _scroll_to(b, ltr, rm=row_map, ls=list_scroll, ab=alpha_btns, ac=active_btn):
                 r = rm.get(ltr)
                 if r:
                     ls.get_vadjustment().set_value(r.get_allocation().y)
+                if ac[0]:
+                    ac[0].remove_css_class("alpha-active")
+                b.add_css_class("alpha-active")
+                ac[0] = b
             btn.connect("clicked", _scroll_to, letter)
             alpha_box.append(btn)
 
@@ -2087,6 +2096,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             search_text[0] = entry.get_text().strip().lower()
             listbox.unselect_all()
             listbox.invalidate_filter()
+            if active_btn[0]:
+                active_btn[0].remove_css_class("alpha-active")
+                active_btn[0] = None
 
         search_entry.connect("search-changed", _on_search_changed)
 
