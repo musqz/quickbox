@@ -2247,10 +2247,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._dl_watching  = False
 
         def _find_growing_file():
-            """Find the newest/largest file being written in vms_dir."""
+            """Find the newest file being written in vms_dir (recursive)."""
             try:
                 files = []
-                for f in Path(self.vms_dir).iterdir():
+                for f in Path(self.vms_dir).rglob("*"):
                     if f.is_file() and f.suffix.lower() in (
                             ".iso", ".img", ".qcow2", ".gz", ".xz", ".zip",
                             ".part", ".tmp", ".download"):
@@ -2266,7 +2266,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             import math, time
             elapsed = 0
             last_size = 0
-            stall_count = 0
+            last_mb = 0.0
             target_file = None
 
             while self._dl_watching and not self._dl_cancelled:
@@ -2285,21 +2285,20 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         mb = size / (1024 * 1024)
 
                         if size > last_size:
-                            stall_count = 0
                             # logarithmic curve: grows fast then slows, never hits 1.0
                             # reaches ~0.5 at 200MB, ~0.7 at 1GB, ~0.9 at 8GB
                             fraction = math.log1p(mb) / (math.log1p(mb) + 8)
                             fraction = min(fraction, 0.95)
                             speed = (size - last_size) / (1024 * 1024)
+                            last_mb = mb
                             GLib.idle_add(progress.set_fraction, fraction)
                             GLib.idle_add(progress.set_text,
                                 S["dl2_progress"].format(f"{mb:.0f}", f"{speed:.1f}"))
                             last_size = size
                         else:
-                            stall_count += 1
-                            if stall_count > 5:
-                                # file not growing — verifying/extracting phase
-                                GLib.idle_add(progress.set_text, S["dl2_verifying"])
+                            # file not growing — keep last MB, drop speed
+                            GLib.idle_add(progress.set_text,
+                                S["dl2_progress"].format(f"{last_mb:.0f}", "–"))
                     except Exception:
                         pass
                 else:
@@ -2340,6 +2339,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 GLib.idle_add(progress.set_text, S["dl2_cancelled"])
                 GLib.idle_add(progress.set_fraction, 0)
             elif rc == 0:
+                GLib.idle_add(progress.set_text, S["dl2_verifying"])
+                _time.sleep(1.0)
                 GLib.idle_add(progress.set_fraction, 1.0)
                 GLib.idle_add(progress.set_text, S["dl2_done"])
                 GLib.idle_add(dl_btn.set_label, S["dl2_done_close"])
