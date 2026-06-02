@@ -938,7 +938,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _on_select(self, lb, row):
         if row:
             self.current_vm = row.vm
-            self._show_panel(row.vm)
+            self._show_panel(row.vm, reset_scroll=True)
 
     # ── welcome ──
 
@@ -965,7 +965,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     # ── VM detail panel ──
 
-    def _show_panel(self, vm):
+    def _show_panel(self, vm, reset_scroll=False):
+        scroll_val = 0 if reset_scroll else self.right_scroll.get_vadjustment().get_value()
         self._clear_right()
         self.right_box.set_valign(Gtk.Align.FILL)
 
@@ -1231,6 +1232,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             btn.connect("clicked", cb)
             dng_box.append(btn)
         self.right_box.append(dng_box)
+        GLib.idle_add(lambda v=scroll_val: self.right_scroll.get_vadjustment().set_value(v))
 
     # ── launch / stop ──
 
