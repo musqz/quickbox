@@ -101,8 +101,7 @@ _lang = (_locale.getlocale()[0] or "en")[:2]
 _EN_STRINGS = {
     "app_title": "Quickbox",
     "hdr_download": "Download",       "hdr_custom_vm": "Custom VM",
-    "hdr_advanced": "Advanced",       "hdr_ssh": "SSH",
-    "tt_ssh_menu": "Quick SSH access to running VMs",
+    "hdr_advanced": "Advanced",
     "tt_download": "Download a new distro ISO via quickget",
     "tt_custom_vm": "Create a VM from a local ISO or IMG file",
     "tt_advanced": "Migrate VMs, switch location, manage saved paths",
@@ -111,18 +110,13 @@ _EN_STRINGS = {
     "badge_running": "running",
     "status_vms": "{} VM",           "status_vms_pl": "{} VMs",
     "welcome": "Select a VM from the list\nor use the buttons above",
-    "sec_launch": "LAUNCH",          "sec_ssh": "SSH",
+    "sec_launch": "LAUNCH",
     "sec_info": "INFO",              "sec_settings": "SETTINGS",
     "sec_snapshots": "SNAPSHOTS",    "sec_actions": "ACTIONS",
     "sec_danger": "DANGER ZONE",
     "vm_copying": "⏳ Disk still copying — please wait…",
     "vm_running": "VM is running",
     "btn_stop": "Stop VM",           "btn_launch": "Launch VM",
-    "ssh_copy": "Copy",              "ssh_test": "Test SSH",
-    "ssh_testing": "Testing…",       "ssh_ok": "Reachable",
-    "ssh_fail": "Not reachable",
-    "tt_ssh_copy": "Copy SSH command to clipboard",
-    "tt_ssh_test": "Check if SSH port is reachable on localhost",
     "info_guest_os": "Guest OS",     "info_boot_mode": "Boot mode",
     "info_ssh_port": "SSH port",     "info_disk": "Disk",
     "info_iso": "ISO",
@@ -225,7 +219,6 @@ _EN_STRINGS = {
     "prog_note": "This may take a while depending on size.",
     "prog_done": "Done!",            "prog_ok": "Completed successfully.",
     "prog_fail": "Failed.",          "prog_err": "Something went wrong.",
-    "ssh_no_vms": "No VMs running",
     "distro_updating": "Updating distro list...",
     "ntf_launching": "Launching {}",
     "ntf_snap_created": "Snapshot '{}' created.",
@@ -238,8 +231,6 @@ _EN_STRINGS = {
     "ntf_vm_created": "VM <b>{}</b> created!",
     "ntf_prof_reset": "Default profiles restored.",
     "ntf_cmd_copied": "Copied: {}",
-    "ntf_ssh_copied": "Command copied: {}",
-    "ntf_ssh_copied2": "Copied: {}",
     "dlg_del_disk_t": "Delete disk image?",
     "dlg_del_disk_b": "Removes disk for '{}'. ISO stays.",
     "dlg_del_vm_t": "Delete VM '{}' completely?",
@@ -278,8 +269,6 @@ _EN_STRINGS = {
     "warn_list_full_b": "Maximum 5 saved locations. Remove one first.",
     "warn_copy_err_t": "Copy Error",
     "warn_copy_err_b": "Could not copy to clipboard:\n\n{}",
-    "warn_ssh_err_t": "SSH Error",
-    "warn_ssh_err_b": "Could not copy to clipboard. Use:\n\n{}",
 }
 
 def _load_translation(lang: str) -> dict:
@@ -818,17 +807,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.set_titlebar(hb)
         self._headerbar = hb
 
-        ssh_menu_btn = Gtk.MenuButton()
-        ssh_menu_btn.set_label(S["hdr_ssh"])
-        ssh_menu_btn.set_tooltip_text(S["tt_ssh_menu"])
-        self._ssh_popover = Gtk.Popover()
-        self._ssh_popover_box = Gtk.ListBox()
-        self._ssh_popover_box.set_selection_mode(Gtk.SelectionMode.NONE)
-        self._ssh_popover_box.set_margin_top(4)
-        self._ssh_popover_box.set_margin_bottom(4)
-        self._ssh_popover.set_child(self._ssh_popover_box)
-        ssh_menu_btn.set_popover(self._ssh_popover)
-        hb.pack_start(ssh_menu_btn)
 
         for lbl_key, icon, tt_key, cb in [
             ("hdr_download",  "folder-download-symbolic",      "tt_download",  self._dlg_download),
@@ -924,7 +902,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     self.current_vm = row.vm
                     break
                 row = row.get_next_sibling()
-        self._refresh_ssh_menu()
         return False  # stop GLib.timeout_add
 
     # ── list helpers ──
@@ -939,35 +916,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         return (self._search_text in row.vm["_pretty"].lower() or
                 self._search_text in row.vm["_name"].lower())
 
-    def _refresh_ssh_menu(self):
-        while child := self._ssh_popover_box.get_first_child():
-            self._ssh_popover_box.remove(child)
-
-        ssh_vms = []
-        for vm in self.vms:
-            if vm["_running"]:
-                self._ensure_ssh_config(vm)
-                user = vm.get("ssh_user", "root")
-                port = vm.get("ssh_port", "2222")
-                ssh_vms.append((vm["_pretty"], user, port, vm))
-
-        if not ssh_vms:
-            lbl = Gtk.Label(label=S["ssh_no_vms"])
-            lbl.set_margin_top(8)
-            lbl.set_margin_bottom(8)
-            lbl.set_margin_start(12)
-            lbl.set_margin_end(12)
-            self._ssh_popover_box.append(lbl)
-        else:
-            for pretty_name, user, port, vm in sorted(ssh_vms):
-                label = f"{pretty_name} ({user}@:{port})"
-                btn = Gtk.Button(label=label)
-                btn.set_has_frame(False)
-                btn.connect("clicked",
-                    lambda b, v=vm: (self._ssh_popover.popdown(),
-                                     self._copy_ssh_for_vm(v)))
-                self._ssh_popover_box.append(btn)
-        
 
 
 
@@ -999,75 +947,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         lbl.add_css_class("section-hdr")
         return lbl
 
-    # ── SSH helpers ──
-
-    def _ensure_ssh_config(self, vm):
-        """Set SSH user and port in VM config."""
-        guest_os = vm.get("guest_os", "linux")
-        ssh_user = get_ssh_user(guest_os)
-        ssh_port = vm.get("ssh_port", "")
-        
-        if not ssh_port:
-            ssh_port = get_next_ssh_port(self.vms_dir, vm["_name"])
-            setconf("ssh_port", ssh_port, vm["_conf"])
-            vm["ssh_port"] = ssh_port
-        
-        if not vm.get("ssh_user"):
-            setconf("ssh_user", ssh_user, vm["_conf"])
-            vm["ssh_user"] = ssh_user
-        else:
-            ssh_user = vm["ssh_user"]
-        
-        # Add netdev to compat mode if needed
-        if vm.get("compat_mode") == "true" and not vm.get("netdev"):
-            netdev_line = f"user,hostname={vm['_name']},hostfwd=tcp::{ssh_port}-:22,id=nic"
-            setconf("netdev", netdev_line, vm["_conf"])
-            vm["netdev"] = netdev_line
-
-
-    def _ssh_copy_cmd(self, vm):
-        self._ensure_ssh_config(vm)
-        user = vm.get("ssh_user", "root")
-        port = vm.get("ssh_port", "2222")
-        ssh_cmd = f"ssh -p {port} {user}@localhost"
-        Gdk.Display.get_default().get_clipboard().set_content(
-            Gdk.ContentProvider.new_for_value(ssh_cmd))
-        notify("SSH", S["ntf_ssh_copied"].format(ssh_cmd), "low")
-
-    def _copy_ssh_for_vm(self, vm):
-        user = vm.get("ssh_user", "root")
-        port = vm.get("ssh_port", "2222")
-        ssh_cmd = f"ssh -p {port} {user}@localhost"
-        Gdk.Display.get_default().get_clipboard().set_content(
-            Gdk.ContentProvider.new_for_value(ssh_cmd))
-        notify("SSH", S["ntf_ssh_copied2"].format(ssh_cmd), "low")
-
-    def _test_ssh(self, vm, btn):
-        port = int(vm.get("ssh_port", "2222"))
-        btn.set_sensitive(False)
-        btn.set_label(S["ssh_testing"])
-
-        def do_test():
-            try:
-                with socket.create_connection(("localhost", port), timeout=3) as sock:
-                    sock.settimeout(3)
-                    banner = sock.recv(32)
-                    reachable = banner.startswith(b"SSH-")
-            except Exception:
-                reachable = False
-            GLib.idle_add(lambda: _show_result(reachable))
-
-        def _show_result(ok):
-            if ok:
-                btn.set_label(S["ssh_ok"])
-                btn.add_css_class("launch-btn")
-            else:
-                btn.set_label(S["ssh_fail"])
-            btn.set_sensitive(True)
-
-        threading.Thread(target=do_test, daemon=True).start()
-
-        # ── VM detail panel ──
+    # ── VM detail panel ──
 
     def _show_panel(self, vm):
         self._clear_right()
@@ -1111,38 +991,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             launch_box.append(launch_btn)
         launch_box.set_margin_top(4)
         self.right_box.append(launch_box)
-
-        # SSH section — only when VM is running
-        if vm["_running"]:
-            self.right_box.append(self._section(S["sec_ssh"]))
-
-            self._ensure_ssh_config(vm)
-            ssh_user = vm.get("ssh_user", "root")
-            ssh_port = vm.get("ssh_port", "2222")
-            ssh_cmd_str = f"ssh -p {ssh_port} {ssh_user}@localhost"
-
-            cmd_lbl = Gtk.Label()
-            cmd_lbl.set_markup(f'<span font_family="monospace">{ssh_cmd_str}</span>')
-            cmd_lbl.set_halign(Gtk.Align.START)
-            cmd_lbl.set_selectable(True)
-            cmd_lbl.set_margin_top(2)
-            self.right_box.append(cmd_lbl)
-
-            ssh_btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-
-            copy_btn = Gtk.Button(label=S["ssh_copy"])
-            copy_btn.add_css_class("ssh-btn")
-            copy_btn.set_tooltip_text(S["tt_ssh_copy"])
-            copy_btn.connect("clicked", lambda b: self._ssh_copy_cmd(vm))
-            ssh_btn_box.append(copy_btn)
-
-            test_btn = Gtk.Button(label=S["ssh_test"])
-            test_btn.set_tooltip_text(S["tt_ssh_test"])
-            test_btn.connect("clicked", lambda b, tb=test_btn: self._test_ssh(vm, tb))
-            ssh_btn_box.append(test_btn)
-
-            ssh_btn_box.set_margin_top(4)
-            self.right_box.append(ssh_btn_box)
 
         # Info
         self.right_box.append(self._section(S["sec_info"]))
@@ -1409,9 +1257,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         if disk_path and not Path(disk_path).exists() and not live_mode and not preview_disk:
             disk_size = vm.get("disk_size", "32G")
             subprocess.run(["qemu-img", "create", "-f", "qcow2", disk_path, disk_size])
-
-        # Ensure SSH config before launch
-        self._ensure_ssh_config(vm)
 
         accel   = "kvm" if KVM_AVAILABLE else "tcg"
 
