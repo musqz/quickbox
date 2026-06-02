@@ -313,6 +313,10 @@ ICON_PATH     = next((p for p in [
     Path("/usr/share/pixmaps/qemu.png"),
 ] if p.exists()), None)
 FALLBACK_ICON = "computer-vm"  # generic GTK icon name
+APP_ICON      = "quickbox" if ICON_PATH else FALLBACK_ICON
+
+def _set_icon(win):
+    win.set_icon_name(APP_ICON)
 
 # ensure config dir exists
 CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -1590,6 +1594,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         win = Gtk.Window(title=S["dlg_snap_apply_t"].format(tag))
         win.set_transient_for(self)
+        _set_icon(win)
         win.set_modal(True)
         win.set_default_size(460, 200)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
@@ -1692,6 +1697,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         win = Gtk.Window(title=S["clone_title"])
         win.set_transient_for(self)
+        _set_icon(win)
         win.set_modal(True)
         win.set_default_size(380, 180)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -1784,6 +1790,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _dlg_format_disk(self, vm):
         win = Gtk.Window(title=S["fmt_title"])
         win.set_transient_for(self)
+        _set_icon(win)
         win.set_modal(True)
         win.set_default_size(420, 340)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -1984,6 +1991,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         win = Gtk.Window(title=S["dl_title"])
         win.set_transient_for(self)
+        _set_icon(win)
         win.set_modal(True)
         win.set_default_size(640, 520)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -2153,6 +2161,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         dlg = Gtk.Window(title=f"Download — {base_distro}")
         dlg.set_transient_for(self)
+        _set_icon(dlg)
         dlg.set_modal(True)
         dlg.set_default_size(560, 420)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -2382,6 +2391,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _dlg_custom(self, *_):
         name_win = Gtk.Window(title=S["cvm_title"])
         name_win.set_transient_for(self)
+        _set_icon(name_win)
         name_win.set_modal(True)
         name_win.set_default_size(380, 150)
         nb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -2502,6 +2512,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _dlg_advanced(self, *_):
         dlg = Gtk.Window(title="Advanced")
         dlg.set_transient_for(self)
+        _set_icon(dlg)
         dlg.set_modal(True)
         dlg.set_default_size(480, 540)
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -2739,6 +2750,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         pick = Gtk.Window(title=S["mig_title"])
         pick.set_transient_for(self)
+        _set_icon(pick)
         pick.set_modal(True)
         pick.set_default_size(440, 480)
         pick_outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -2877,6 +2889,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _run_with_progress(self, title, cmd_list, cwd=None, on_done=None):
         dlg = Gtk.Window(title=title)
         dlg.set_transient_for(self)
+        _set_icon(dlg)
         dlg.set_modal(True)
         dlg.set_deletable(False)
         dlg.set_default_size(420, 180)
@@ -2979,6 +2992,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         win = Gtk.Window()
         win.set_title(title)
         win.set_transient_for(self)
+        _set_icon(win)
         win.set_modal(True)
         win.set_resizable(False)
         win.set_default_size(420, -1)
@@ -3112,6 +3126,7 @@ def _update_distro_list(parent_win):
     # Create wait window (non-blocking)
     wait_win = Gtk.Window()
     wait_win.set_transient_for(parent_win)
+    _set_icon(wait_win)
     wait_win.set_modal(True)
     wait_win.set_decorated(False)
     wait_win.set_default_size(300, 80)
