@@ -44,17 +44,15 @@ from gi.repository import Gtk, GLib, Pango, Gdk, Gio
 
 # Optional system tray support
 _AppIndicator = None
-for _tray_mod, _tray_ver in [("AyatanaAppIndicator3", "0.1"), ("AppIndicator3", "0.1")]:
+try:
+    gi.require_version('AyatanaAppIndicator3', '0.1')
+    from gi.repository import AyatanaAppIndicator3 as _AppIndicator
+except Exception:
     try:
-        gi.require_version(_tray_mod, _tray_ver)
-        from gi.repository import AyatanaAppIndicator3 as _AppIndicator
-        break
+        gi.require_version('AppIndicator3', '0.1')
+        from gi.repository import AppIndicator3 as _AppIndicator
     except Exception:
-        try:
-            from gi.repository import AppIndicator3 as _AppIndicator
-            break
-        except Exception:
-            pass
+        pass
 HAVE_TRAY = _AppIndicator is not None
 
 import os
