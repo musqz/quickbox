@@ -13,21 +13,28 @@ SOCKET_PATH = Path.home() / ".config/quickbox/quickbox.sock"
 def _acquire_lock():
     """Bind the lock socket; if already taken, raise the existing window and exit."""
     SOCKET_PATH.parent.mkdir(parents=True, exist_ok=True)
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+    # Try connecting first — if it succeeds, a live instance is running
     try:
-        sock.bind(str(SOCKET_PATH))
-        sock.listen(1)
-        return sock
-    except OSError:
-        # Already running — tell it to show itself, then exit silently
-        try:
-            c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            c.connect(str(SOCKET_PATH))
-            c.sendall(b"activate\n")
-            c.close()
-        except Exception:
-            pass
-        sys.exit(0)
+        c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        c.connect(str(SOCKET_PATH))
+        c.sendall(b"activate\n")
+        c.close()
+        sys.exit(0)  # live instance found, raise it and exit
+    except (ConnectionRefusedError, FileNotFoundError):
+        pass  # no live instance — stale socket or first run
+
+    # Clean up any stale socket file and bind fresh
+    try:
+        SOCKET_PATH.unlink()
+    except FileNotFoundError:
+        pass
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.bind(str(SOCKET_PATH))
+    sock.listen(1)
+    import atexit
+    atexit.register(lambda: SOCKET_PATH.unlink(missing_ok=True))
+    return sock
 
 # ACQUIRE LOCK IMMEDIATELY - BEFORE GTK!
 _lock_socket = _acquire_lock()
