@@ -1236,6 +1236,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             dng_box.append(btn)
         self.right_box.append(dng_box)
 
+        if vm.get("_copying"):
+            for w in (sg, snap_vbox, act_box, dng_box):
+                w.set_sensitive(False)
 
     # ── launch / stop ──
 
