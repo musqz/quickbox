@@ -1,0 +1,30 @@
+# Maintainer: musqz
+pkgname=quickbox
+pkgver=1.2.3
+pkgrel=1
+pkgdesc="GTK4 GUI for managing QEMU virtual machines via quickemu"
+arch=('any')
+url="https://github.com/musqz/quickbox"
+license=('MIT')
+depends=('python' 'python-gobject' 'gtk4' 'quickemu')
+optdepends=('libnotify: desktop notifications')
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
+
+    # Main executable
+    install -Dm755 quickbox "${pkgdir}/usr/bin/quickbox"
+
+    # Desktop entry
+    install -Dm644 quickbox.desktop "${pkgdir}/usr/share/applications/quickbox.desktop"
+
+    # Translations
+    for f in translations/*.json; do
+        install -Dm644 "$f" "${pkgdir}/usr/share/quickbox/${f}"
+    done
+
+    # License
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
