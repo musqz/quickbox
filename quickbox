@@ -42,18 +42,31 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Pango, Gdk, Gio
 
-# Optional system tray support
-_AppIndicator = None
-try:
-    gi.require_version('AyatanaAppIndicator3', '0.1')
-    from gi.repository import AyatanaAppIndicator3 as _AppIndicator
-except Exception:
-    try:
-        gi.require_version('AppIndicator3', '0.1')
-        from gi.repository import AppIndicator3 as _AppIndicator
-    except Exception:
-        pass
-HAVE_TRAY = _AppIndicator is not None
+# System tray via StatusNotifierItem DBus (GTK4-native, no external lib needed)
+HAVE_TRAY = True
+
+SNI_XML = """
+<node>
+  <interface name="org.kde.StatusNotifierItem">
+    <property name="Id"       type="s" access="read"/>
+    <property name="Category" type="s" access="read"/>
+    <property name="Status"   type="s" access="read"/>
+    <property name="IconName" type="s" access="read"/>
+    <property name="Title"    type="s" access="read"/>
+    <method name="Activate">
+      <arg type="i" name="x" direction="in"/>
+      <arg type="i" name="y" direction="in"/>
+    </method>
+    <method name="SecondaryActivate">
+      <arg type="i" name="x" direction="in"/>
+      <arg type="i" name="y" direction="in"/>
+    </method>
+    <method name="ContextMenu">
+      <arg type="i" name="x" direction="in"/>
+      <arg type="i" name="y" direction="in"/>
+    </method>
+  </interface>
+</node>"""
 
 import os
 import subprocess
@@ -166,8 +179,7 @@ _EN_STRINGS = {
     "btn_next": "Next",
     "adv_sec_tray": "SYSTEM TRAY",
     "adv_tray_sw": "Enable system tray icon",
-    "adv_tray_hint": "Hides window to tray on close. Click tray icon to show/hide.",
-    "adv_tray_unavail": "Not available — install libayatana-appindicator3 or libappindicator3.",
+    "adv_tray_hint": "Hides window to tray on close. Click tray icon to show/hide. Requires an SNI-compatible system tray (tint2, KDE, XFCE).",
     "adv_title": "Advanced",
     "adv_cur_dir": "Current VMs directory:",
     "adv_sec_loc": "LOCATION MANAGEMENT",
@@ -601,18 +613,50 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     # ── system tray ──
 
     def _init_systray(self):
-        if not HAVE_TRAY or self.conf.get("systray") != "true":
+        if self.conf.get("systray") != "true":
             return
-        icon = "quickbox" if ICON_PATH else "computer-vm"
-        self._indicator = _AppIndicator.Indicator.new(
-            "quickbox", icon,
-            _AppIndicator.IndicatorCategory.APPLICATION_STATUS)
-        self._indicator.set_status(_AppIndicator.IndicatorStatus.ACTIVE)
-        self._indicator.connect("secondary-activate", self._tray_toggle)
+        try:
+            bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+            icon = "quickbox" if ICON_PATH else "computer-vm"
+            node = Gio.DBusNodeInfo.new_for_xml(SNI_XML)
+            props = {
+                "Id":       GLib.Variant("s", "quickbox"),
+                "Category": GLib.Variant("s", "ApplicationStatus"),
+                "Status":   GLib.Variant("s", "Active"),
+                "IconName": GLib.Variant("s", icon),
+                "Title":    GLib.Variant("s", "Quickbox"),
+            }
+            def on_method(conn, sender, path, iface, method, params, inv):
+                if method in ("Activate", "SecondaryActivate"):
+                    GLib.idle_add(self._tray_toggle)
+                inv.return_value(None)
+            def on_get(conn, sender, path, iface, prop):
+                return props.get(prop)
+            self._sni_reg = bus.register_object(
+                "/StatusNotifierItem", node.interfaces[0],
+                on_method, on_get, None)
+            svc = f"org.kde.StatusNotifierItem-{os.getpid()}-1"
+            self._sni_name = Gio.bus_own_name_on_connection(
+                bus, svc, Gio.BusNameOwnerFlags.NONE, None, None)
+            bus.call(
+                "org.kde.StatusNotifierWatcher",
+                "/StatusNotifierWatcher",
+                "org.kde.StatusNotifierWatcher",
+                "RegisterStatusNotifierItem",
+                GLib.Variant("(s)", (svc,)),
+                None, Gio.DBusCallFlags.NONE, -1, None, None, None)
+            self._sni_bus = bus
+            self._indicator = True
+        except Exception:
+            self._indicator = None
 
     def _teardown_systray(self):
         if self._indicator:
-            self._indicator.set_status(_AppIndicator.IndicatorStatus.PASSIVE)
+            try:
+                Gio.bus_unown_name(self._sni_name)
+                self._sni_bus.unregister_object(self._sni_reg)
+            except Exception:
+                pass
             self._indicator = None
 
     def _tray_toggle(self, *_):
@@ -2504,15 +2548,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         tray_sw = Gtk.Switch()
         tray_sw.set_active(self.conf.get("systray") == "true")
         tray_sw.set_halign(Gtk.Align.END)
-        tray_sw.set_sensitive(HAVE_TRAY)
         tray_row.append(tray_lbl)
         tray_row.append(tray_sw)
         box.append(tray_row)
 
         tray_hint = Gtk.Label()
-        hint_text = S["adv_tray_hint"] if HAVE_TRAY else S["adv_tray_unavail"]
-        hint_color = "gray" if HAVE_TRAY else "#e65100"
-        tray_hint.set_markup(f'<span size="small" color="{hint_color}">{hint_text}</span>')
+        tray_hint.set_markup(f'<span size="small" color="gray">{S["adv_tray_hint"]}</span>')
         tray_hint.set_halign(Gtk.Align.START)
         tray_hint.set_wrap(True)
         tray_hint.set_max_width_chars(52)
