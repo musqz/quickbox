@@ -66,7 +66,7 @@ _EN_STRINGS = {
     "tt_advanced": "Migrate VMs, switch location, manage saved paths",
     "search_ph": "Filter VMs…",
     "search_tt": "Type to filter the VM list by name",
-    "badge_running": "running",     "badge_copying": "importing…",
+    "badge_running": "running",
     "status_vms": "{} VM",           "status_vms_pl": "{} VMs",
     "welcome": "Select a VM from the list\nor use the buttons above",
     "sec_launch": "LAUNCH",          "sec_ssh": "SSH",
@@ -541,12 +541,9 @@ class VMRow(Gtk.ListBoxRow):
             box.append(spinner)
             total = vm.get("_copy_total", "")
             size_text = f"{vm['_size']} / {total}" if total else vm["_size"]
-            sz = Gtk.Label(label=size_text)
-            sz.add_css_class("dim-label")
-            box.append(sz)
-            badge = Gtk.Label(label=S["badge_copying"])
-            badge.add_css_class("badge-copying")
-            box.append(badge)
+            prog = Gtk.Label(label=f"[ {size_text}  importing ]")
+            prog.add_css_class("import-progress")
+            box.append(prog)
         elif vm["_running"]:
             badge = Gtk.Label(label=S["badge_running"])
             badge.add_css_class("badge-running")
@@ -640,9 +637,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .vm-listbox row:selected label { color:@theme_selected_fg_color; }
         .badge-running { background-color:#2e7d32; color:white;
                          border-radius:4px; padding:1px 6px; font-size:11px; }
-        .badge-copying { background-color:#e65100; color:white;
-                         border-radius:4px; padding:1px 6px; font-size:11px; }
-        .import-spinner { color:#e65100; min-width:18px; min-height:18px; }
+        .import-spinner  { color:#e65100; min-width:18px; min-height:18px; }
+        .import-progress { color:#e65100; font-size:12px; font-weight:bold; }
 
         .section-hdr { font-weight:bold; font-size:11px;
                        color:alpha(@theme_fg_color,0.55);
