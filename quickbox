@@ -739,6 +739,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     def _build_css(self):
         css = b"""
+        button { font-weight:normal; }
+        button label { opacity:0.82; }
         .vm-listbox row { border-radius:6px; margin:2px 4px; }
         .vm-listbox row:selected { background-color:alpha(@theme_selected_bg_color,0.8); }
         .vm-listbox row:hover    { background-color:alpha(@theme_selected_bg_color,0.25); }
