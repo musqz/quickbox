@@ -1,41 +1,33 @@
-# Quickbox -- GUI for quickemu
+# Quickbox — GUI for quickemu
 
-GTK3-based GUI for managing QEMU virtual machines with quickemu integration.
+A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/quickemu-project/quickemu).
 
-# PHASE: Development | Testing fase. 
-
-    - snapshot managment is not finnished.
-    - need to look at ssh help section
+![quickbox](images/advanced.png)
 
 ## Features
 
-VM creation, deletion, start/stop, snapshots, cloning, ISO management, boot order control, UEFI/BIOS support, distro downloads via quickget.
-
-SSH copy-paste helper — auto-assigns a port per VM and gives you the ready-to-use command.
-
-![advanced](images/advanced.png)
-
-![quickget](images/quickget.png)
+- **VM list** — browse all VMs with running status, disk size, filter by name
+- **Launch / Stop** — start and stop VMs with one click
+- **Snapshots** — create, apply, and delete QCOW2 snapshots
+- **Clone VM** — full copy of any VM with a new name
+- **Download distros** — search and download ISOs via `quickget`, with live progress
+- **Custom VM** — create a VM from a local ISO or IMG file with live import progress
+- **Migrate VMs** — move or copy VMs to a different directory
+- **Multiple locations** — save and switch between VM directories
+- **Profiles** — Standard, Lightweight, Performance, Live ISO, Server/Headless
+- **Settings** — per-VM boot mode, compatibility mode, quiet launch
+- **Danger zone** — Delete disk, Format disk, Delete VM (all behind confirmation dialogs)
+- **System tray** — optional tray icon, hide to tray on close
+- **Collapsible sections** — Info, Settings, Snapshots, Actions hide/show per preference
+- **Read-only mode during import** — browse freely while an import runs, settings locked until done
 
 ## Requirements
 
-- Python 3.6+
-- GTK3 (python3-gi, gobject-introspection)
-- quickemu (quickget inside)
+- Python 3.8+
+- GTK4 (`python3-gi`, `gir1.2-gtk-4.0`, `gobject-introspection`)
+- [quickemu](https://github.com/quickemu-project/quickemu) (includes `quickget`)
 
 ## Installation
-
-### Debian / Ubuntu (recommended)
-
-Download the latest `.deb` from the [Releases page](https://github.com/musqz/quickbox/releases) and install:
-
-```bash
-sudo apt install ./quickbox_1.2.2_all.deb
-```
-
-Dependencies (`python3-gi`, `gir1.2-gtk-3.0`, `xclip`) are pulled in automatically.
-
-> **Note:** The `.deb` package has not yet been tested on a live Debian/Ubuntu system. Feedback welcome via [Issues](https://github.com/musqz/quickbox/issues).
 
 ### From source
 
@@ -43,7 +35,7 @@ Dependencies (`python3-gi`, `gir1.2-gtk-3.0`, `xclip`) are pulled in automatical
 sudo ./install.sh
 ```
 
-Manual installation as root:
+Or manually:
 
 ```bash
 sudo cp quickbox /usr/local/bin/
@@ -53,19 +45,11 @@ sudo cp quickbox.desktop /usr/share/applications/
 
 ## Uninstallation
 
-### Debian / Ubuntu
-
-```bash
-sudo apt remove quickbox
-```
-
-### From source
-
 ```bash
 sudo ./uninstall.sh
 ```
 
-Or manually remove:
+Or manually:
 
 ```bash
 sudo rm /usr/local/bin/quickbox
@@ -74,32 +58,28 @@ sudo rm /usr/share/applications/quickbox.desktop
 
 ## Usage
 
-Command line or Alt-F2:
-
 ```bash
 quickbox
 ```
 
 ## Configuration
 
-Config stored in ~/.config/quickbox/quickbox.conf
+Stored in `~/.config/quickbox/quickbox.conf`
 
-Default VM directory: ~/emu/
+Default VM directory: `~/emu/`
+
+## GTK4 theme
+
+To apply a theme, symlink its `gtk-4.0/gtk.css` into your config:
+
+```bash
+ln -sf /usr/share/themes/YourTheme/gtk-4.0/gtk.css ~/.config/gtk-4.0/gtk.css
+```
 
 ## License
 
-MIT - Copyright (c) 2026 Musqz
+MIT — Copyright (c) 2026 Musqz
 
 ---
 
-![quickget](images/running.png)
-
-![quickget](images/ssh-commands.png)
-
-![quickget](images/ssh-help.png)
-
-
-## Disclaimer
-
-Parts of this tool were built with AI assistance (Claude Sonnet by Anthropic). All code has been reviewed and tested by me.
-
+> Parts of this tool were built with AI assistance (Claude by Anthropic). All code has been reviewed and tested by the author.
