@@ -415,6 +415,10 @@ def _iso_label(vm, vms_dir):
     iso = vm.get("iso", "") or ""
     if not iso:
         return "—"
+    # During import use the pre-stored source total (avoids partial copy size)
+    total = vm.get("_copy_total", "")
+    if total:
+        return f"{iso}  ({total})"
     try:
         size = fmt_size(Path(vms_dir, iso).stat().st_size)
         return f"{iso}  ({size})"
