@@ -137,12 +137,9 @@ _EN_STRINGS = {
     "info_iso": "ISO",
     "set_profile": "Profile:",       "set_compat": "Compatibility mode:",
     "set_boot": "Boot mode:",        "set_quiet": "Quiet launch:",
-    "set_danger_lock": "Lock Danger Zone:",
     "set_compat_hint": "Use minimal QEMU without VirGL — for lightweight or older distros that show a blank screen.",
     "set_quiet_hint": "Suppress the desktop notification when this VM starts.",
     "set_quiet_note": "No launch notification",
-    "set_danger_lock_hint": "Disable delete and format actions to prevent accidents.",
-    "set_danger_note": "Locks delete and format",
     "boot_uefi": "UEFI",             "boot_legacy": "Legacy (BIOS)",
     "snap_no_disk": "No disk yet — launch VM first to create one",
     "snap_none": "No snapshots yet",
@@ -165,7 +162,6 @@ _EN_STRINGS = {
     "tt_del_disk": "Remove the disk image only — keeps ISO and config",
     "tt_fmt_disk": "Create or re-format the disk — erases all data",
     "tt_del_vm": "Permanently remove all VM files including disk and config",
-    "tt_danger_lock": "Unlock Danger Zone first to enable this action",
     "clone_title": "Clone VM",
     "clone_label": "Clone '{}' as:",
     "clone_tt": "Name for the cloned VM — date suffix helps track when it was made",
@@ -623,6 +619,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._vms_dir_mtime = 0
         self._conf_mtimes = {}
         self._any_importing = False
+        # Clean up stale copy flags left by a previous crashed/killed session
+        for _f in Path(self.vms_dir).glob(".*.copying"):
+            _f.unlink(missing_ok=True)
         self._timeout_handlers = []
         self._indicator = None
         self._build_css()
@@ -1143,7 +1142,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         bc.set_sensitive(not read_only)
         sg.attach(bl, 0, 4, 1, 1); sg.attach(bc, 1, 4, 1, 1)
 
-        _dng_btns = []  # filled after danger zone buttons are created
+
         sg.set_visible(settings_expanded[0])
         self.right_box.append(sg)
 
@@ -1299,26 +1298,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         tog_grid.attach(qts, 1, 0, 1, 1)
         tog_grid.attach(_note(S["set_quiet_note"]), 2, 0, 1, 1)
 
-        def _on_danger_lock(sw, p, v=vm):
-            val = "true" if sw.get_active() else "false"
-            setconf("danger_locked", val, v["_conf"])
-            v["danger_locked"] = val
-            locked = val == "true"
-            for b, tt in _dng_btns:
-                b.set_sensitive(not locked)
-                b.set_tooltip_text(S["tt_danger_lock"] if locked else tt)
-                if locked:
-                    b.remove_css_class("destructive-action")
-                else:
-                    b.add_css_class("destructive-action")
-        dlt, dls = sw_row(S["set_danger_lock"].rstrip(":"),
-                          vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true",
-                          _on_danger_lock)
-        dls.set_sensitive(not read_only)
-        tog_grid.attach(dlt, 0, 1, 1, 1)
-        tog_grid.attach(dls, 1, 1, 1, 1)
-        tog_grid.attach(_note(S["set_danger_note"]), 2, 1, 1, 1)
-
         tog_grid.set_visible(acts_expanded[0])
         self.right_box.append(tog_grid)
 
@@ -1338,20 +1317,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         dng_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         dng_box.set_margin_top(8)
-        is_locked = vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true"
         for lbl_key, tt_key, cb in [
             ("dng_del_disk", "tt_del_disk", lambda b: self._delete_disk(vm)),
             ("dng_fmt_disk", "tt_fmt_disk", lambda b: self._dlg_format_disk(vm)),
             ("dng_del_vm",   "tt_del_vm",   lambda b: self._delete_vm(vm)),
         ]:
             btn = Gtk.Button(label=S[lbl_key])
-            btn.set_tooltip_text(S["tt_danger_lock"] if is_locked else S[tt_key])
-            if not is_locked:
-                btn.add_css_class("destructive-action")
-            btn.set_sensitive(not is_locked and not read_only)
+            btn.set_tooltip_text(S[tt_key])
+            btn.add_css_class("destructive-action")
+            btn.set_sensitive(not read_only)
             btn.connect("clicked", cb)
             dng_box.append(btn)
-            _dng_btns.append((btn, S[tt_key]))
         dng_box.set_visible(acts_expanded[0])
         self.right_box.append(dng_box)
 
