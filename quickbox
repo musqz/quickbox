@@ -793,8 +793,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                            border-radius:4px; padding:1px 6px; font-weight:bold; }
 
         .section-hdr { font-weight:bold; font-size:11px;
-                       color:alpha(@theme_fg_color,0.55);
-                       margin-top:14px; margin-bottom:2px; }
+                       color:alpha(@theme_fg_color,0.70);
+                       margin-top:6px; margin-bottom:2px; }
+        .section-hdr-row { background-color:alpha(@theme_fg_color,0.07);
+                           border-radius:4px;
+                           padding:2px 6px;
+                           margin-top:10px; }
         .launch-btn { background-color:#1565c0; color:white;
                       border-radius:6px; padding:7px 18px;
                       font-size:13px; font-weight:bold; }
@@ -1061,6 +1065,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         # Info — collapsible
         info_expanded = [self.conf.get("info_expanded", "true") == "true"]
         info_hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        info_hdr.add_css_class("section-hdr-row")
         info_lbl = Gtk.Label(label=S["sec_info"])
         info_lbl.set_halign(Gtk.Align.START)
         info_lbl.add_css_class("section-hdr")
@@ -1108,6 +1113,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         # Settings — collapsible
         settings_expanded = [self.conf.get("settings_expanded", "true") == "true"]
         settings_hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        settings_hdr.add_css_class("section-hdr-row")
         settings_lbl = Gtk.Label(label=S["sec_settings"])
         settings_lbl.set_halign(Gtk.Align.START)
         settings_lbl.add_css_class("section-hdr")
@@ -1195,6 +1201,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         # Snapshots — collapsible
         snaps_expanded = [self.conf.get("snaps_expanded", "true") == "true"]
         snaps_hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        snaps_hdr.add_css_class("section-hdr-row")
         snaps_lbl = Gtk.Label(label=S["sec_snapshots"])
         snaps_lbl.set_halign(Gtk.Align.START)
         snaps_lbl.add_css_class("section-hdr")
@@ -1300,6 +1307,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         # Actions + Danger zone — collapsible together
         acts_expanded = [self.conf.get("acts_expanded", "true") == "true"]
         acts_hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        acts_hdr.add_css_class("section-hdr-row")
         acts_lbl = Gtk.Label(label=f"{S['sec_actions']}  |  {S['sec_danger']}")
         acts_lbl.set_halign(Gtk.Align.START)
         acts_lbl.add_css_class("section-hdr")
