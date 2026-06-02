@@ -617,6 +617,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.current_vm = None
         self._search_text = ""
         self._vms_dir_mtime = 0
+        self._programmatic_select = False
         self._conf_mtimes = {}
         self._timeout_handlers = []
         self._indicator = None
@@ -914,7 +915,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             row = self.listbox.get_first_child()
             while row is not None:
                 if hasattr(row, "vm") and row.vm["_name"] == name:
+                    self._programmatic_select = True
                     self.listbox.select_row(row)
+                    self._programmatic_select = False
                     self.current_vm = row.vm
                     break
                 row = row.get_next_sibling()
@@ -938,7 +941,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _on_select(self, lb, row):
         if row:
             self.current_vm = row.vm
-            self._show_panel(row.vm, reset_scroll=True)
+            self._show_panel(row.vm, reset_scroll=not self._programmatic_select)
 
     # ── welcome ──
 
