@@ -610,7 +610,8 @@ class VMRow(Gtk.ListBoxRow):
 class QuickboxWindow(Gtk.ApplicationWindow):
     def __init__(self, **kwargs):
         super().__init__(title="Quickbox", **kwargs)
-        self.set_default_size(960, 640)
+        self.set_default_size(900, 620)
+        self.set_size_request(720, 480)
         self.set_resizable(True)
         self.set_icon_name("quickbox" if ICON_PATH else "computer-vm")
         self.conf      = read_conf()
