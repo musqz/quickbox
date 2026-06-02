@@ -8,3 +8,4 @@ __pycache__/
 *.vmdk
 *.vdi
 *.raw
+gtk.css
