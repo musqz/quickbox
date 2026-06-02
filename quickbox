@@ -2059,24 +2059,14 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             listbox.append(row)
 
         # Alphabet buttons - click to jump to that letter
-        alpha_btns = {}
-        active_btn = [None]
         for letter in sorted(row_map.keys()):
-            lbl = Gtk.Label()
-            lbl.set_markup(letter)
-            btn = Gtk.Button()
-            btn.set_child(lbl)
+            btn = Gtk.Button(label=letter)
             btn.set_has_frame(False)
             btn.set_size_request(34, 28)
-            alpha_btns[letter] = btn
-            def _scroll_to(b, ltr, rm=row_map, ls=list_scroll, ac=active_btn):
+            def _scroll_to(b, ltr, rm=row_map, ls=list_scroll):
                 r = rm.get(ltr)
                 if r:
                     ls.get_vadjustment().set_value(r.get_allocation().y)
-                if ac[0] and ac[0] is not b:
-                    ac[0].get_child().set_markup(ac[0].get_child().get_text())
-                b.get_child().set_markup(f'<b><span color="#4caf50">{ltr}</span></b>')
-                ac[0] = b
             btn.connect("clicked", _scroll_to, letter)
             alpha_box.append(btn)
 
@@ -2097,9 +2087,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             search_text[0] = entry.get_text().strip().lower()
             listbox.unselect_all()
             listbox.invalidate_filter()
-            if active_btn[0]:
-                active_btn[0].get_child().set_markup(active_btn[0].get_child().get_text())
-                active_btn[0] = None
 
         search_entry.connect("search-changed", _on_search_changed)
 
