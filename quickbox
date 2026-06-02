@@ -1012,8 +1012,21 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         launch_box.set_margin_top(4)
         self.right_box.append(launch_box)
 
-        # Info
-        self.right_box.append(self._section(S["sec_info"]))
+        # Info — collapsible
+        info_expanded = [self.conf.get("info_expanded", "true") == "true"]
+        info_hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        info_lbl = Gtk.Label(label=S["sec_info"])
+        info_lbl.set_halign(Gtk.Align.START)
+        info_lbl.add_css_class("section-hdr")
+        info_lbl.set_hexpand(True)
+        info_toggle_btn = Gtk.Button(
+            label=S["btn_hide"] if info_expanded[0] else S["btn_show"])
+        info_toggle_btn.set_has_frame(False)
+        info_toggle_btn.add_css_class("section-hdr")
+        info_hdr.append(info_lbl)
+        info_hdr.append(info_toggle_btn)
+        self.right_box.append(info_hdr)
+
         grid = Gtk.Grid()
         grid.set_column_spacing(16)
         grid.set_row_spacing(5)
@@ -1034,7 +1047,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             vl.set_max_width_chars(38)
             grid.attach(kl, 0, i, 1, 1)
             grid.attach(vl, 1, i, 1, 1)
+        grid.set_visible(info_expanded[0])
         self.right_box.append(grid)
+
+        def _toggle_info(_btn):
+            info_expanded[0] = not info_expanded[0]
+            grid.set_visible(info_expanded[0])
+            info_toggle_btn.set_label(
+                S["btn_hide"] if info_expanded[0] else S["btn_show"])
+            v = "true" if info_expanded[0] else "false"
+            setconf("info_expanded", v); self.conf["info_expanded"] = v
+        info_toggle_btn.connect("clicked", _toggle_info)
 
         # Settings — collapsible
         settings_expanded = [self.conf.get("settings_expanded", "true") == "true"]
