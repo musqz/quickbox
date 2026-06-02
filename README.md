@@ -33,7 +33,15 @@ A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/
 
 ## Installation
 
-### From source
+### Arch Linux / Manjaro — local PKGBUILD
+
+```bash
+git clone https://github.com/musqz/quickbox.git
+cd quickbox/packaging
+makepkg -si
+```
+
+### From source (all distros)
 
 ```bash
 sudo ./install.sh
@@ -49,15 +57,16 @@ sudo cp quickbox.desktop /usr/share/applications/
 
 ## Uninstallation
 
+### Arch Linux / Manjaro
+
 ```bash
-sudo ./uninstall.sh
+sudo pacman -R quickbox
 ```
 
-Or manually:
+### From source
 
 ```bash
-sudo rm /usr/local/bin/quickbox
-sudo rm /usr/share/applications/quickbox.desktop
+sudo ./uninstall.sh
 ```
 
 ## Usage
