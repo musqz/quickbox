@@ -2286,6 +2286,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     flag = Path(self.vms_dir) / f".{dest_name}.copying"
                     flag.write_text(str(src_path.stat().st_size))
                     self._refresh()
+                    self._select_vm_by_name(dest_name)
                     notify("quickbox", S["ntf_converting"].format(src_path.name), "low")
                     def _convert():
                         disk = str(dest_dir / "disk.qcow2")
@@ -2297,6 +2298,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                             flag.unlink(missing_ok=True)
                         notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
                         GLib.idle_add(self._refresh)
+                        GLib.timeout_add(200, lambda: self._select_vm_by_name(dest_name) or False)
                     threading.Thread(target=_convert, daemon=True).start()
                 else:
                     conf_text = (f"#!/usr/bin/quickemu --vm\n"
@@ -2310,6 +2312,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     flag = Path(self.vms_dir) / f".{dest_name}.copying"
                     flag.write_text(str(src_path.stat().st_size))
                     self._refresh()
+                    self._select_vm_by_name(dest_name)
                     notify("quickbox", S["ntf_copying"].format(src_path.name), "low")
                     def _copy():
                         try:
@@ -2318,6 +2321,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                             flag.unlink(missing_ok=True)
                         notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
                         GLib.idle_add(self._refresh)
+                        GLib.timeout_add(200, lambda: self._select_vm_by_name(dest_name) or False)
                     threading.Thread(target=_copy, daemon=True).start()
 
             fc.connect("response", _on_file)
