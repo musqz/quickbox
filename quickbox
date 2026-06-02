@@ -118,7 +118,8 @@ _lang = (_locale.getlocale()[0] or "en")[:2]
 _EN_STRINGS = {
     "app_title": "Quickbox",
     "hdr_download": "Download",       "hdr_custom_vm": "Custom VM",
-    "hdr_advanced": "Advanced",
+    "hdr_advanced": "Advanced",       "hdr_tray": "Tray",
+    "tt_tray": "Enable system tray icon",
     "tt_download": "Download a new distro ISO via quickget",
     "tt_custom_vm": "Create a VM from a local ISO or IMG file",
     "tt_advanced": "Migrate VMs, switch location, manage saved paths",
@@ -689,8 +690,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     def _tray_quit(self):
         self._teardown_systray()
-        setconf("systray", "false")
-        self.conf["systray"] = "false"
         for timeout_id in self._timeout_handlers:
             GLib.source_remove(timeout_id)
         self._timeout_handlers.clear()
@@ -715,6 +714,15 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         else:
             self.set_visible(True)
             self.present()
+
+    def _on_tray_header_toggle(self, btn):
+        val = "true" if btn.get_active() else "false"
+        setconf("systray", val)
+        self.conf["systray"] = val
+        if btn.get_active():
+            self._init_systray()
+        else:
+            self._teardown_systray()
 
     def _on_close_request(self, *args):
         if self._indicator and self.conf.get("systray") == "true":
@@ -852,6 +860,16 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.set_titlebar(hb)
         self._headerbar = hb
 
+        # Systray toggle — left side of header
+        self._tray_btn = Gtk.ToggleButton()
+        tray_inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        tray_inner.append(Gtk.Image.new_from_icon_name("user-available-symbolic"))
+        tray_inner.append(Gtk.Label(label=S["hdr_tray"]))
+        self._tray_btn.set_child(tray_inner)
+        self._tray_btn.set_active(self.conf.get("systray") == "true")
+        self._tray_btn.set_tooltip_text(S["tt_tray"])
+        self._tray_btn.connect("toggled", self._on_tray_header_toggle)
+        hb.pack_start(self._tray_btn)
 
         self._hdr_action_btns = []
         for lbl_key, icon, tt_key, cb in [
@@ -2640,46 +2658,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         prof_info.set_max_width_chars(52)
         prof_info.set_margin_bottom(12)
         box.append(prof_info)
-        _sep4 = Gtk.Separator()
-        _sep4.set_margin_top(8)
-        box.append(_sep4)
-
-        # ── System tray ──
-        hdr_tray = Gtk.Label(label=S["adv_sec_tray"])
-        hdr_tray.set_halign(Gtk.Align.START)
-        hdr_tray.add_css_class("section-hdr")
-        box.append(hdr_tray)
-
-        tray_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        tray_row.set_margin_top(8)
-        tray_lbl = Gtk.Label(label=S["adv_tray_sw"])
-        tray_lbl.set_halign(Gtk.Align.START)
-        tray_lbl.set_hexpand(True)
-        tray_sw = Gtk.Switch()
-        tray_sw.set_active(self.conf.get("systray") == "true")
-        tray_sw.set_halign(Gtk.Align.END)
-        tray_row.append(tray_lbl)
-        tray_row.append(tray_sw)
-        box.append(tray_row)
-
-        tray_hint = Gtk.Label()
-        tray_hint.set_markup(f'<span size="small" color="gray">{S["adv_tray_hint"]}</span>')
-        tray_hint.set_halign(Gtk.Align.START)
-        tray_hint.set_wrap(True)
-        tray_hint.set_max_width_chars(52)
-        tray_hint.set_margin_bottom(12)
-        box.append(tray_hint)
-
-        def _on_tray_sw(sw, _):
-            val = "true" if sw.get_active() else "false"
-            setconf("systray", val)
-            self.conf["systray"] = val
-            if sw.get_active():
-                self._init_systray()
-            else:
-                self._teardown_systray()
-
-        tray_sw.connect("notify::active", _on_tray_sw)
 
         _sep5 = Gtk.Separator()
         _sep5.set_margin_top(8)
