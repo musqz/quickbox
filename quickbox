@@ -180,7 +180,7 @@ _EN_STRINGS = {
     "dl_hint2": "Click a distro to select version and download",
     "btn_close": "Close",
     "dl2_ver_lbl": "Version / edition:",
-    "dl2_cmd_lbl": "Command (editable):",
+    "dl2_cmd_lbl": "Command:",
     "dl2_ready": "Ready to download",
     "dl2_starting": "Starting download…",
     "dl2_progress": "Downloading… {} MB  ({} MB/s)",
@@ -2197,7 +2197,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         cmd_entry = Gtk.Entry()
         cmd_entry.set_text(versions[default_idx][1])
-        cmd_entry.set_editable(True)
+        cmd_entry.set_editable(False)
+        cmd_entry.set_can_focus(False)
         cmd_entry.set_margin_top(2)
         box.append(cmd_entry)
 
@@ -2314,7 +2315,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             GLib.idle_add(progress.set_text, S["dl2_starting"])
             GLib.idle_add(dl_btn.set_sensitive, False)
             GLib.idle_add(ver_combo.set_sensitive, False)
-            GLib.idle_add(cmd_entry.set_editable, False)
 
             t0 = _time.monotonic()
             self._dl_watching = True
