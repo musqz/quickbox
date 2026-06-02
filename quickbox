@@ -795,7 +795,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .section-hdr { font-weight:bold; font-size:11px;
                        color:alpha(@theme_fg_color,0.70);
                        margin-top:6px; margin-bottom:2px; }
-        .section-hdr-row { background-color:alpha(@theme_fg_color,0.07) !important;
+        .section-hdr-row { background-color:alpha(@theme_fg_color,0.07);
                            border-radius:4px;
                            padding:2px 6px;
                            margin-top:10px; }
