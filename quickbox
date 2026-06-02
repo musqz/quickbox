@@ -1049,9 +1049,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         def do_test():
             try:
-                with socket.create_connection(("localhost", port), timeout=3):
-                    pass
-                reachable = True
+                with socket.create_connection(("localhost", port), timeout=3) as sock:
+                    sock.settimeout(3)
+                    banner = sock.recv(32)
+                    reachable = banner.startswith(b"SSH-")
             except Exception:
                 reachable = False
             GLib.idle_add(lambda: _show_result(reachable))
@@ -1238,11 +1239,14 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         quiet_hint.set_max_width_chars(42)
         sg.attach(quiet_hint, 1, 6, 1, 1)
 
+        def _on_danger_lock(sw, p, v=vm):
+            val = "true" if sw.get_active() else "false"
+            setconf("danger_locked", val, v["_conf"])
+            v.update({"danger_locked": val})
+            self._show_panel(v)
         dlt, dls = sw_row(S["set_danger_lock"].rstrip(":"),
                           vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true",
-                          lambda sw, p, v=vm: setconf("danger_locked",
-                              "true" if sw.get_active() else "false", v["_conf"]) or
-                              v.update({"danger_locked": "true" if sw.get_active() else "false"}))
+                          _on_danger_lock)
         sg.attach(dlt, 0, 7, 1, 1); sg.attach(dls, 1, 7, 1, 1)
         dl_hint = Gtk.Label()
         dl_hint.set_markup(f'<span size="small" color="gray">{S["set_danger_lock_hint"]}</span>')
