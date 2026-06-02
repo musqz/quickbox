@@ -526,32 +526,36 @@ class VMRow(Gtk.ListBoxRow):
             dot.set_markup('<span color="#ff9800" size="large">●</span>')
         box.append(dot)
 
-        name = Gtk.Label(label=vm["_pretty"])
-        name.set_halign(Gtk.Align.START)
-        name.set_ellipsize(Pango.EllipsizeMode.END)
-        name.set_max_width_chars(22)
-        name.set_hexpand(True)
-        box.append(name)
-
         if vm.get("_copying"):
+            center = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            center.set_hexpand(True)
+            center.set_halign(Gtk.Align.CENTER)
             spinner = Gtk.Spinner()
             spinner.add_css_class("import-spinner")
             spinner.set_size_request(18, 18)
             spinner.start()
-            box.append(spinner)
+            center.append(spinner)
             total = vm.get("_copy_total", "")
             size_text = f"{vm['_size']} / {total}" if total else vm["_size"]
             prog = Gtk.Label(label=f"{size_text}  importing")
             prog.add_css_class("import-progress")
-            box.append(prog)
-        elif vm["_running"]:
-            badge = Gtk.Label(label=S["badge_running"])
-            badge.add_css_class("badge-running")
-            box.append(badge)
+            center.append(prog)
+            box.append(center)
         else:
-            sz = Gtk.Label(label=vm["_size"])
-            sz.add_css_class("dim-label")
-            box.append(sz)
+            name = Gtk.Label(label=vm["_pretty"])
+            name.set_halign(Gtk.Align.START)
+            name.set_ellipsize(Pango.EllipsizeMode.END)
+            name.set_max_width_chars(22)
+            name.set_hexpand(True)
+            box.append(name)
+            if vm["_running"]:
+                badge = Gtk.Label(label=S["badge_running"])
+                badge.add_css_class("badge-running")
+                box.append(badge)
+            else:
+                sz = Gtk.Label(label=vm["_size"])
+                sz.add_css_class("dim-label")
+                box.append(sz)
 
         self.set_child(box)
 
