@@ -42,31 +42,27 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Pango, Gdk, Gio
 
-# System tray via StatusNotifierItem DBus (GTK4-native, no external lib needed)
+# System tray via GTK3 StatusIcon subprocess (avoids GTK3/GTK4 conflict)
 HAVE_TRAY = True
 
-SNI_XML = """
-<node>
-  <interface name="org.kde.StatusNotifierItem">
-    <property name="Id"       type="s" access="read"/>
-    <property name="Category" type="s" access="read"/>
-    <property name="Status"   type="s" access="read"/>
-    <property name="IconName" type="s" access="read"/>
-    <property name="Title"    type="s" access="read"/>
-    <method name="Activate">
-      <arg type="i" name="x" direction="in"/>
-      <arg type="i" name="y" direction="in"/>
-    </method>
-    <method name="SecondaryActivate">
-      <arg type="i" name="x" direction="in"/>
-      <arg type="i" name="y" direction="in"/>
-    </method>
-    <method name="ContextMenu">
-      <arg type="i" name="x" direction="in"/>
-      <arg type="i" name="y" direction="in"/>
-    </method>
-  </interface>
-</node>"""
+_TRAY_HELPER = r"""
+import gi, sys, os
+gi.require_version('Gtk','3.0')
+from gi.repository import Gtk, GLib
+icon = Gtk.StatusIcon()
+icon.set_from_icon_name(sys.argv[1] if len(sys.argv)>1 else 'system-search')
+icon.set_tooltip_text('Quickbox')
+icon.set_visible(True)
+icon.connect('activate', lambda *a: (sys.stdout.write('activate\n'), sys.stdout.flush()))
+def _read(fd, cond):
+    line = sys.stdin.readline().strip()
+    if line == 'quit':
+        Gtk.main_quit()
+        return False
+    return True
+GLib.io_add_watch(sys.stdin.fileno(), GLib.IO_IN, _read)
+Gtk.main()
+"""
 
 import os
 import subprocess
@@ -616,47 +612,36 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         if self.conf.get("systray") != "true":
             return
         try:
-            bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-            icon = "quickbox" if ICON_PATH else "computer-vm"
-            node = Gio.DBusNodeInfo.new_for_xml(SNI_XML)
-            props = {
-                "Id":       GLib.Variant("s", "quickbox"),
-                "Category": GLib.Variant("s", "ApplicationStatus"),
-                "Status":   GLib.Variant("s", "Active"),
-                "IconName": GLib.Variant("s", icon),
-                "Title":    GLib.Variant("s", "Quickbox"),
-            }
-            def on_method(conn, sender, path, iface, method, params, inv):
-                if method in ("Activate", "SecondaryActivate"):
-                    GLib.idle_add(self._tray_toggle)
-                inv.return_value(None)
-            def on_get(conn, sender, path, iface, prop):
-                return props.get(prop)
-            self._sni_reg = bus.register_object(
-                "/StatusNotifierItem", node.interfaces[0],
-                on_method, on_get, None)
-            svc = f"org.kde.StatusNotifierItem-{os.getpid()}-1"
-            self._sni_name = Gio.bus_own_name_on_connection(
-                bus, svc, Gio.BusNameOwnerFlags.NONE, None, None)
-            bus.call(
-                "org.kde.StatusNotifierWatcher",
-                "/StatusNotifierWatcher",
-                "org.kde.StatusNotifierWatcher",
-                "RegisterStatusNotifierItem",
-                GLib.Variant("(s)", (svc,)),
-                None, Gio.DBusCallFlags.NONE, -1, None, None, None)
-            self._sni_bus = bus
-            self._indicator = True
+            self._tray_proc = subprocess.Popen(
+                ["python3", "-c", _TRAY_HELPER, "system-search"],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+            GLib.io_add_watch(
+                self._tray_proc.stdout.fileno(),
+                GLib.IO_IN, self._on_tray_output)
+            self._indicator = self._tray_proc
         except Exception:
             self._indicator = None
+
+    def _on_tray_output(self, fd, condition):
+        try:
+            line = os.read(fd, 256).decode().strip()
+            if "activate" in line:
+                self._tray_toggle()
+            return True
+        except Exception:
+            return False
 
     def _teardown_systray(self):
         if self._indicator:
             try:
-                Gio.bus_unown_name(self._sni_name)
-                self._sni_bus.unregister_object(self._sni_reg)
+                self._tray_proc.stdin.write("quit\n")
+                self._tray_proc.stdin.flush()
+                self._tray_proc.wait(timeout=2)
             except Exception:
-                pass
+                try:
+                    self._tray_proc.kill()
+                except Exception:
+                    pass
             self._indicator = None
 
     def _tray_toggle(self, *_):
@@ -669,6 +654,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         if self._indicator and self.conf.get("systray") == "true":
             self.hide()
             return True
+        self._teardown_systray()
         for timeout_id in self._timeout_handlers:
             GLib.source_remove(timeout_id)
         self._timeout_handlers.clear()
