@@ -782,6 +782,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.vms = get_vms(self.vms_dir)
         for vm in self.vms:
             self.listbox.append(VMRow(vm))
+        importing = any(vm.get("_copying") for vm in self.vms)
+        self.set_sensitive(not importing)
         n = len(self.vms)
         vms_str = S["status_vms_pl"].format(n) if n != 1 else S["status_vms"].format(n)
         self._status.set_markup(
@@ -1235,10 +1237,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             btn.connect("clicked", cb)
             dng_box.append(btn)
         self.right_box.append(dng_box)
-
-        if vm.get("_copying"):
-            for w in (sg, snap_vbox, act_box, dng_box):
-                w.set_sensitive(False)
 
     # ── launch / stop ──
 
