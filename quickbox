@@ -46,21 +46,42 @@ from gi.repository import Gtk, GLib, Pango, Gdk, Gio
 HAVE_TRAY = True
 
 _TRAY_HELPER = r"""
-import gi, sys, os
+import gi, sys
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk, GLib
+
+def send(msg):
+    sys.stdout.write(msg + '\n')
+    sys.stdout.flush()
+
 icon = Gtk.StatusIcon()
-icon.set_from_icon_name(sys.argv[1] if len(sys.argv)>1 else 'system-search')
+icon.set_from_icon_name(sys.argv[1] if len(sys.argv)>1 else 'qemu')
 icon.set_tooltip_text('Quickbox')
 icon.set_visible(True)
-icon.connect('activate', lambda *a: (sys.stdout.write('activate\n'), sys.stdout.flush()))
+icon.connect('activate', lambda *a: send('activate'))
+
+def on_popup(icon, button, time):
+    menu = Gtk.Menu()
+    show = Gtk.MenuItem(label='Show / Hide')
+    show.connect('activate', lambda *a: send('activate'))
+    menu.append(show)
+    menu.append(Gtk.SeparatorMenuItem())
+    quit_item = Gtk.MenuItem(label='Quit Quickbox')
+    quit_item.connect('activate', lambda *a: (send('quit'), Gtk.main_quit()))
+    menu.append(quit_item)
+    menu.show_all()
+    menu.popup(None, None, Gtk.StatusIcon.position_menu, icon, button, time)
+
+icon.connect('popup-menu', on_popup)
+
 def _read(fd, cond):
-    line = sys.stdin.readline().strip()
-    if line == 'quit':
+    line = sys.stdin.readline()
+    if not line or line.strip() == 'quit':
         Gtk.main_quit()
         return False
     return True
-GLib.io_add_watch(sys.stdin.fileno(), GLib.IO_IN, _read)
+
+GLib.io_add_watch(sys.stdin.fileno(), GLib.IO_IN | GLib.IO_HUP, _read)
 Gtk.main()
 """
 
@@ -626,10 +647,21 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         try:
             line = os.read(fd, 256).decode().strip()
             if "activate" in line:
-                self._tray_toggle()
+                GLib.idle_add(self._tray_toggle)
+            elif "quit" in line:
+                GLib.idle_add(self._tray_quit)
             return True
         except Exception:
             return False
+
+    def _tray_quit(self):
+        self._teardown_systray()
+        setconf("systray", "false")
+        self.conf["systray"] = "false"
+        for timeout_id in self._timeout_handlers:
+            GLib.source_remove(timeout_id)
+        self._timeout_handlers.clear()
+        self.get_application().quit()
 
     def _teardown_systray(self):
         if self._indicator:
@@ -645,9 +677,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             self._indicator = None
 
     def _tray_toggle(self, *_):
-        if self.is_visible():
+        if self.get_visible():
             self.hide()
         else:
+            self.set_visible(True)
             self.present()
 
     def _on_close_request(self):
