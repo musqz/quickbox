@@ -1152,8 +1152,20 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             setconf("settings_expanded", "true" if settings_expanded[0] else "false")
         settings_toggle_btn.connect("clicked", _toggle_settings)
 
-        # Snapshots — always show
-        self.right_box.append(self._section(S["sec_snapshots"]))
+        # Snapshots — collapsible
+        snaps_expanded = [self.conf.get("snaps_expanded", "true") == "true"]
+        snaps_hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        snaps_lbl = Gtk.Label(label=S["sec_snapshots"])
+        snaps_lbl.set_halign(Gtk.Align.START)
+        snaps_lbl.add_css_class("section-hdr")
+        snaps_lbl.set_hexpand(True)
+        snaps_toggle_btn = Gtk.Button(
+            label=S["btn_hide"] if snaps_expanded[0] else S["btn_show"])
+        snaps_toggle_btn.set_has_frame(False)
+        snaps_toggle_btn.add_css_class("section-hdr")
+        snaps_hdr.append(snaps_lbl)
+        snaps_hdr.append(snaps_toggle_btn)
+        self.right_box.append(snaps_hdr)
         snap_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
 
         if not vm["_has_disk"]:
@@ -1230,10 +1242,31 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             create_row.append(create_btn)
             snap_vbox.append(create_row)
 
+        snap_vbox.set_visible(snaps_expanded[0])
         self.right_box.append(snap_vbox)
 
-        # Actions
-        self.right_box.append(self._section(S["sec_actions"]))
+        def _toggle_snaps(_btn):
+            snaps_expanded[0] = not snaps_expanded[0]
+            snap_vbox.set_visible(snaps_expanded[0])
+            snaps_toggle_btn.set_label(
+                S["btn_hide"] if snaps_expanded[0] else S["btn_show"])
+            setconf("snaps_expanded", "true" if snaps_expanded[0] else "false")
+        snaps_toggle_btn.connect("clicked", _toggle_snaps)
+
+        # Actions + Danger zone — collapsible together
+        acts_expanded = [self.conf.get("acts_expanded", "true") == "true"]
+        acts_hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        acts_lbl = Gtk.Label(label=f"{S['sec_actions']}  |  {S['sec_danger']}")
+        acts_lbl.set_halign(Gtk.Align.START)
+        acts_lbl.add_css_class("section-hdr")
+        acts_lbl.set_hexpand(True)
+        acts_toggle_btn = Gtk.Button(
+            label=S["btn_hide"] if acts_expanded[0] else S["btn_show"])
+        acts_toggle_btn.set_has_frame(False)
+        acts_toggle_btn.add_css_class("section-hdr")
+        acts_hdr.append(acts_lbl)
+        acts_hdr.append(acts_toggle_btn)
+        self.right_box.append(acts_hdr)
         act_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         for lbl_key, tt_key, cb in [
             ("act_edit_conf", "tt_edit_conf", lambda b: subprocess.Popen(["geany", vm["_conf"]])),
@@ -1244,10 +1277,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             btn.set_tooltip_text(S[tt_key])
             btn.connect("clicked", cb)
             act_box.append(btn)
+        act_box.set_visible(acts_expanded[0])
         self.right_box.append(act_box)
 
-        # Danger zone
-        self.right_box.append(self._section(S["sec_danger"]))
         dng_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         is_locked = vm["danger_locked"] == "true" if "danger_locked" in vm else vm.get("confirmed") == "true"
         for lbl_key, tt_key, cb in [
@@ -1263,7 +1295,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             btn.connect("clicked", cb)
             dng_box.append(btn)
             _dng_btns.append((btn, S[tt_key]))
+        dng_box.set_visible(acts_expanded[0])
         self.right_box.append(dng_box)
+
+        def _toggle_acts(_btn):
+            acts_expanded[0] = not acts_expanded[0]
+            act_box.set_visible(acts_expanded[0])
+            dng_box.set_visible(acts_expanded[0])
+            acts_toggle_btn.set_label(
+                S["btn_hide"] if acts_expanded[0] else S["btn_show"])
+            setconf("acts_expanded", "true" if acts_expanded[0] else "false")
+        acts_toggle_btn.connect("clicked", _toggle_acts)
 
     # ── launch / stop ──
 
