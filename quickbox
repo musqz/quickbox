@@ -2815,23 +2815,31 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         dlg.set_transient_for(self)
         dlg.set_modal(True)
         dlg.set_deletable(False)
-        dlg.set_default_size(460, 160)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        box.set_margin_top(16); box.set_margin_bottom(16)
-        box.set_margin_start(16); box.set_margin_end(16)
+        dlg.set_default_size(420, 180)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_margin_top(28); box.set_margin_bottom(24)
+        box.set_margin_start(28); box.set_margin_end(28)
+        box.set_valign(Gtk.Align.CENTER)
 
-        status_lbl = Gtk.Label(label=S["prog_wait"])
-        status_lbl.set_halign(Gtk.Align.START)
-        box.append(status_lbl)
+        # Title + spinner row
+        hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        hdr.set_halign(Gtk.Align.CENTER)
+        spinner = Gtk.Spinner()
+        spinner.start()
+        hdr.append(spinner)
+        title_lbl = Gtk.Label()
+        title_lbl.set_markup(f'<span weight="bold" size="large">{title}</span>')
+        hdr.append(title_lbl)
+        box.append(hdr)
 
         progress = Gtk.ProgressBar()
         progress.set_show_text(False)
         box.append(progress)
 
-        note = Gtk.Label()
-        note.set_markup(f'<span size="small" color="gray">{S["prog_note"]}</span>')
-        note.set_halign(Gtk.Align.START)
-        box.append(note)
+        status_lbl = Gtk.Label(label=S["prog_wait"])
+        status_lbl.set_halign(Gtk.Align.CENTER)
+        status_lbl.add_css_class("dim-label")
+        box.append(status_lbl)
 
         dlg.set_child(box)
         dlg.present()
@@ -2857,13 +2865,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
             if rc == 0:
                 GLib.idle_add(progress.set_fraction, 1.0)
-                GLib.idle_add(status_lbl.set_text, S["prog_done"])
-                GLib.idle_add(note.set_markup,
-                    f'<span size="small" color="gray">{S["prog_ok"]}</span>')
+                GLib.idle_add(spinner.stop)
+                GLib.idle_add(status_lbl.set_markup,
+                    f'<span color="gray">{S["prog_done"]}</span>')
             else:
-                GLib.idle_add(status_lbl.set_text, S["prog_fail"])
-                GLib.idle_add(note.set_markup,
-                    f'<span size="small" color="red">{S["prog_err"]}</span>')
+                GLib.idle_add(spinner.stop)
+                GLib.idle_add(status_lbl.set_markup,
+                    f'<span color="red">{S["prog_fail"]}</span>')
 
             def _finish():
                 dlg.close()
