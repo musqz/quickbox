@@ -635,6 +635,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .vm-listbox row { border-radius:6px; margin:2px 4px; }
         .vm-listbox row:selected { background-color:alpha(@theme_selected_bg_color,0.8); }
         .vm-listbox row:hover    { background-color:alpha(@theme_selected_bg_color,0.25); }
+        .vm-listbox row:selected label { color:@theme_selected_fg_color; }
         .badge-running { background-color:#2e7d32; color:white;
                          border-radius:4px; padding:1px 6px; font-size:11px; }
         .badge-copying { background-color:#e65100; color:white;
