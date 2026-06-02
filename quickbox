@@ -619,6 +619,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._indicator = None
         self._build_css()
         self._build_ui()
+        self._setup_hotkeys()
         self._refresh()
         self._init_systray()
         self.connect("close-request", self._on_close_request)
@@ -892,6 +893,19 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._status.set_hexpand(True)
         sb.append(self._status)
         vbox.append(sb)
+
+    # ── global hotkeys ──
+
+    def _setup_hotkeys(self):
+        def _on_key(ctrl, keyval, keycode, state):
+            ctrl_held = state & Gdk.ModifierType.CONTROL_MASK
+            if keyval == Gdk.KEY_F5 or (ctrl_held and keyval == Gdk.KEY_r):
+                self._refresh()
+                return True
+            return False
+        kc = Gtk.EventControllerKey()
+        kc.connect("key-pressed", _on_key)
+        self.add_controller(kc)
 
     # ── refresh ──
 
