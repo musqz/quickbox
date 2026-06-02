@@ -795,10 +795,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .section-hdr { font-weight:bold; font-size:11px;
                        color:alpha(@theme_fg_color,0.70);
                        margin-top:6px; margin-bottom:2px; }
-        .section-hdr-row { background-color:alpha(@theme_fg_color,0.07) !important;
-                           border-radius:4px;
-                           padding:2px 6px;
-                           margin-top:10px; }
+        .section-hdr-row { padding:2px 0; margin-top:10px; }
         .launch-btn { background-color:#1565c0; color:white;
                       border-radius:6px; padding:7px 18px;
                       font-size:13px; font-weight:bold; }
@@ -1075,6 +1072,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         info_toggle_btn.set_has_frame(False)
         info_toggle_btn.add_css_class("section-hdr")
         info_hdr.append(info_lbl)
+        _vsep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        _vsep.set_margin_start(4); _vsep.set_margin_end(4)
+        info_hdr.append(_vsep)
         info_hdr.append(info_toggle_btn)
         self.right_box.append(info_hdr)
 
@@ -1123,6 +1123,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         settings_toggle_btn.set_has_frame(False)
         settings_toggle_btn.add_css_class("section-hdr")
         settings_hdr.append(settings_lbl)
+        _vsep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        _vsep.set_margin_start(4); _vsep.set_margin_end(4)
+        settings_hdr.append(_vsep)
         settings_hdr.append(settings_toggle_btn)
         self.right_box.append(settings_hdr)
 
@@ -1211,6 +1214,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         snaps_toggle_btn.set_has_frame(False)
         snaps_toggle_btn.add_css_class("section-hdr")
         snaps_hdr.append(snaps_lbl)
+        _vsep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        _vsep.set_margin_start(4); _vsep.set_margin_end(4)
+        snaps_hdr.append(_vsep)
         snaps_hdr.append(snaps_toggle_btn)
         self.right_box.append(snaps_hdr)
         snap_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -1317,6 +1323,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         acts_toggle_btn.set_has_frame(False)
         acts_toggle_btn.add_css_class("section-hdr")
         acts_hdr.append(acts_lbl)
+        _vsep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        _vsep.set_margin_start(4); _vsep.set_margin_end(4)
+        acts_hdr.append(_vsep)
         acts_hdr.append(acts_toggle_btn)
         self.right_box.append(acts_hdr)
 
