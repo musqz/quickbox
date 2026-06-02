@@ -614,6 +614,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.current_vm = None
         self._search_text = ""
         self._vms_dir_mtime = 0
+        self._conf_mtimes = {}
         self._timeout_handlers = []
         self._indicator = None
         self._build_css()
@@ -720,16 +721,27 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         return True
 
     def _poll_vms_dir(self):
-        """Watch vms_dir for new/removed VMs and completed copies."""
+        """Watch vms_dir for new/removed VMs, copies, and config changes."""
         try:
             mtime = os.stat(self.vms_dir).st_mtime
             if mtime != self._vms_dir_mtime:
                 if self._vms_dir_mtime != 0:
                     self._refresh()
-                    # if current VM was copying, re-show its panel
                     if self.current_vm:
                         self._show_panel(self.current_vm)
                 self._vms_dir_mtime = mtime
+
+            # detect config file edits (dir mtime doesn't change on file modify)
+            conf_changed = False
+            for p in Path(self.vms_dir).glob("*.conf"):
+                m = p.stat().st_mtime
+                if self._conf_mtimes.get(str(p)) != m:
+                    conf_changed = True
+                    self._conf_mtimes[str(p)] = m
+            if conf_changed and self._vms_dir_mtime != 0:
+                self._refresh()
+                if self.current_vm:
+                    self._show_panel(self.current_vm)
         except Exception:
             pass
         return True
