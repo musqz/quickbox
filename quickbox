@@ -2084,6 +2084,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         def _on_search_changed(entry):
             search_text[0] = entry.get_text().strip().lower()
+            listbox.unselect_all()
             listbox.invalidate_filter()
 
         search_entry.connect("search-changed", _on_search_changed)
@@ -2101,9 +2102,25 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         def _on_stop_search(entry):
             entry.set_text("")
             search_text[0] = ""
+            listbox.unselect_all()
             listbox.invalidate_filter()
 
         search_entry.connect("stop-search", _on_stop_search)
+
+        def _on_search_key(ctrl, keyval, keycode, state):
+            if keyval == Gdk.KEY_Down:
+                row = listbox.get_row_at_index(0)
+                while row and not row.get_selectable():
+                    row = listbox.get_row_at_index(row.get_index() + 1)
+                if row:
+                    listbox.select_row(row)
+                    row.grab_focus()
+                return True
+            return False
+
+        se_key_ctrl = Gtk.EventControllerKey()
+        se_key_ctrl.connect("key-pressed", _on_search_key)
+        search_entry.add_controller(se_key_ctrl)
 
         # Row activated -> download dialog
         def _on_activate(lb, row):
