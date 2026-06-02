@@ -2685,7 +2685,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 found = True
                 is_current = (loc == self.vms_dir)
                 row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-                lbl = Gtk.Label(label=("✓ " if is_current else "   ") + loc)
+                lbl = Gtk.Label()
+                safe_loc = GLib.markup_escape_text(loc)
+                if is_current:
+                    lbl.set_markup(f'<span color="#4caf50">✓</span>  {safe_loc}')
+                else:
+                    lbl.set_markup(f'     {safe_loc}')
                 lbl.set_halign(Gtk.Align.START)
                 lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
                 lbl.set_max_width_chars(36)
