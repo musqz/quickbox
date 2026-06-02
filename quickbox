@@ -2309,13 +2309,14 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     GLib.idle_add(progress.set_text, S["dl2_connecting"].format(elapsed))
 
         def _run_download():
+            import subprocess as sp, time as _time
             cmd = cmd_entry.get_text().strip().split()
             GLib.idle_add(progress.set_text, S["dl2_starting"])
             GLib.idle_add(dl_btn.set_sensitive, False)
             GLib.idle_add(ver_combo.set_sensitive, False)
             GLib.idle_add(cmd_entry.set_editable, False)
 
-            import subprocess as sp
+            t0 = _time.monotonic()
             self._dl_watching = True
             watcher = threading.Thread(target=_watch_progress, daemon=True)
             watcher.start()
@@ -2332,17 +2333,30 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 rc = 1
 
             self._dl_watching = False
-            import time as _time
             _time.sleep(1.2)  # wait for watcher thread to finish its last iteration
+
+            def _fmt_duration(secs):
+                secs = int(secs)
+                if secs < 60:
+                    return f"{secs}s"
+                elif secs < 3600:
+                    m, s = divmod(secs, 60)
+                    return f"{m}m {s}s"
+                else:
+                    h, rem = divmod(secs, 3600)
+                    return f"{h}h {rem // 60}m"
 
             if self._dl_cancelled:
                 GLib.idle_add(progress.set_text, S["dl2_cancelled"])
                 GLib.idle_add(progress.set_fraction, 0)
             elif rc == 0:
+                elapsed = _time.monotonic() - t0
                 GLib.idle_add(progress.set_text, S["dl2_verifying"])
                 _time.sleep(1.0)
                 GLib.idle_add(progress.set_fraction, 1.0)
                 GLib.idle_add(progress.set_text, S["dl2_done"])
+                GLib.idle_add(note.set_markup,
+                    f'<span size="small" color="gray">Downloaded in {_fmt_duration(elapsed)}</span>')
                 GLib.idle_add(dl_btn.set_label, S["dl2_done_close"])
                 GLib.idle_add(dl_btn.set_sensitive, True)
                 GLib.idle_add(self._refresh)
