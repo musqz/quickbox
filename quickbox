@@ -313,7 +313,7 @@ ICON_PATH     = next((p for p in [
     Path("/usr/share/pixmaps/qemu.png"),
 ] if p.exists()), None)
 FALLBACK_ICON = "computer-vm"  # generic GTK icon name
-APP_ICON      = "quickbox" if ICON_PATH else FALLBACK_ICON
+APP_ICON      = "qemu"
 
 def _set_icon(win):
     win.set_icon_name(APP_ICON)
@@ -615,7 +615,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.set_default_size(900, 620)
         self.set_size_request(720, 480)
         self.set_resizable(True)
-        self.set_icon_name("quickbox" if ICON_PATH else "computer-vm")
+        self.set_icon_name(APP_ICON)
         self.conf      = read_conf()
         self.vms_dir   = self.conf.get("vms_dir", str(Path.home() / "emu"))
         self.current_vm = None
