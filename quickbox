@@ -175,6 +175,7 @@ _EN_STRINGS = {
     "tt_fmt_raw": "Let the distro installer handle partitioning",
     "btn_format": "Format",
     "dl_title": "Download Distro",
+    "dl_search_ph": "Search distros…",
     "dl_hint1": "Use alphabet buttons to jump to distro",
     "dl_hint2": "Click a distro to select version and download",
     "btn_close": "Close",
@@ -683,7 +684,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             self.set_visible(True)
             self.present()
 
-    def _on_close_request(self):
+    def _on_close_request(self, *args):
         if self._indicator and self.conf.get("systray") == "true":
             self.hide()
             return True
@@ -1995,15 +1996,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         box.set_vexpand(True)
 
-        # Hint text (no search bar)
-        hint_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        hint_box.set_margin_top(8); hint_box.set_margin_bottom(8)
-        hint_box.set_margin_start(12); hint_box.set_margin_end(12)
-        hint_lbl = Gtk.Label()
-        hint_lbl.set_markup(f'<span size="small" color="gray">{S["dl_hint1"]}</span>')
-        hint_lbl.set_halign(Gtk.Align.START)
-        hint_box.append(hint_lbl)
-        box.append(hint_box)
+        search_text = [""]
+        search_entry = Gtk.SearchEntry()
+        search_entry.set_placeholder_text(S["dl_search_ph"])
+        search_entry.set_margin_top(8); search_entry.set_margin_bottom(8)
+        search_entry.set_margin_start(8); search_entry.set_margin_end(8)
+        box.append(search_entry)
         box.append(Gtk.Separator())
 
         # Main area: alphabet sidebar + distro list
@@ -2045,12 +2043,14 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 lbl.set_markup(f'<b><span size="small" color="gray">{first}</span></b>')
                 lbl.set_halign(Gtk.Align.START)
                 lbl.set_margin_start(10); lbl.set_margin_top(6); lbl.set_margin_bottom(2)
+                hdr._letter = first
                 hdr.set_child(lbl)
                 listbox.append(hdr)
                 row_map[first] = hdr
             row = Gtk.ListBoxRow()
             row._distro_name = name
             row._distro_cmd  = cmd
+            row._letter = first
             rl = Gtk.Label(label=f"  {name}")
             rl.set_halign(Gtk.Align.START)
             rl.set_margin_top(5); rl.set_margin_bottom(5)
@@ -2068,6 +2068,42 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     ls.get_vadjustment().set_value(r.get_allocation().y)
             btn.connect("clicked", _scroll_to, letter)
             alpha_box.append(btn)
+
+        # Search filter
+        def _filter_distros(row):
+            text = search_text[0]
+            if not text:
+                return True
+            if not row.get_selectable():
+                letter = getattr(row, '_letter', None)
+                return letter is not None and any(
+                    text in n.lower() for n, _ in distros if n and n[0].upper() == letter)
+            return text in getattr(row, '_distro_name', '').lower()
+
+        listbox.set_filter_func(_filter_distros)
+
+        def _on_search_changed(entry):
+            search_text[0] = entry.get_text().strip().lower()
+            listbox.invalidate_filter()
+
+        search_entry.connect("search-changed", _on_search_changed)
+
+        def _on_key(ctrl, keyval, keycode, state):
+            if keyval == Gdk.KEY_l and state & Gdk.ModifierType.CONTROL_MASK:
+                search_entry.grab_focus()
+                return True
+            return False
+
+        key_ctrl = Gtk.EventControllerKey()
+        key_ctrl.connect("key-pressed", _on_key)
+        win.add_controller(key_ctrl)
+
+        def _on_stop_search(entry):
+            entry.set_text("")
+            search_text[0] = ""
+            listbox.invalidate_filter()
+
+        search_entry.connect("stop-search", _on_stop_search)
 
         # Row activated -> download dialog
         def _on_activate(lb, row):
