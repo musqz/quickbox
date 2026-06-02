@@ -530,11 +530,6 @@ class VMRow(Gtk.ListBoxRow):
             center = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             center.set_hexpand(True)
             center.set_halign(Gtk.Align.CENTER)
-            spinner = Gtk.Spinner()
-            spinner.add_css_class("import-spinner")
-            spinner.set_size_request(18, 18)
-            spinner.start()
-            center.append(spinner)
             total = vm.get("_copy_total", "")
             size_text = f"{vm['_size']} / {total}" if total else vm["_size"]
             prog = Gtk.Label(label=f"{size_text}  importing")
@@ -641,8 +636,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .vm-listbox row:selected label { color:@theme_selected_fg_color; }
         .badge-running { background-color:#2e7d32; color:white;
                          border-radius:4px; padding:1px 6px; font-size:11px; }
-        .import-spinner  { color:#e65100; min-width:18px; min-height:18px; }
-        .import-progress { background-color:#e65100; color:white;
+.import-progress { background-color:#e65100; color:white;
                            border-radius:4px; padding:1px 6px; font-weight:bold; }
 
         .section-hdr { font-weight:bold; font-size:11px;
