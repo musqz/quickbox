@@ -2445,11 +2445,21 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 GLib.idle_add(progress.set_text, S["dl2_cancelled"])
                 GLib.idle_add(_set_determinate, 0)
             elif rc == 0:
-                # Sanity-check: if the newest downloaded file is tiny it's
-                # likely a 404 error page (e.g. wrong release version on server)
-                suspect = _find_file()
-                if suspect and suspect.exists() and suspect.stat().st_size < 1024 * 1024:
-                    kb = suspect.stat().st_size / 1024
+                # Sanity-check: look for any .iso/.img created after t0 that is
+                # suspiciously small — indicates a 404 error page was saved instead
+                def _find_bad_download():
+                    try:
+                        for f in Path(self.vms_dir).rglob("*"):
+                            if f.is_file() and f.suffix.lower() in (".iso", ".img"):
+                                st = f.stat()
+                                if st.st_mtime >= t0 and st.st_size < 1024 * 1024:
+                                    return f
+                    except Exception:
+                        pass
+                    return None
+                suspect = _find_bad_download()
+                if suspect:
+                    kb = suspect.stat().st_size / 1024 if suspect.exists() else 0
                     GLib.idle_add(_set_determinate, 0)
                     GLib.idle_add(progress.set_text, "⚠ Download failed")
                     GLib.idle_add(note.set_markup,
