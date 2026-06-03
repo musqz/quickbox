@@ -2445,76 +2445,25 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 GLib.idle_add(progress.set_text, S["dl2_cancelled"])
                 GLib.idle_add(_set_determinate, 0)
             elif rc == 0:
-                # Sanity-check: find the .conf quickget just created, follow
-                # its iso= path, and verify the file is a real download.
-                def _find_bad_download():
+                elapsed = _time.monotonic() - t0
+                GLib.idle_add(progress.set_text, S["dl2_verifying"])
+                _time.sleep(1.0)
+                GLib.idle_add(_set_determinate, 1.0)
+                GLib.idle_add(progress.set_text, S["dl2_done"])
+                GLib.idle_add(note.set_markup,
+                    f'<span size="small" color="gray">Downloaded in {_fmt_duration(elapsed)}</span>')
+                GLib.idle_add(dl_btn.set_label, S["dl2_done_close"])
+                GLib.idle_add(dl_btn.set_sensitive, True)
+                def _refresh_and_select():
+                    self._refresh()
                     try:
-                        confs = [p for p in Path(self.vms_dir).glob("*.conf")
-                                 if p.stat().st_mtime >= t0]
-                        if not confs:
-                            return None, None
-                        conf = max(confs, key=lambda p: p.stat().st_mtime)
-                        iso_rel = None
-                        for line in conf.read_text(errors="replace").splitlines():
-                            if line.startswith("iso="):
-                                iso_rel = line.partition("=")[2].strip().strip('"')
-                                break
-                        if not iso_rel:
-                            return None, None
-                        iso_path = Path(self.vms_dir) / iso_rel
-                        if iso_path.exists() and iso_path.stat().st_size < 1024 * 1024:
-                            return iso_path, conf
+                        confs = sorted(Path(self.vms_dir).glob("*.conf"),
+                                       key=lambda p: p.stat().st_mtime, reverse=True)
+                        if confs:
+                            GLib.timeout_add(400, self._select_vm_by_name, confs[0].stem)
                     except Exception:
                         pass
-                    return None, None
-
-                def _cleanup_bad_download(iso_path, conf_path):
-                    try:
-                        iso_path.unlink(missing_ok=True)
-                        vm_dir = iso_path.parent
-                        try:
-                            vm_dir.rmdir()  # only removes if empty
-                        except OSError:
-                            pass
-                        conf_path.unlink(missing_ok=True)
-                    except Exception:
-                        pass
-
-                suspect, bad_conf = _find_bad_download()
-                if suspect:
-                    kb = suspect.stat().st_size / 1024
-                    _cleanup_bad_download(suspect, bad_conf)
-                    GLib.idle_add(_set_determinate, 0)
-                    GLib.idle_add(progress.set_text, "⚠ Download failed — files cleaned up")
-                    GLib.idle_add(note.set_markup,
-                        f'<span size="small" color="#e65100">'
-                        f'Server returned {kb:.0f} KB instead of an ISO. '
-                        f'The release URL may be wrong or the server is down. '
-                        f'Try editing the command with a different release number.'
-                        f'</span>')
-                    GLib.idle_add(dl_btn.set_label, S["btn_close"])
-                    GLib.idle_add(dl_btn.set_sensitive, True)
-                    GLib.idle_add(self._refresh)
-                else:
-                    elapsed = _time.monotonic() - t0
-                    GLib.idle_add(progress.set_text, S["dl2_verifying"])
-                    _time.sleep(1.0)
-                    GLib.idle_add(_set_determinate, 1.0)
-                    GLib.idle_add(progress.set_text, S["dl2_done"])
-                    GLib.idle_add(note.set_markup,
-                        f'<span size="small" color="gray">Downloaded in {_fmt_duration(elapsed)}</span>')
-                    GLib.idle_add(dl_btn.set_label, S["dl2_done_close"])
-                    GLib.idle_add(dl_btn.set_sensitive, True)
-                    def _refresh_and_select():
-                        self._refresh()
-                        try:
-                            confs = sorted(Path(self.vms_dir).glob("*.conf"),
-                                           key=lambda p: p.stat().st_mtime, reverse=True)
-                            if confs:
-                                GLib.timeout_add(400, self._select_vm_by_name, confs[0].stem)
-                        except Exception:
-                            pass
-                    GLib.idle_add(_refresh_and_select)
+                GLib.idle_add(_refresh_and_select)
             else:
                 GLib.idle_add(progress.set_text, S["dl2_failed"])
                 GLib.idle_add(_set_determinate, 0)
