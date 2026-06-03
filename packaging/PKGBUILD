@@ -1,6 +1,6 @@
 # Maintainer: Eric Bakker <musqz at mf dot com>
 pkgname=quickbox
-pkgver=1.2.3
+pkgver=1.2.4
 pkgrel=1
 pkgdesc="GTK4 GUI for managing QEMU virtual machines via quickemu"
 arch=('any')
@@ -9,7 +9,7 @@ license=('MIT')
 depends=('python' 'python-gobject' 'gtk4' 'quickemu')
 optdepends=('libnotify: desktop notifications')
 source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('93a7efdfcf5aa553b10a80bd0d398c4bcb9867f2534b41cd6b78e85a22a330e8')
+sha256sums=('SKIP')
 
 package() {
     cd "${srcdir}/${pkgname}-${pkgver}"
