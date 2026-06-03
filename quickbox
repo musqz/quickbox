@@ -2445,21 +2445,31 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 GLib.idle_add(progress.set_text, S["dl2_cancelled"])
                 GLib.idle_add(_set_determinate, 0)
             elif rc == 0:
-                # Sanity-check: look for any .iso/.img created after t0 that is
-                # suspiciously small — indicates a 404 error page was saved instead
+                # Sanity-check: find the .conf quickget just created, follow
+                # its iso= path, and check the actual file size.
                 def _find_bad_download():
                     try:
-                        for f in Path(self.vms_dir).rglob("*"):
-                            if f.is_file() and f.suffix.lower() in (".iso", ".img"):
-                                st = f.stat()
-                                if st.st_mtime >= t0 and st.st_size < 1024 * 1024:
-                                    return f
+                        confs = [p for p in Path(self.vms_dir).glob("*.conf")
+                                 if p.stat().st_mtime >= t0]
+                        if not confs:
+                            return None
+                        conf = max(confs, key=lambda p: p.stat().st_mtime)
+                        iso_rel = None
+                        for line in conf.read_text(errors="replace").splitlines():
+                            if line.startswith("iso="):
+                                iso_rel = line.partition("=")[2].strip().strip('"')
+                                break
+                        if not iso_rel:
+                            return None
+                        iso_path = Path(self.vms_dir) / iso_rel
+                        if iso_path.exists() and iso_path.stat().st_size < 1024 * 1024:
+                            return iso_path
                     except Exception:
                         pass
                     return None
                 suspect = _find_bad_download()
                 if suspect:
-                    kb = suspect.stat().st_size / 1024 if suspect.exists() else 0
+                    kb = suspect.stat().st_size / 1024
                     GLib.idle_add(_set_determinate, 0)
                     GLib.idle_add(progress.set_text, "⚠ Download failed")
                     GLib.idle_add(note.set_markup,
