@@ -47,10 +47,26 @@ if [[ -d "translations" ]]; then
     echo -e "${GREEN}✓ Translations installed${NC}"
 fi
 
-# Create config directory
-echo "Creating config directory..."
-mkdir -p /root/.config/quickbox
-echo -e "${GREEN}✓ Config directory created${NC}"
+# Install version file
+if [[ -f "version" ]]; then
+    mkdir -p /usr/share/quickbox
+    cp version /usr/share/quickbox/version
+    echo -e "${GREEN}✓ Version file installed${NC}"
+fi
+
+# Install icons
+if [[ -d "icons/hicolor" ]]; then
+    echo "Installing icons..."
+    for size in 16 22 24 32 48 64 96 128 256 512; do
+        src="icons/hicolor/${size}x${size}/apps/quickbox.png"
+        if [[ -f "$src" ]]; then
+            mkdir -p "/usr/share/icons/hicolor/${size}x${size}/apps"
+            cp "$src" "/usr/share/icons/hicolor/${size}x${size}/apps/quickbox.png"
+        fi
+    done
+    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
+    echo -e "${GREEN}✓ Icons installed${NC}"
+fi
 
 echo ""
 echo -e "${GREEN}=== Installation Complete ===${NC}"

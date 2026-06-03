@@ -44,11 +44,21 @@ if [[ -f /usr/share/applications/quickbox.desktop ]]; then
     echo -e "${GREEN}✓ Removed /usr/share/applications/quickbox.desktop${NC}"
 fi
 
-# Remove translations
+# Remove shared data (translations, version)
 if [[ -d /usr/share/quickbox ]]; then
     rm -rf /usr/share/quickbox
-    echo -e "${GREEN}✓ Removed /usr/share/quickbox/translations${NC}"
+    echo -e "${GREEN}✓ Removed /usr/share/quickbox${NC}"
 fi
+
+# Remove icons
+for size in 16 22 24 32 48 64 96 128 256 512; do
+    icon="/usr/share/icons/hicolor/${size}x${size}/apps/quickbox.png"
+    if [[ -f "$icon" ]]; then
+        rm "$icon"
+    fi
+done
+gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
+echo -e "${GREEN}✓ Icons removed${NC}"
 
 echo ""
 echo -e "${GREEN}=== Uninstall Complete ===${NC}"
