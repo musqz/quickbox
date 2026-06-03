@@ -2022,21 +2022,27 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     # ── download / custom ──
 
     def _parse_quickinst(self):
-        """Parse distro list from ~/.config/quickbox/quickinst.csv."""
-        clean_csv = Path.home() / ".config/quickbox/quickinst.csv"
+        """Parse distro list from ~/.config/quickbox/quickinst.csv (quickget --list-csv format)."""
+        import csv as _csv
+        p = Path.home() / ".config/quickbox/quickinst.csv"
         distros = []
-        if not clean_csv.exists():
+        if not p.exists():
             return distros
-        for line in clean_csv.read_text().splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            parts = line.split(",", 1)
-            if len(parts) == 2:
-                name = parts[0].strip()
-                cmd  = parts[1].strip()
-                if name and cmd:
+        try:
+            with open(p, encoding="utf-8", newline="") as f:
+                for row in _csv.DictReader(f):
+                    display = row.get("Display Name", "").strip()
+                    os_id   = row.get("OS", "").strip()
+                    release = row.get("Release", "").strip()
+                    option  = row.get("Option", "").strip()
+                    if not os_id or not release:
+                        continue
+                    suffix = (" " + option if option and option.lower() not in display.lower() else "")
+                    name = display + " " + release + suffix
+                    cmd  = "quickget " + os_id + " " + release + (" " + option if option else "")
                     distros.append((name, cmd))
+        except Exception:
+            pass
         return sorted(distros, key=lambda x: x[0].lower())
 
     def _get_distro_versions(self, distros, distro_name):
@@ -3142,62 +3148,28 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 # ─── Quickget distro list updater ────────────────────────────────────────────
 
 def _update_distro_list(parent_win):
-    """Background thread to update ~/.config/quickbox/quickinst.csv from quickget --list"""
+    """Background thread to update ~/.config/quickbox/quickinst.csv from quickget --list-csv"""
     import subprocess
-    
-    wait_win = None  # Initialize outside so it's available to all inner functions
-    
+
+    wait_win = None
+
     def run_update():
-        nonlocal wait_win  # Allow modifying wait_win from nested scope
+        nonlocal wait_win
         try:
-            # Run quickget --list in subprocess
-            result = subprocess.run(["quickget", "--list"], 
-                                  capture_output=True, text=True, timeout=60)
-            
-            if result.returncode != 0:
-                GLib.idle_add(lambda: notify("Distro List", 
-                                            f"✗ Error: {result.stderr[:100]}", "critical"))
+            result = subprocess.run(["quickget", "--list-csv"],
+                                    capture_output=True, text=True, timeout=60)
+
+            if result.returncode != 0 or not result.stdout.strip():
+                GLib.idle_add(lambda: notify("Distro List",
+                                             f"✗ Error: {result.stderr[:100]}", "critical"))
                 return
-            
-            # Parse output and build CSV: distro release [option] -> name,quickget cmd
-            lines = result.stdout.strip().split('\n')
+
             csv_path = Path.home() / ".config/quickbox/quickinst.csv"
             csv_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            csv_lines = []
-            for i, line in enumerate(lines):
-                line = line.strip()
-                
-                # Skip header (first line) and empty lines
-                if i == 0 or not line:
-                    continue
-                
-                # Parse space-separated: distro release [option]
-                parts = line.split()
-                if len(parts) >= 2:
-                    # Build display name: capitalize distro, keep release/option as-is
-                    distro = parts[0].capitalize()
-                    rest = ' '.join(parts[1:])
-                    display_name = f"{distro} {rest}".strip()
-                    
-                    # Build quickget command: lowercase, space-separated
-                    cmd = f"quickget {' '.join(parts).lower()}"
-                    
-                    csv_lines.append(f"{display_name},{cmd}")
-            
-            if not csv_lines:
-                GLib.idle_add(lambda: notify("Distro List", 
-                                            "⚠ No distros found in output", "normal"))
-                return
-            
-            # Write CSV - make sure we preserve the data
-            try:
-                csv_path.write_text('\n'.join(csv_lines) + '\n')
-                GLib.idle_add(lambda: notify("Distro List", 
-                                            f"✓ Updated {len(csv_lines)} distros", "low"))
-            except Exception as e:
-                GLib.idle_add(lambda: notify("Distro List", 
-                                            f"✗ Failed to write CSV: {str(e)[:80]}", "critical"))
+            csv_path.write_text(result.stdout, encoding="utf-8")
+            count = sum(1 for line in result.stdout.splitlines()[1:] if line.strip())
+            GLib.idle_add(lambda: notify("Distro List",
+                                         f"✓ Updated {count} distros", "low"))
                 
         except subprocess.TimeoutExpired:
             GLib.idle_add(lambda: notify("Distro List", 
