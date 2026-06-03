@@ -474,8 +474,8 @@ def _iso_label(vm, vms_dir):
     if not iso:
         return "—"
     if vm.get("_copying"):
-        # Use pre-stored source total; never stat the partial destination file
-        total = vm.get("_copy_total", "")
+        total_bytes = vm.get("_copy_total_bytes", 0)
+        total = fmt_size(total_bytes) if total_bytes else ""
         return f"{iso}  ({total})" if total else iso
     try:
         size = fmt_size(Path(vms_dir, iso).stat().st_size)
@@ -490,6 +490,18 @@ def dir_size(path):
         return r.stdout.split()[0] if r.stdout.strip() else "?"
     except Exception:
         return "?"
+
+def _parse_du_mb(du_str):
+    """Convert a du -sh string (e.g. '2.5G', '500M', '1.2T') to MB as a float."""
+    try:
+        s = du_str.strip()
+        suffixes = {"B": 1/(1024**2), "K": 1/1024, "M": 1, "G": 1024, "T": 1024**2}
+        for suffix, factor in suffixes.items():
+            if s.endswith(suffix):
+                return float(s[:-1]) * factor
+        return float(s) / (1024**2)
+    except Exception:
+        return 0.0
 
 
 def get_snapshots(disk_path):
@@ -519,10 +531,10 @@ def get_vms(vms_dir):
         vm["_has_disk"] = Path(vm["_disk"]).exists() if vm["_disk"] else False
         flag_path = Path(vms_dir) / f".{vm['_name']}.copying"
         vm["_copying"] = flag_path.exists()
-        vm["_copy_total"] = ""
+        vm["_copy_total_bytes"] = 0
         if vm["_copying"]:
             try:
-                vm["_copy_total"] = fmt_size(int(flag_path.read_text().strip()))
+                vm["_copy_total_bytes"] = int(flag_path.read_text().strip())
             except Exception:
                 pass
         vm["_size"]    = dir_size(str(Path(vms_dir) / vm["_name"]))
@@ -588,8 +600,13 @@ class VMRow(Gtk.ListBoxRow):
             center = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             center.set_hexpand(True)
             center.set_halign(Gtk.Align.CENTER)
-            total = vm.get("_copy_total", "")
-            size_text = f"{vm['_size']} / {total}" if total else vm["_size"]
+            done_mb = _parse_du_mb(vm["_size"])
+            total_bytes = vm.get("_copy_total_bytes", 0)
+            if total_bytes:
+                total_gb = total_bytes / (1024 ** 3)
+                size_text = f"{done_mb:.0f} MB / {total_gb:.1f} GB"
+            else:
+                size_text = f"{done_mb:.0f} MB"
             prog = Gtk.Label(label=f"{size_text}  importing")
             prog.add_css_class("import-progress")
             center.append(prog)
