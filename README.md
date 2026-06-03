@@ -1,5 +1,9 @@
 # Quickbox — GUI for quickemu
 
+<p align="center">
+  <img src="icons/quickbox.png" width="128" alt="Quickbox icon"/>
+</p>
+
 > **Beta** — actively developed and tested. Not yet published to AUR or any distro repository. Feedback welcome.
 
 A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/quickemu-project/quickemu).
