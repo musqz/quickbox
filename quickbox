@@ -2345,6 +2345,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 except Exception:
                     return None
 
+            def _set_indeterminate():
+                progress.set_fraction(0)
+                progress.pulse()
+
+            def _set_determinate(frac):
+                progress.set_fraction(frac)
+
             def _watch_progress():
                 elapsed, last_size, last_mb, target, stall = 0, 0, 0.0, None, 0
                 while self._dl_watching and not self._dl_cancelled:
@@ -2361,26 +2368,28 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                                 frac = _math.log1p(mb) / (_math.log1p(mb) + 8)
                                 speed = (size - last_size) / (1024 * 1024)
                                 last_mb, last_size, stall = mb, size, 0
-                                GLib.idle_add(progress.set_fraction, min(frac, 0.95))
+                                GLib.idle_add(_set_determinate, min(frac, 0.95))
                                 GLib.idle_add(progress.set_text,
                                     S["dl2_progress"].format(f"{mb:.0f}", f"{speed:.1f}"))
                             else:
                                 stall += 1
                                 if stall >= 5:
+                                    GLib.idle_add(_set_indeterminate)
                                     GLib.idle_add(progress.set_text,
-                                        f'{S["dl2_progress"].format(f"{last_mb:.0f}", "–")}  ({stall}s)')
+                                        f"Server is slow — {last_mb:.0f} MB received, still connected{dot}  ({stall}s)")
                                 else:
                                     GLib.idle_add(progress.set_text,
                                         S["dl2_progress"].format(f"{last_mb:.0f}", "–"))
                         except Exception:
                             pass
                     else:
+                        GLib.idle_add(_set_indeterminate)
                         if elapsed <= 3:
                             GLib.idle_add(progress.set_text, S["dl2_starting"])
                         else:
                             hint = "  —  slow servers may take a minute" if elapsed > 15 else ""
                             GLib.idle_add(progress.set_text,
-                                f"{S['dl2_connecting'].format(elapsed)}{hint}{dot}")
+                                f"Contacting server{dot}  ({elapsed}s){hint}")
 
             self._dl_watching = True
             watcher = threading.Thread(target=_watch_progress, daemon=True)
@@ -2398,7 +2407,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 rc = 1
 
             self._dl_watching = False
-            _time.sleep(1.2)  # wait for watcher thread to finish its last iteration
+            _time.sleep(1.2)
 
             def _fmt_duration(secs):
                 secs = int(secs)
@@ -2413,20 +2422,30 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
             if self._dl_cancelled:
                 GLib.idle_add(progress.set_text, S["dl2_cancelled"])
-                GLib.idle_add(progress.set_fraction, 0)
+                GLib.idle_add(_set_determinate, 0)
             elif rc == 0:
                 elapsed = _time.monotonic() - t0
                 GLib.idle_add(progress.set_text, S["dl2_verifying"])
                 _time.sleep(1.0)
-                GLib.idle_add(progress.set_fraction, 1.0)
+                GLib.idle_add(_set_determinate, 1.0)
                 GLib.idle_add(progress.set_text, S["dl2_done"])
                 GLib.idle_add(note.set_markup,
                     f'<span size="small" color="gray">Downloaded in {_fmt_duration(elapsed)}</span>')
                 GLib.idle_add(dl_btn.set_label, S["dl2_done_close"])
                 GLib.idle_add(dl_btn.set_sensitive, True)
-                GLib.idle_add(self._refresh)
+                def _refresh_and_select():
+                    self._refresh()
+                    try:
+                        confs = sorted(Path(self.vms_dir).glob("*.conf"),
+                                       key=lambda p: p.stat().st_mtime, reverse=True)
+                        if confs:
+                            GLib.timeout_add(400, self._select_vm_by_name, confs[0].stem)
+                    except Exception:
+                        pass
+                GLib.idle_add(_refresh_and_select)
             else:
                 GLib.idle_add(progress.set_text, S["dl2_failed"])
+                GLib.idle_add(_set_determinate, 0)
                 GLib.idle_add(dl_btn.set_label, S["btn_close"])
                 GLib.idle_add(dl_btn.set_sensitive, True)
 
