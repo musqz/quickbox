@@ -2321,76 +2321,67 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._dl_cancelled = False
         self._dl_watching  = False
 
-        def _find_growing_file():
-            """Find the newest file being written in vms_dir (recursive)."""
-            try:
-                files = []
-                for f in Path(self.vms_dir).rglob("*"):
-                    if f.is_file() and f.suffix.lower() in (
-                            ".iso", ".img", ".qcow2", ".gz", ".xz", ".zip",
-                            ".part", ".tmp", ".download"):
-                        files.append((f.stat().st_mtime, f))
-                if files:
-                    return sorted(files)[-1][1]
-            except Exception:
-                pass
-            return None
-
-        def _watch_progress():
-            """Poll the growing download file every second, update progress bar."""
-            import math, time
-            elapsed = 0
-            last_size = 0
-            last_mb = 0.0
-            target_file = None
-
-            while self._dl_watching and not self._dl_cancelled:
-                time.sleep(1)
-                if not self._dl_watching or self._dl_cancelled:
-                    break
-                elapsed += 1
-
-                # try to find the file being downloaded
-                if target_file is None or not target_file.exists():
-                    target_file = _find_growing_file()
-
-                if target_file and target_file.exists():
-                    try:
-                        size = target_file.stat().st_size
-                        mb = size / (1024 * 1024)
-
-                        if size > last_size:
-                            # logarithmic curve: grows fast then slows, never hits 1.0
-                            # reaches ~0.5 at 200MB, ~0.7 at 1GB, ~0.9 at 8GB
-                            fraction = math.log1p(mb) / (math.log1p(mb) + 8)
-                            fraction = min(fraction, 0.95)
-                            speed = (size - last_size) / (1024 * 1024)
-                            last_mb = mb
-                            GLib.idle_add(progress.set_fraction, fraction)
-                            GLib.idle_add(progress.set_text,
-                                S["dl2_progress"].format(f"{mb:.0f}", f"{speed:.1f}"))
-                            last_size = size
-                        else:
-                            # file not growing — keep last MB, drop speed
-                            GLib.idle_add(progress.set_text,
-                                S["dl2_progress"].format(f"{last_mb:.0f}", "–"))
-                    except Exception:
-                        pass
-                else:
-                    # no file found yet — slow logarithmic pulse based on time
-                    fraction = math.log1p(elapsed / 10) / (math.log1p(elapsed / 10) + 6)
-                    fraction = min(fraction, 0.4)
-                    GLib.idle_add(progress.set_fraction, fraction)
-                    GLib.idle_add(progress.set_text, S["dl2_connecting"].format(elapsed))
-
         def _run_download():
-            import subprocess as sp, time as _time
+            import subprocess as sp, time as _time, math as _math
             cmd = cmd_entry.get_text().strip().split()
             GLib.idle_add(progress.set_text, S["dl2_starting"])
             GLib.idle_add(dl_btn.set_sensitive, False)
             GLib.idle_add(ver_combo.set_sensitive, False)
 
             t0 = _time.monotonic()
+
+            def _find_file():
+                try:
+                    cutoff = t0 - 2.0
+                    files = []
+                    for f in Path(self.vms_dir).rglob("*"):
+                        if f.is_file() and f.suffix.lower() in (
+                                ".iso", ".img", ".qcow2", ".gz", ".xz", ".zip",
+                                ".part", ".tmp", ".download"):
+                            st = f.stat()
+                            if st.st_mtime >= cutoff:
+                                files.append((st.st_mtime, f))
+                    return sorted(files)[-1][1] if files else None
+                except Exception:
+                    return None
+
+            def _watch_progress():
+                elapsed, last_size, last_mb, target, stall = 0, 0, 0.0, None, 0
+                while self._dl_watching and not self._dl_cancelled:
+                    _time.sleep(1)
+                    elapsed += 1
+                    dot = "." * (elapsed % 4)
+                    if target is None or not target.exists():
+                        target = _find_file()
+                    if target and target.exists():
+                        try:
+                            size = target.stat().st_size
+                            mb = size / (1024 * 1024)
+                            if size > last_size:
+                                frac = _math.log1p(mb) / (_math.log1p(mb) + 8)
+                                speed = (size - last_size) / (1024 * 1024)
+                                last_mb, last_size, stall = mb, size, 0
+                                GLib.idle_add(progress.set_fraction, min(frac, 0.95))
+                                GLib.idle_add(progress.set_text,
+                                    S["dl2_progress"].format(f"{mb:.0f}", f"{speed:.1f}"))
+                            else:
+                                stall += 1
+                                if stall >= 5:
+                                    GLib.idle_add(progress.set_text,
+                                        f'{S["dl2_progress"].format(f"{last_mb:.0f}", "–")}  ({stall}s)')
+                                else:
+                                    GLib.idle_add(progress.set_text,
+                                        S["dl2_progress"].format(f"{last_mb:.0f}", "–"))
+                        except Exception:
+                            pass
+                    else:
+                        if elapsed <= 3:
+                            GLib.idle_add(progress.set_text, S["dl2_starting"])
+                        else:
+                            hint = "  —  slow servers may take a minute" if elapsed > 15 else ""
+                            GLib.idle_add(progress.set_text,
+                                f"{S['dl2_connecting'].format(elapsed)}{hint}{dot}")
+
             self._dl_watching = True
             watcher = threading.Thread(target=_watch_progress, daemon=True)
             watcher.start()
