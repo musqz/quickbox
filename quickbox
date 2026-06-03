@@ -98,7 +98,13 @@ from datetime import datetime
 import json as _json
 from pathlib import Path
 
-APP_VERSION = (Path(__file__).parent / "version").read_text(encoding="utf-8").strip()
+APP_VERSION = next(
+    (p.read_text(encoding="utf-8").strip() for p in [
+        Path(__file__).parent / "version",
+        Path("/usr/share/quickbox/version"),
+    ] if p.exists()),
+    "unknown"
+)
 
 # ─── locale-aware date helper ─────────────────────────────────────────────────
 def _date_tag(with_time=False):

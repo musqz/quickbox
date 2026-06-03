@@ -25,6 +25,9 @@ package() {
         install -Dm644 "$f" "${pkgdir}/usr/share/quickbox/${f}"
     done
 
+    # Version
+    install -Dm644 version "${pkgdir}/usr/share/quickbox/version"
+
     # License
     install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
