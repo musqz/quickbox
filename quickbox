@@ -2750,7 +2750,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             grid.attach(lbl, 0, row, 1, 1)
             val = Gtk.Label()
             val.set_halign(Gtk.Align.START)
-            val.set_selectable(True)
             if uri:
                 val.set_markup(f'<a href="{uri}">{GLib.markup_escape_text(value)}</a>')
             else:
