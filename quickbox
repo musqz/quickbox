@@ -58,7 +58,28 @@ def send(msg):
     sys.stdout.flush()
 
 icon = Gtk.StatusIcon()
+
+def _load_icon():
+    from gi.repository import GdkPixbuf
+    import os
+    sz = icon.get_size() or 22
+    search = [
+        f'/usr/share/icons/hicolor/48x48/apps/quickbox.png',
+        f'/usr/local/share/icons/hicolor/48x48/apps/quickbox.png',
+    ]
+    for path in search:
+        if os.path.exists(path):
+            try:
+                pb = GdkPixbuf.Pixbuf.new_from_file_at_size(path, sz, sz)
+                icon.set_from_pixbuf(pb)
+                return False
+            except Exception:
+                pass
+    icon.set_from_icon_name(sys.argv[1] if len(sys.argv) > 1 else 'quickbox')
+    return False
+
 icon.set_from_icon_name(sys.argv[1] if len(sys.argv)>1 else 'quickbox')
+GLib.timeout_add(100, _load_icon)
 icon.set_tooltip_text('Quickbox')
 icon.set_visible(True)
 icon.connect('activate', lambda *a: send('activate'))
