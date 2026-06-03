@@ -58,7 +58,7 @@ def send(msg):
     sys.stdout.flush()
 
 icon = Gtk.StatusIcon()
-icon.set_from_icon_name(sys.argv[1] if len(sys.argv)>1 else 'qemu')
+icon.set_from_icon_name(sys.argv[1] if len(sys.argv)>1 else 'quickbox')
 icon.set_tooltip_text('Quickbox')
 icon.set_visible(True)
 icon.connect('activate', lambda *a: send('activate'))
@@ -413,8 +413,7 @@ _PROFILE_KEYS = {key for p in PROFILES.values() for key in p["settings"]}
 # ─── helpers ──────────────────────────────────────────────────────────────────
 
 def notify(title, body, urgency="low"):
-    icon = str(ICON_PATH) if ICON_PATH else FALLBACK_ICON
-    subprocess.Popen(["notify-send", "-i", icon, "-u", urgency, title, body])
+    subprocess.Popen(["notify-send", "-i", APP_ICON, "-u", urgency, title, body])
 
 
 def read_conf():
@@ -697,7 +696,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             return
         try:
             self._tray_proc = subprocess.Popen(
-                ["python3", "-c", _TRAY_HELPER, "qemu"],
+                ["python3", "-c", _TRAY_HELPER, "quickbox"],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
             GLib.io_add_watch(
                 self._tray_proc.stdout.fileno(),
