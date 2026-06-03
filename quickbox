@@ -2445,25 +2445,40 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 GLib.idle_add(progress.set_text, S["dl2_cancelled"])
                 GLib.idle_add(_set_determinate, 0)
             elif rc == 0:
-                elapsed = _time.monotonic() - t0
-                GLib.idle_add(progress.set_text, S["dl2_verifying"])
-                _time.sleep(1.0)
-                GLib.idle_add(_set_determinate, 1.0)
-                GLib.idle_add(progress.set_text, S["dl2_done"])
-                GLib.idle_add(note.set_markup,
-                    f'<span size="small" color="gray">Downloaded in {_fmt_duration(elapsed)}</span>')
-                GLib.idle_add(dl_btn.set_label, S["dl2_done_close"])
-                GLib.idle_add(dl_btn.set_sensitive, True)
-                def _refresh_and_select():
-                    self._refresh()
-                    try:
-                        confs = sorted(Path(self.vms_dir).glob("*.conf"),
-                                       key=lambda p: p.stat().st_mtime, reverse=True)
-                        if confs:
-                            GLib.timeout_add(400, self._select_vm_by_name, confs[0].stem)
-                    except Exception:
-                        pass
-                GLib.idle_add(_refresh_and_select)
+                # Sanity-check: if the newest downloaded file is tiny it's
+                # likely a 404 error page (e.g. wrong release version on server)
+                suspect = _find_file()
+                if suspect and suspect.exists() and suspect.stat().st_size < 1024 * 1024:
+                    kb = suspect.stat().st_size / 1024
+                    GLib.idle_add(_set_determinate, 0)
+                    GLib.idle_add(progress.set_text, "⚠ Download failed")
+                    GLib.idle_add(note.set_markup,
+                        f'<span size="small" color="#e65100">'
+                        f'Server returned {kb:.0f} KB — likely a 404 or the release URL has changed. '
+                        f'Try editing the command to use a different release number.'
+                        f'</span>')
+                    GLib.idle_add(dl_btn.set_label, S["btn_close"])
+                    GLib.idle_add(dl_btn.set_sensitive, True)
+                else:
+                    elapsed = _time.monotonic() - t0
+                    GLib.idle_add(progress.set_text, S["dl2_verifying"])
+                    _time.sleep(1.0)
+                    GLib.idle_add(_set_determinate, 1.0)
+                    GLib.idle_add(progress.set_text, S["dl2_done"])
+                    GLib.idle_add(note.set_markup,
+                        f'<span size="small" color="gray">Downloaded in {_fmt_duration(elapsed)}</span>')
+                    GLib.idle_add(dl_btn.set_label, S["dl2_done_close"])
+                    GLib.idle_add(dl_btn.set_sensitive, True)
+                    def _refresh_and_select():
+                        self._refresh()
+                        try:
+                            confs = sorted(Path(self.vms_dir).glob("*.conf"),
+                                           key=lambda p: p.stat().st_mtime, reverse=True)
+                            if confs:
+                                GLib.timeout_add(400, self._select_vm_by_name, confs[0].stem)
+                        except Exception:
+                            pass
+                    GLib.idle_add(_refresh_and_select)
             else:
                 GLib.idle_add(progress.set_text, S["dl2_failed"])
                 GLib.idle_add(_set_determinate, 0)
