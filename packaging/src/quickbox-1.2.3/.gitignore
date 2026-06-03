@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.iso
+*.img
+*.qcow2
+*.qcow
+*.vmdk
+*.vdi
+*.raw
+gtk.css
