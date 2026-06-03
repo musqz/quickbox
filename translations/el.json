@@ -33,6 +33,8 @@
     "set_compat_hint": "Ελάχιστο QEMU χωρίς VirGL — για ελαφριές ή παλαιές διανομές με κενή οθόνη.",
     "boot_uefi": "UEFI",
     "boot_legacy": "Legacy (BIOS)",
+    "set_display": "Οθόνη:",
+    "set_display_hint": "Ελέγχει πώς αποδίδεται το παράθυρο VM. Το DSL είναι προεπιλογή· GTK είναι ελαφρύ· SPICE App ανοίγει σε αποκλειστικό viewer.",
     "snap_no_disk": "Δεν υπάρχει δίσκος — εκκινήστε πρώτα το VM",
     "snap_none": "Δεν υπάρχουν στιγμιότυπα",
     "snap_entry_ph": "Νέα ετικέτα στιγμιότυπου…",

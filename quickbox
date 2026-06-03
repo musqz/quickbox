@@ -144,6 +144,9 @@ _EN_STRINGS = {
     "set_compat_hint": "Use minimal QEMU without VirGL — for lightweight or older distros that show a blank screen.",
     "set_quiet_note": "No launch notification",
     "boot_uefi": "UEFI",             "boot_legacy": "Legacy (BIOS)",
+    "set_display": "Display:",
+    "display_dsl": "DSL",            "display_gtk": "GTK",            "display_spice": "SPICE App",
+    "set_display_hint": "Controls how the VM window is rendered. DSL is the default; GTK is lightweight; SPICE App opens in a dedicated viewer.",
     "snap_no_disk": "No disk yet — launch VM first to create one",
     "snap_none": "No snapshots yet",
     "snap_entry_ph": "New snapshot tag…",
@@ -1179,6 +1182,22 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         bc.set_sensitive(not read_only)
         sg.attach(bl, 0, 4, 1, 1); sg.attach(bc, 1, 4, 1, 1)
 
+        dl = Gtk.Label(label=S["set_display"])
+        dl.set_halign(Gtk.Align.END)
+        dl.add_css_class("dim-label")
+        _display_ids = ["dsl", "gtk", "spice-app"]
+        dc = Gtk.DropDown(model=Gtk.StringList.new([S["display_dsl"], S["display_gtk"], S["display_spice"]]))
+        cur_disp = vm.get("display", "dsl")
+        dc.set_selected(_display_ids.index(cur_disp) if cur_disp in _display_ids else 0)
+        dc.connect("notify::selected", self._on_display_changed, vm, _display_ids)
+        dc.set_sensitive(not read_only)
+        sg.attach(dl, 0, 5, 1, 1); sg.attach(dc, 1, 5, 1, 1)
+        display_hint = Gtk.Label()
+        display_hint.set_markup(f'<span size="small" color="gray">{S["set_display_hint"]}</span>')
+        display_hint.set_halign(Gtk.Align.START)
+        display_hint.set_wrap(True)
+        display_hint.set_max_width_chars(42)
+        sg.attach(display_hint, 1, 6, 1, 1)
 
         sg.set_visible(settings_expanded[0])
         self.right_box.append(sg)
@@ -1564,6 +1583,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             val = boot_ids[idx]
             setconf("boot", val, vm["_conf"])
             vm["boot"] = val
+
+    def _on_display_changed(self, dropdown, _pspec, vm, display_ids):
+        idx = dropdown.get_selected()
+        if 0 <= idx < len(display_ids):
+            val = display_ids[idx]
+            setconf("display", val, vm["_conf"])
+            vm["display"] = val
 
     def _on_profile_changed(self, dropdown, _pspec, desc_label, vm, profile_ids):
         idx = dropdown.get_selected()

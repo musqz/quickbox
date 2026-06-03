@@ -33,6 +33,8 @@
     "set_compat_hint": "Minimalny QEMU bez VirGL — dla lekkich lub starych dystrybucji wyświetlających pusty ekran.",
     "boot_uefi": "UEFI",
     "boot_legacy": "Legacy (BIOS)",
+    "set_display": "Wyświetlanie:",
+    "set_display_hint": "Określa sposób renderowania okna VM. DSL to domyślny; GTK jest lekki; SPICE App otwiera się w dedykowanym podglądzie.",
     "snap_no_disk": "Brak dysku — najpierw uruchom VM",
     "snap_none": "Brak snapshotów",
     "snap_entry_ph": "Nowa etykieta snapshotu…",
