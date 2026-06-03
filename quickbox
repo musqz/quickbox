@@ -2748,13 +2748,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             lbl.set_halign(Gtk.Align.END)
             lbl.add_css_class("dim-label")
             grid.attach(lbl, 0, row, 1, 1)
+            val = Gtk.Label()
+            val.set_halign(Gtk.Align.START)
+            val.set_selectable(True)
             if uri:
-                val = Gtk.LinkButton(uri=uri, label=value)
-                val.set_halign(Gtk.Align.START)
+                val.set_markup(f'<a href="{uri}">{GLib.markup_escape_text(value)}</a>')
             else:
-                val = Gtk.Label(label=value)
-                val.set_halign(Gtk.Align.START)
-                val.set_selectable(True)
+                val.set_text(value)
             grid.attach(val, 1, row, 1, 1)
 
         _row(S["adv_about_release"], APP_VERSION, 0)
