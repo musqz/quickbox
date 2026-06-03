@@ -1,6 +1,6 @@
 # Maintainer: Eric Bakker <musqz at mf dot com>
 pkgname=quickbox
-pkgver=1.2.4
+pkgver=1.2.5
 pkgrel=1
 pkgdesc="GTK4 GUI for managing QEMU virtual machines via quickemu"
 arch=('any')
