@@ -1,5 +1,7 @@
 # Quickbox — GUI for quickemu
 
+> **Beta** — actively developed and tested. Not yet published to AUR or any distro repository. Feedback welcome.
+
 A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/quickemu-project/quickemu).
 
 ![quickbox](images/running.png)
@@ -33,22 +35,6 @@ A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/
 
 ## Installation
 
-### Debian / Ubuntu — .deb package
-
-Download the latest `.deb` from the [Releases page](https://github.com/musqz/quickbox/releases) and install:
-
-```bash
-sudo apt install ./quickbox_1.2.3_all.deb
-```
-
-### Arch Linux / Manjaro — local PKGBUILD
-
-```bash
-git clone https://github.com/musqz/quickbox.git
-cd quickbox/packaging
-makepkg -si
-```
-
 ### From source (all distros)
 
 ```bash
@@ -63,15 +49,17 @@ sudo chmod +x /usr/local/bin/quickbox
 sudo cp quickbox.desktop /usr/share/applications/
 ```
 
-## Uninstallation
-
-### Arch Linux / Manjaro
+### Arch Linux — local PKGBUILD (beta testing)
 
 ```bash
-sudo pacman -R quickbox
+git clone https://github.com/musqz/quickbox.git
+cd quickbox/packaging
+makepkg -si
 ```
 
-### From source
+> AUR package is planned but not yet published.
+
+## Uninstallation
 
 ```bash
 sudo ./uninstall.sh
