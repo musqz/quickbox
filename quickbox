@@ -2446,13 +2446,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 GLib.idle_add(_set_determinate, 0)
             elif rc == 0:
                 # Sanity-check: find the .conf quickget just created, follow
-                # its iso= path, and check the actual file size.
+                # its iso= path, and verify the file is a real download.
                 def _find_bad_download():
                     try:
                         confs = [p for p in Path(self.vms_dir).glob("*.conf")
                                  if p.stat().st_mtime >= t0]
                         if not confs:
-                            return None
+                            return None, None
                         conf = max(confs, key=lambda p: p.stat().st_mtime)
                         iso_rel = None
                         for line in conf.read_text(errors="replace").splitlines():
@@ -2460,25 +2460,41 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                                 iso_rel = line.partition("=")[2].strip().strip('"')
                                 break
                         if not iso_rel:
-                            return None
+                            return None, None
                         iso_path = Path(self.vms_dir) / iso_rel
                         if iso_path.exists() and iso_path.stat().st_size < 1024 * 1024:
-                            return iso_path
+                            return iso_path, conf
                     except Exception:
                         pass
-                    return None
-                suspect = _find_bad_download()
+                    return None, None
+
+                def _cleanup_bad_download(iso_path, conf_path):
+                    try:
+                        iso_path.unlink(missing_ok=True)
+                        vm_dir = iso_path.parent
+                        try:
+                            vm_dir.rmdir()  # only removes if empty
+                        except OSError:
+                            pass
+                        conf_path.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+
+                suspect, bad_conf = _find_bad_download()
                 if suspect:
                     kb = suspect.stat().st_size / 1024
+                    _cleanup_bad_download(suspect, bad_conf)
                     GLib.idle_add(_set_determinate, 0)
-                    GLib.idle_add(progress.set_text, "⚠ Download failed")
+                    GLib.idle_add(progress.set_text, "⚠ Download failed — files cleaned up")
                     GLib.idle_add(note.set_markup,
                         f'<span size="small" color="#e65100">'
-                        f'Server returned {kb:.0f} KB — likely a 404 or the release URL has changed. '
-                        f'Try editing the command to use a different release number.'
+                        f'Server returned {kb:.0f} KB instead of an ISO. '
+                        f'The release URL may be wrong or the server is down. '
+                        f'Try editing the command with a different release number.'
                         f'</span>')
                     GLib.idle_add(dl_btn.set_label, S["btn_close"])
                     GLib.idle_add(dl_btn.set_sensitive, True)
+                    GLib.idle_add(self._refresh)
                 else:
                     elapsed = _time.monotonic() - t0
                     GLib.idle_add(progress.set_text, S["dl2_verifying"])
