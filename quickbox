@@ -3251,7 +3251,7 @@ def _update_distro_list(parent_win):
         try:
             qg_bin = _resolve_quickget() or "quickget"
             result = subprocess.run([qg_bin, "--list-csv"],
-                                    capture_output=True, text=True, timeout=60, env=_env)
+                                    capture_output=True, text=True, timeout=60)
 
             if result.returncode != 0 or not result.stdout.strip():
                 GLib.idle_add(lambda: notify("Distro List",
