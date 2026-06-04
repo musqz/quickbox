@@ -2481,17 +2481,16 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 # No -l: we have the full path so login profile isn't needed,
                 # and -l can cd away from the vms_dir cwd we set.
                 proc_cmd = [_shell, "-c", _cmd_str]
-                _cwd_ok = Path(self.vms_dir).is_dir()
+                Path(self.vms_dir).mkdir(parents=True, exist_ok=True)
                 _dbg.write_text(
                     f"shell={_shell}\nproc_cmd={proc_cmd}\n"
-                    f"cwd={self.vms_dir}  exists={_cwd_ok}\n"
-                    f"qg_bin={qg_bin}  exists={Path(qg_bin).exists()}\n"
+                    f"cwd={self.vms_dir}\nqg_bin={qg_bin}\n"
                     f"PATH={os.environ.get('PATH','')}\n---\n"
                 )
                 _dl["process"] = sp.Popen(
                     proc_cmd,
                     stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
-                    cwd=self.vms_dir if _cwd_ok else None
+                    cwd=self.vms_dir
                 )
                 _out_bytes, _ = _dl["process"].communicate()
                 _dl_stderr = _out_bytes.decode(errors="replace").strip() if _out_bytes else ""
