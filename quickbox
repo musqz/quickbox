@@ -120,29 +120,14 @@ import json as _json
 from pathlib import Path
 
 def _resolve_quickget():
-    """Find quickget binary, working around GUI sessions that don't load the login PATH."""
-    # 1. Already on PATH
+    """Find quickget, checking common locations GUI sessions may not have on PATH."""
     found = shutil.which("quickget")
     if found:
         return found
-    # 2. Common install locations
     for p in ["/usr/bin/quickget", "/usr/local/bin/quickget",
-              str(Path.home() / ".local/bin/quickget"),
-              "/opt/quickemu/quickget"]:
+              str(Path.home() / ".local/bin/quickget")]:
         if Path(p).is_file() and os.access(p, os.X_OK):
             return p
-    # 3. Ask the user's login shell (handles bash/zsh/fish)
-    shell = os.environ.get("SHELL", "/bin/bash")
-    shell_name = Path(shell).name
-    try:
-        args = [shell, "-c", "which quickget"] if shell_name == "fish" \
-               else [shell, "-l", "-c", "which quickget"]
-        r = subprocess.run(args, capture_output=True, text=True,
-                           stdin=subprocess.DEVNULL, timeout=5)
-        if r.returncode == 0 and r.stdout.strip():
-            return r.stdout.strip()
-    except Exception:
-        pass
     return None
 
 
@@ -2469,39 +2454,24 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             watcher.start()
 
             _dl_stderr = ""
-            _dbg = Path.home() / ".config/quickbox/dl_debug.log"
-            _dbg.parent.mkdir(parents=True, exist_ok=True)
             try:
                 import shlex as _shlex
                 qg_bin = _resolve_quickget() or "quickget"
                 cmd[0] = qg_bin
                 _shell = os.environ.get("SHELL", "/bin/sh")
-                _shell_name = Path(_shell).name
                 _cmd_str = " ".join(_shlex.quote(c) for c in cmd)
-                # No -l: we have the full path so login profile isn't needed,
-                # and -l can cd away from the vms_dir cwd we set.
-                proc_cmd = [_shell, "-c", _cmd_str]
                 Path(self.vms_dir).mkdir(parents=True, exist_ok=True)
-                _dbg.write_text(
-                    f"shell={_shell}\nproc_cmd={proc_cmd}\n"
-                    f"cwd={self.vms_dir}\nqg_bin={qg_bin}\n"
-                    f"PATH={os.environ.get('PATH','')}\n---\n"
-                )
                 _dl["process"] = sp.Popen(
-                    proc_cmd,
+                    [_shell, "-c", _cmd_str],
                     stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
                     cwd=self.vms_dir
                 )
                 _out_bytes, _ = _dl["process"].communicate()
                 _dl_stderr = _out_bytes.decode(errors="replace").strip() if _out_bytes else ""
                 rc = _dl["process"].returncode
-                with open(_dbg, 'a') as _f:
-                    _f.write(f"rc={rc}\noutput={_dl_stderr}\n")
             except Exception as e:
                 _dl_stderr = str(e)
                 rc = 1
-                with open(_dbg, 'a') as _f:
-                    _f.write(f"exception={e}\n")
 
             _dl["watching"] = False
             _time.sleep(1.2)
@@ -3267,11 +3237,8 @@ def _update_distro_list(parent_win):
     def run_update():
         nonlocal wait_win
         try:
-            _env = dict(os.environ)
-            qg_bin = _resolve_quickget()
-            if qg_bin:
-                _env["PATH"] = str(Path(qg_bin).parent) + ":" + _env.get("PATH", "")
-            result = subprocess.run([qg_bin or "quickget", "--list-csv"],
+            qg_bin = _resolve_quickget() or "quickget"
+            result = subprocess.run([qg_bin, "--list-csv"],
                                     capture_output=True, text=True, timeout=60, env=_env)
 
             if result.returncode != 0 or not result.stdout.strip():
