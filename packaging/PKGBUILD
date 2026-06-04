@@ -9,7 +9,7 @@ license=('MIT')
 depends=('python' 'python-gobject' 'gtk4' 'quickemu')
 optdepends=('libnotify: desktop notifications')
 source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('1c3b829136aef87dea2ca0b9237306be1a5445a9baa633286eb3b06b10ea71bb')
+sha256sums=('aecf93323876d0a850c4ff05469a9359c6096e94092d1758e36786aa1b6d806b')
 
 package() {
     cd "${srcdir}/${pkgname}-${pkgver}"
