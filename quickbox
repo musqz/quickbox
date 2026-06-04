@@ -2364,10 +2364,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         box.append(btn_box)
 
 
-        # State
-        self._dl_process  = None
-        self._dl_cancelled = False
-        self._dl_watching  = False
+        # State — local to this dialog, not instance vars
+        _dl = {"process": None, "cancelled": False, "watching": False}
 
         def _run_download():
             import subprocess as sp, time as _time, math as _math
@@ -2402,7 +2400,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
             def _watch_progress():
                 elapsed, last_size, last_mb, target, stall = 0, 0, 0.0, None, 0
-                while self._dl_watching and not self._dl_cancelled:
+                while _dl["watching"] and not _dl["cancelled"]:
                     _time.sleep(1)
                     elapsed += 1
                     dot = "." * (elapsed % 4)
@@ -2439,7 +2437,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                             GLib.idle_add(progress.set_text,
                                 f"Contacting server{dot}  ({elapsed}s){hint}")
 
-            self._dl_watching = True
+            _dl["watching"] = True
             watcher = threading.Thread(target=_watch_progress, daemon=True)
             watcher.start()
 
@@ -2447,14 +2445,14 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             try:
                 _env = dict(os.environ)
                 _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
-                self._dl_process = sp.Popen(
+                _dl["process"] = sp.Popen(
                     cmd,
                     stdout=sp.DEVNULL, stderr=sp.PIPE,
                     cwd=self.vms_dir, env=_env
                 )
-                _, _dl_stderr_bytes = self._dl_process.communicate()
+                _, _dl_stderr_bytes = _dl["process"].communicate()
                 _dl_stderr = _dl_stderr_bytes.decode(errors="replace").strip() if _dl_stderr_bytes else ""
-                rc = self._dl_process.returncode
+                rc = _dl["process"].returncode
             except FileNotFoundError:
                 _dl_stderr = f"command not found: {cmd[0]}"
                 rc = 1
@@ -2462,7 +2460,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 _dl_stderr = str(e)
                 rc = 1
 
-            self._dl_watching = False
+            _dl["watching"] = False
             _time.sleep(1.2)
 
             def _fmt_duration(secs):
@@ -2476,7 +2474,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     h, rem = divmod(secs, 3600)
                     return f"{h}h {rem // 60}m"
 
-            if self._dl_cancelled:
+            if _dl["cancelled"]:
                 GLib.idle_add(progress.set_text, S["dl2_cancelled"])
                 GLib.idle_add(_set_determinate, 0)
             elif rc == 0:
@@ -2513,9 +2511,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             threading.Thread(target=_run_download, daemon=True).start()
 
         def _on_cancel(btn):
-            if self._dl_process and self._dl_process.poll() is None:
-                self._dl_cancelled = True
-                self._dl_process.terminate()
+            if _dl["process"] and _dl["process"].poll() is None:
+                _dl["cancelled"] = True
+                _dl["process"].terminate()
             dlg.close()
 
         dl_btn.connect("clicked", _on_download)
