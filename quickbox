@@ -2447,11 +2447,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
                 _dl["process"] = sp.Popen(
                     cmd,
-                    stdout=sp.DEVNULL, stderr=sp.PIPE,
+                    stdout=sp.PIPE, stderr=sp.STDOUT,
                     cwd=self.vms_dir, env=_env
                 )
-                _, _dl_stderr_bytes = _dl["process"].communicate()
-                _dl_stderr = _dl_stderr_bytes.decode(errors="replace").strip() if _dl_stderr_bytes else ""
+                _out_bytes, _ = _dl["process"].communicate()
+                _dl_stderr = _out_bytes.decode(errors="replace").strip() if _out_bytes else ""
                 rc = _dl["process"].returncode
             except FileNotFoundError:
                 _dl_stderr = f"command not found: {cmd[0]}"
