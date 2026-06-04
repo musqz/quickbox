@@ -840,7 +840,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _build_css(self):
         css = b"""
         button { font-weight:normal; }
-        button label { opacity:0.82; }
         .vm-listbox row { border-radius:6px; margin:2px 4px; }
         .vm-listbox row:selected { background-color:alpha(@theme_selected_bg_color,0.8); }
         .vm-listbox row:hover    { background-color:alpha(@theme_selected_bg_color,0.25); }
@@ -2443,10 +2442,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             watcher.start()
 
             try:
+                _env = dict(os.environ)
+                _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
                 self._dl_process = sp.Popen(
                     cmd,
                     stdout=sp.DEVNULL, stderr=sp.DEVNULL,
-                    cwd=self.vms_dir
+                    cwd=self.vms_dir, env=_env
                 )
                 self._dl_process.wait()
                 rc = self._dl_process.returncode
@@ -3213,8 +3214,10 @@ def _update_distro_list(parent_win):
     def run_update():
         nonlocal wait_win
         try:
+            _env = dict(os.environ)
+            _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
             result = subprocess.run(["quickget", "--list-csv"],
-                                    capture_output=True, text=True, timeout=60)
+                                    capture_output=True, text=True, timeout=60, env=_env)
 
             if result.returncode != 0 or not result.stdout.strip():
                 GLib.idle_add(lambda: notify("Distro List",
