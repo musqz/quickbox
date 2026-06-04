@@ -240,6 +240,7 @@ _EN_STRINGS = {
     "dl2_failed": "Download failed.", "dl2_cancelled": "Cancelled",
     "dl2_connecting": "Connecting… ({}s)",
     "dl2_note": "Download time varies depending on ISO size and server speed.",
+    "dl2_cmd_note": "If download fails, run this command in a terminal in {} — the VM will appear in the list automatically.",
     "btn_download": "Download",      "dl2_done_close": "Done — Close",
     "cvm_title": "Create Custom VM",
     "cvm_name_lbl": "Enter a name for the new VM:",
@@ -2335,6 +2336,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         cmd_entry.set_can_focus(False)
         cmd_entry.set_margin_top(2)
         box.append(cmd_entry)
+
+        cmd_note = Gtk.Label()
+        cmd_note.set_markup(
+            f'<span size="small" color="gray">'
+            f'{S["dl2_cmd_note"].format(self.vms_dir)}'
+            f'</span>'
+        )
+        cmd_note.set_halign(Gtk.Align.START)
+        cmd_note.set_wrap(True)
+        cmd_note.set_margin_top(4)
+        box.append(cmd_note)
 
         # sync combo → entry
         def _on_ver_changed(combo, _pspec):
