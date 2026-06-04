@@ -2470,13 +2470,24 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
             _dl_stderr = ""
             try:
+                import shlex as _shlex
                 _env = dict(os.environ)
                 qg_bin = _resolve_quickget()
                 if qg_bin:
                     cmd[0] = qg_bin
-                    _env["PATH"] = str(Path(qg_bin).parent) + ":" + _env.get("PATH", "")
+                    proc_cmd = cmd
+                else:
+                    # Fall back to running via the user's own shell so it
+                    # inherits the full login environment (PATH, aliases, etc.)
+                    _shell = os.environ.get("SHELL", "/bin/bash")
+                    _shell_name = Path(_shell).name
+                    _cmd_str = " ".join(_shlex.quote(c) for c in cmd)
+                    if _shell_name == "fish":
+                        proc_cmd = [_shell, "-c", _cmd_str]
+                    else:
+                        proc_cmd = [_shell, "-l", "-c", _cmd_str]
                 _dl["process"] = sp.Popen(
-                    cmd,
+                    proc_cmd,
                     stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
                     cwd=self.vms_dir, env=_env
                 )
