@@ -2469,32 +2469,39 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             watcher.start()
 
             _dl_stderr = ""
+            _dbg = Path.home() / ".config/quickbox/dl_debug.log"
+            _dbg.parent.mkdir(parents=True, exist_ok=True)
             try:
                 import shlex as _shlex
                 qg_bin = _resolve_quickget() or "quickget"
                 cmd[0] = qg_bin
-                # Run via sh so shebang and login PATH are handled by the shell
                 _shell = os.environ.get("SHELL", "/bin/sh")
                 _shell_name = Path(_shell).name
                 _cmd_str = " ".join(_shlex.quote(c) for c in cmd)
-                if _shell_name == "fish":
-                    proc_cmd = [_shell, "-c", _cmd_str]
-                else:
-                    proc_cmd = [_shell, "-l", "-c", _cmd_str]
+                proc_cmd = [_shell, "-c", _cmd_str] if _shell_name == "fish" \
+                           else [_shell, "-l", "-c", _cmd_str]
+                _cwd_ok = Path(self.vms_dir).is_dir()
+                _dbg.write_text(
+                    f"shell={_shell}\nproc_cmd={proc_cmd}\n"
+                    f"cwd={self.vms_dir}  exists={_cwd_ok}\n"
+                    f"qg_bin={qg_bin}  exists={Path(qg_bin).exists()}\n"
+                    f"PATH={os.environ.get('PATH','')}\n---\n"
+                )
                 _dl["process"] = sp.Popen(
                     proc_cmd,
                     stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
-                    cwd=self.vms_dir
+                    cwd=self.vms_dir if _cwd_ok else None
                 )
                 _out_bytes, _ = _dl["process"].communicate()
                 _dl_stderr = _out_bytes.decode(errors="replace").strip() if _out_bytes else ""
                 rc = _dl["process"].returncode
-            except FileNotFoundError:
-                _dl_stderr = f"command not found: {cmd[0]}"
-                rc = 1
+                with open(_dbg, 'a') as _f:
+                    _f.write(f"rc={rc}\noutput={_dl_stderr}\n")
             except Exception as e:
                 _dl_stderr = str(e)
                 rc = 1
+                with open(_dbg, 'a') as _f:
+                    _f.write(f"exception={e}\n")
 
             _dl["watching"] = False
             _time.sleep(1.2)
