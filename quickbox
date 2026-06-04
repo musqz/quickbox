@@ -64,8 +64,8 @@ def _load_icon():
     import os
     sz = icon.get_size() or 22
     search = [
-        f'/usr/share/icons/hicolor/48x48/apps/quickbox.png',
-        f'/usr/local/share/icons/hicolor/48x48/apps/quickbox.png',
+        '/usr/share/icons/hicolor/scalable/apps/quickbox.svg',
+        '/usr/local/share/icons/hicolor/scalable/apps/quickbox.svg',
     ]
     for path in search:
         if os.path.exists(path):
