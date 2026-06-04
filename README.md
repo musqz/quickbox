@@ -4,6 +4,14 @@
   <img src="icons/quickbox.svg" width="128" alt="Quickbox icon"/>
 </p>
 
+<p align="center">
+  <a href="https://github.com/musqz/quickbox/releases"><img src="https://img.shields.io/github/v/release/musqz/quickbox" alt="Version"/></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="License"/>
+  <img src="https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white" alt="Python"/>
+  <img src="https://img.shields.io/badge/GTK-4-4A90D9?logo=gnome&logoColor=white" alt="GTK4"/>
+  <img src="https://img.shields.io/badge/platform-Linux-lightgrey?logo=linux&logoColor=white" alt="Linux"/>
+</p>
+
 > **Beta** — actively developed and tested. Not yet published to AUR or any distro repository. Feedback welcome.
 
 A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/quickemu-project/quickemu).
