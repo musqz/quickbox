@@ -2471,25 +2471,20 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             _dl_stderr = ""
             try:
                 import shlex as _shlex
-                _env = dict(os.environ)
-                qg_bin = _resolve_quickget()
-                if qg_bin:
-                    cmd[0] = qg_bin
-                    proc_cmd = cmd
+                qg_bin = _resolve_quickget() or "quickget"
+                cmd[0] = qg_bin
+                # Run via sh so shebang and login PATH are handled by the shell
+                _shell = os.environ.get("SHELL", "/bin/sh")
+                _shell_name = Path(_shell).name
+                _cmd_str = " ".join(_shlex.quote(c) for c in cmd)
+                if _shell_name == "fish":
+                    proc_cmd = [_shell, "-c", _cmd_str]
                 else:
-                    # Fall back to running via the user's own shell so it
-                    # inherits the full login environment (PATH, aliases, etc.)
-                    _shell = os.environ.get("SHELL", "/bin/bash")
-                    _shell_name = Path(_shell).name
-                    _cmd_str = " ".join(_shlex.quote(c) for c in cmd)
-                    if _shell_name == "fish":
-                        proc_cmd = [_shell, "-c", _cmd_str]
-                    else:
-                        proc_cmd = [_shell, "-l", "-c", _cmd_str]
+                    proc_cmd = [_shell, "-l", "-c", _cmd_str]
                 _dl["process"] = sp.Popen(
                     proc_cmd,
                     stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
-                    cwd=self.vms_dir, env=_env
+                    cwd=self.vms_dir
                 )
                 _out_bytes, _ = _dl["process"].communicate()
                 _dl_stderr = _out_bytes.decode(errors="replace").strip() if _out_bytes else ""
