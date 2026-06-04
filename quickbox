@@ -2478,8 +2478,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 _shell = os.environ.get("SHELL", "/bin/sh")
                 _shell_name = Path(_shell).name
                 _cmd_str = " ".join(_shlex.quote(c) for c in cmd)
-                proc_cmd = [_shell, "-c", _cmd_str] if _shell_name == "fish" \
-                           else [_shell, "-l", "-c", _cmd_str]
+                # No -l: we have the full path so login profile isn't needed,
+                # and -l can cd away from the vms_dir cwd we set.
+                proc_cmd = [_shell, "-c", _cmd_str]
                 _cwd_ok = Path(self.vms_dir).is_dir()
                 _dbg.write_text(
                     f"shell={_shell}\nproc_cmd={proc_cmd}\n"
