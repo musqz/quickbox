@@ -2447,7 +2447,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
                 _dl["process"] = sp.Popen(
                     cmd,
-                    stdout=sp.PIPE, stderr=sp.STDOUT,
+                    stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
                     cwd=self.vms_dir, env=_env
                 )
                 _out_bytes, _ = _dl["process"].communicate()
@@ -2498,8 +2498,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         pass
                 GLib.idle_add(_refresh_and_select)
             else:
-                err_short = (_dl_stderr.splitlines()[-1] if _dl_stderr else S["dl2_failed"])[:80]
-                GLib.idle_add(progress.set_text, err_short or S["dl2_failed"])
+                if _dl_stderr:
+                    err_short = _dl_stderr.splitlines()[-1][:80]
+                else:
+                    err_short = f"failed (exit {rc}) — no output from quickget"
+                GLib.idle_add(progress.set_text, err_short)
                 GLib.idle_add(_set_determinate, 0)
                 GLib.idle_add(dl_btn.set_label, S["btn_close"])
                 GLib.idle_add(dl_btn.set_sensitive, True)
