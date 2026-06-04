@@ -2445,10 +2445,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             try:
                 _env = dict(os.environ)
                 _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
-                qg_path = shutil.which(cmd[0], path=_env["PATH"]) or "NOT FOUND"
-                GLib.idle_add(progress.set_text,
-                    f"cmd: {' '.join(cmd)}  |  bin: {qg_path}  |  cwd: {self.vms_dir}")
-                _time.sleep(2)
+                # GUI sessions don't load the login shell profile, so quickget
+                # may not be on PATH. Ask a login shell to resolve it.
+                if not shutil.which(cmd[0], path=_env["PATH"]):
+                    try:
+                        r = sp.run(["bash", "-l", "-c", f"which {cmd[0]}"],
+                                   capture_output=True, text=True,
+                                   stdin=sp.DEVNULL, timeout=5)
+                        if r.returncode == 0 and r.stdout.strip():
+                            _env["PATH"] = str(Path(r.stdout.strip()).parent) + ":" + _env["PATH"]
+                    except Exception:
+                        pass
                 _dl["process"] = sp.Popen(
                     cmd,
                     stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
@@ -3230,6 +3237,15 @@ def _update_distro_list(parent_win):
         try:
             _env = dict(os.environ)
             _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
+            if not shutil.which("quickget", path=_env["PATH"]):
+                try:
+                    r = subprocess.run(["bash", "-l", "-c", "which quickget"],
+                                       capture_output=True, text=True,
+                                       stdin=subprocess.DEVNULL, timeout=5)
+                    if r.returncode == 0 and r.stdout.strip():
+                        _env["PATH"] = str(Path(r.stdout.strip()).parent) + ":" + _env["PATH"]
+                except Exception:
+                    pass
             result = subprocess.run(["quickget", "--list-csv"],
                                     capture_output=True, text=True, timeout=60, env=_env)
 
