@@ -119,6 +119,33 @@ from datetime import datetime
 import json as _json
 from pathlib import Path
 
+def _resolve_quickget():
+    """Find quickget binary, working around GUI sessions that don't load the login PATH."""
+    # 1. Already on PATH
+    found = shutil.which("quickget")
+    if found:
+        return found
+    # 2. Common install locations
+    for p in ["/usr/bin/quickget", "/usr/local/bin/quickget",
+              str(Path.home() / ".local/bin/quickget"),
+              "/opt/quickemu/quickget"]:
+        if Path(p).is_file() and os.access(p, os.X_OK):
+            return p
+    # 3. Ask the user's login shell (handles bash/zsh/fish)
+    shell = os.environ.get("SHELL", "/bin/bash")
+    shell_name = Path(shell).name
+    try:
+        args = [shell, "-c", "which quickget"] if shell_name == "fish" \
+               else [shell, "-l", "-c", "which quickget"]
+        r = subprocess.run(args, capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL, timeout=5)
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except Exception:
+        pass
+    return None
+
+
 APP_VERSION = next(
     (p.read_text(encoding="utf-8").strip() for p in [
         Path(__file__).parent / "version",
@@ -2444,18 +2471,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             _dl_stderr = ""
             try:
                 _env = dict(os.environ)
-                _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
-                # GUI sessions don't load the login shell profile, so quickget
-                # may not be on PATH. Ask a login shell to resolve it.
-                if not shutil.which(cmd[0], path=_env["PATH"]):
-                    try:
-                        r = sp.run(["bash", "-l", "-c", f"which {cmd[0]}"],
-                                   capture_output=True, text=True,
-                                   stdin=sp.DEVNULL, timeout=5)
-                        if r.returncode == 0 and r.stdout.strip():
-                            _env["PATH"] = str(Path(r.stdout.strip()).parent) + ":" + _env["PATH"]
-                    except Exception:
-                        pass
+                qg_bin = _resolve_quickget()
+                if qg_bin:
+                    cmd[0] = qg_bin
+                    _env["PATH"] = str(Path(qg_bin).parent) + ":" + _env.get("PATH", "")
                 _dl["process"] = sp.Popen(
                     cmd,
                     stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
@@ -3236,17 +3255,10 @@ def _update_distro_list(parent_win):
         nonlocal wait_win
         try:
             _env = dict(os.environ)
-            _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
-            if not shutil.which("quickget", path=_env["PATH"]):
-                try:
-                    r = subprocess.run(["bash", "-l", "-c", "which quickget"],
-                                       capture_output=True, text=True,
-                                       stdin=subprocess.DEVNULL, timeout=5)
-                    if r.returncode == 0 and r.stdout.strip():
-                        _env["PATH"] = str(Path(r.stdout.strip()).parent) + ":" + _env["PATH"]
-                except Exception:
-                    pass
-            result = subprocess.run(["quickget", "--list-csv"],
+            qg_bin = _resolve_quickget()
+            if qg_bin:
+                _env["PATH"] = str(Path(qg_bin).parent) + ":" + _env.get("PATH", "")
+            result = subprocess.run([qg_bin or "quickget", "--list-csv"],
                                     capture_output=True, text=True, timeout=60, env=_env)
 
             if result.returncode != 0 or not result.stdout.strip():
