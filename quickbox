@@ -1499,6 +1499,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         cpu_cores = vm.get("cpu_cores", "2")
         live_mode = vm.get("live_mode") == "true"
         headless  = vm.get("headless") == "true"
+        _disp_map  = {"dsl": "sdl", "gtk": "gtk,zoom-to-fit=on", "spice-app": "spice-app"}
+        disp_arg   = "none" if headless else _disp_map.get(vm.get("display", "dsl"), "sdl")
         
         # Create vmdir if needed
         Path(vmdir).mkdir(parents=True, exist_ok=True)
@@ -1530,7 +1532,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             "-m", ram,
             "-smp", cpu_cores,
             "-vga", "std",
-            "-display", "none" if headless else "gtk,zoom-to-fit=on",
+            "-display", disp_arg,
             "-no-reboot",
         ]
 
