@@ -62,15 +62,15 @@ icon = Gtk.StatusIcon()
 def _load_icon():
     from gi.repository import GdkPixbuf
     import os
-    sz = icon.get_size() or 22
     search = [
+        str(Path(__file__).parent / "icons/hicolor/scalable/apps/quickbox.svg"),
         '/usr/share/icons/hicolor/scalable/apps/quickbox.svg',
         '/usr/local/share/icons/hicolor/scalable/apps/quickbox.svg',
     ]
     for path in search:
         if os.path.exists(path):
             try:
-                pb = GdkPixbuf.Pixbuf.new_from_file_at_size(path, sz, sz)
+                pb = GdkPixbuf.Pixbuf.new_from_file_at_size(path, 48, 48)
                 icon.set_from_pixbuf(pb)
                 return False
             except Exception:
