@@ -2445,6 +2445,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             try:
                 _env = dict(os.environ)
                 _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
+                qg_path = shutil.which(cmd[0], path=_env["PATH"]) or "NOT FOUND"
+                GLib.idle_add(progress.set_text,
+                    f"cmd: {' '.join(cmd)}  |  bin: {qg_path}  |  cwd: {self.vms_dir}")
+                _time.sleep(2)
                 _dl["process"] = sp.Popen(
                     cmd,
                     stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
