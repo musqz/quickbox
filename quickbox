@@ -143,6 +143,7 @@ APP_VERSION = next(
 def _date_tag(with_time=False):
     """Return a date string in locale order: D-M-Y (EU), M-D-Y (US), or Y-M-D (ISO)."""
     try:
+        _locale.setlocale(_locale.LC_ALL, '')
         fmt = _locale.nl_langinfo(_locale.D_FMT)  # e.g. '%d/%m/%Y'
         d, m, y = fmt.index('%d'), fmt.find('%m'), max(fmt.find('%Y'), fmt.find('%y'))
         if d < m:        date_fmt = '%d-%m-%Y'   # European
