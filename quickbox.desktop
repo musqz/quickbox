@@ -2,7 +2,7 @@
 Version=1.0
 Type=Application
 Name=Quickbox
-Comment=QEMU/quickemu Virtual Machine Manager
+Comment=GTK4 GUI for quickemu
 Exec=quickbox
 Icon=quickbox
 Categories=System;Emulator;
