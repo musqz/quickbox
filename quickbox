@@ -62,11 +62,11 @@ icon = Gtk.StatusIcon()
 def _load_icon():
     from gi.repository import GdkPixbuf
     import os
-    search = [
-        str(Path(__file__).parent / "icons/hicolor/scalable/apps/quickbox.svg"),
+    extra = sys.argv[2] if len(sys.argv) > 2 else ""
+    search = [p for p in [extra,
         '/usr/share/icons/hicolor/scalable/apps/quickbox.svg',
         '/usr/local/share/icons/hicolor/scalable/apps/quickbox.svg',
-    ]
+    ] if p]
     for path in search:
         if os.path.exists(path):
             try:
@@ -733,8 +733,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         if self.conf.get("systray") != "true":
             return
         try:
+            _local_svg = Path(__file__).parent / "icons/hicolor/scalable/apps/quickbox.svg"
+            _svg_arg = str(_local_svg) if _local_svg.exists() else ""
             self._tray_proc = subprocess.Popen(
-                ["python3", "-c", _TRAY_HELPER, "quickbox"],
+                ["python3", "-c", _TRAY_HELPER, "quickbox", _svg_arg],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
             GLib.io_add_watch(
                 self._tray_proc.stdout.fileno(),
