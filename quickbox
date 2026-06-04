@@ -855,10 +855,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .launch-btn { background-color:#1565c0; color:white;
                       border-radius:6px; padding:7px 18px;
                       font-size:13px; font-weight:bold; }
+        .launch-btn label { color:white; }
         .launch-btn:hover { background-color:#1976d2; }
 
         .ssh-btn { background-color:#455a64; color:white;
                    border-radius:4px; padding:6px 12px; }
+        .ssh-btn label { color:white; }
         .ssh-btn:hover { background-color:#546e7a; }
         .snap-row { background-color:alpha(@theme_fg_color,0.06);
                     border-radius:5px;
@@ -2441,17 +2443,23 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             watcher = threading.Thread(target=_watch_progress, daemon=True)
             watcher.start()
 
+            _dl_stderr = ""
             try:
                 _env = dict(os.environ)
                 _env["PATH"] = _env.get("PATH", "") + ":/usr/local/bin:/usr/bin"
                 self._dl_process = sp.Popen(
                     cmd,
-                    stdout=sp.DEVNULL, stderr=sp.DEVNULL,
+                    stdout=sp.DEVNULL, stderr=sp.PIPE,
                     cwd=self.vms_dir, env=_env
                 )
-                self._dl_process.wait()
+                _, _dl_stderr_bytes = self._dl_process.communicate()
+                _dl_stderr = _dl_stderr_bytes.decode(errors="replace").strip() if _dl_stderr_bytes else ""
                 rc = self._dl_process.returncode
-            except Exception:
+            except FileNotFoundError:
+                _dl_stderr = f"command not found: {cmd[0]}"
+                rc = 1
+            except Exception as e:
+                _dl_stderr = str(e)
                 rc = 1
 
             self._dl_watching = False
@@ -2492,7 +2500,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         pass
                 GLib.idle_add(_refresh_and_select)
             else:
-                GLib.idle_add(progress.set_text, S["dl2_failed"])
+                err_short = (_dl_stderr.splitlines()[-1] if _dl_stderr else S["dl2_failed"])[:80]
+                GLib.idle_add(progress.set_text, err_short or S["dl2_failed"])
                 GLib.idle_add(_set_determinate, 0)
                 GLib.idle_add(dl_btn.set_label, S["btn_close"])
                 GLib.idle_add(dl_btn.set_sensitive, True)
