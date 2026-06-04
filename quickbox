@@ -3272,8 +3272,8 @@ def _update_distro_list(parent_win):
             GLib.idle_add(lambda: notify("Distro List", 
                                         "✗ quickget not found. Install quickemu.", "critical"))
         except Exception as e:
-            GLib.idle_add(lambda: notify("Distro List", 
-                                        f"✗ Error: {str(e)[:80]}", "critical"))
+            GLib.idle_add(lambda e=e: notify("Distro List",
+                                             f"✗ Error: {str(e)[:80]}", "critical"))
         finally:
             # Safely destroy wait_win
             if wait_win:
