@@ -2084,7 +2084,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         continue
                     if k == "pretty":
                         out.append(f'pretty="{name}"')
-                    elif k == "disk_img" and v and vm["_name"] in v:
+                    elif k in {"disk_img", "iso"} and v and vm["_name"] in v:
                         out.append(f'{k}="{v.replace(vm["_name"], dest_name)}"')
                     elif v:
                         out.append(f'{k}="{v}"')
@@ -2108,6 +2108,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             def _copy_dir():
                 try:
                     shutil.copytree(str(src_dir), str(dest_dir))
+                    # Remove quickemu runtime files named after the original VM
+                    for f in dest_dir.iterdir():
+                        if f.stem == vm["_name"] and f.suffix in {".sh", ".ports", ".log", ".pid"}:
+                            f.unlink(missing_ok=True)
                     flag.unlink(missing_ok=True)
                     notify("quickbox", S["ntf_clone_done"].format(name), "low")
                     GLib.idle_add(self._refresh)
