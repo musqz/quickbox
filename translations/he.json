@@ -185,5 +185,7 @@
   "dlg_rsz_b": "הגדל את הדיסק ל-{}GB. הנתונים הקיימים יישמרו.\nייתכן שתצטרך לשנות את גודל המחיצה בתוך ה-VM לאחר מכן.",
   "ntf_rsz_done": "הדיסק הוגדל ל-{}GB",
   "warn_rsz_fail_t": "הגדלה נכשלה",
-  "warn_rsz_fail_b": "qemu-img resize החזיר שגיאה."
+  "warn_rsz_fail_b": "qemu-img resize החזיר שגיאה.",
+  "dlg_stop_t": "לעצור את '{}'?",
+  "dlg_stop_b": "ה-VM יכבה מיידית."
 }

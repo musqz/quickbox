@@ -192,6 +192,8 @@ _EN_STRINGS = {
     "vm_copying": "⏳ Disk still copying — please wait…",
     "vm_running": "VM is running",
     "btn_stop": "Stop VM",           "btn_launch": "Launch VM",
+    "dlg_stop_t": "Stop '{}'?",
+    "dlg_stop_b": "The VM will be shut down immediately.",
     "info_guest_os": "Guest OS",     "info_boot_mode": "Boot mode",
     "info_ssh_port": "SSH port",     "info_disk": "Disk",
     "info_iso": "ISO",
@@ -789,13 +791,18 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             return False
 
     def _stop_vm_by_name(self, name):
-        needle = f"name {name},process={name}"
-        r = subprocess.run(["pgrep", "-fa", "qemu-system"], capture_output=True, text=True)
-        for line in r.stdout.splitlines():
-            if needle in line:
-                pid = line.split()[0]
-                subprocess.Popen(["kill", "-TERM", pid])
-        GLib.timeout_add(1500, self._refresh)
+        def on_confirm(yes):
+            if not yes:
+                return
+            needle = f"name {name},process={name}"
+            r = subprocess.run(["pgrep", "-fa", "qemu-system"], capture_output=True, text=True)
+            for line in r.stdout.splitlines():
+                if needle in line:
+                    pid = line.split()[0]
+                    subprocess.Popen(["kill", "-TERM", pid])
+            GLib.timeout_add(1500, self._refresh)
+        self._tray_show()
+        self._confirm(S["dlg_stop_t"].format(name), S["dlg_stop_b"], on_confirm)
 
     def _push_tray_vms(self):
         if not self._indicator:

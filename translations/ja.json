@@ -185,5 +185,7 @@
   "dlg_rsz_b": "ディスクを{}GBに拡張します。既存のデータは保持されます。\n拡張後、VM内でパーティションのサイズ変更が必要になる場合があります。",
   "ntf_rsz_done": "ディスクを{}GBに拡張しました",
   "warn_rsz_fail_t": "拡張失敗",
-  "warn_rsz_fail_b": "qemu-img resizeがエラーを返しました。"
+  "warn_rsz_fail_b": "qemu-img resizeがエラーを返しました。",
+  "dlg_stop_t": "'{}' を停止しますか？",
+  "dlg_stop_b": "VMは直ちにシャットダウンされます。"
 }

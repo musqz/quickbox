@@ -185,5 +185,7 @@
   "dlg_rsz_b": "Mărește discul la {}GB. Datele existente vor fi păstrate.\nS-ar putea să fie nevoie să redimensionezi partiția din VM după aceea.",
   "ntf_rsz_done": "Disc redimensionat la {}GB",
   "warn_rsz_fail_t": "Redimensionare eșuată",
-  "warn_rsz_fail_b": "qemu-img resize a returnat o eroare."
+  "warn_rsz_fail_b": "qemu-img resize a returnat o eroare.",
+  "dlg_stop_t": "Oprești '{}'?",
+  "dlg_stop_b": "Mașina virtuală va fi oprită imediat."
 }

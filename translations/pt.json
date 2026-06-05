@@ -185,5 +185,7 @@
   "dlg_rsz_b": "Ampliar disco para {}GB. Os dados existentes serão preservados.\nPode ser necessário redimensionar a partição dentro da VM depois.",
   "ntf_rsz_done": "Disco ampliado para {}GB",
   "warn_rsz_fail_t": "Falha ao ampliar",
-  "warn_rsz_fail_b": "qemu-img resize retornou um erro."
+  "warn_rsz_fail_b": "qemu-img resize retornou um erro.",
+  "dlg_stop_t": "Parar '{}'?",
+  "dlg_stop_b": "A VM será encerrada imediatamente."
 }

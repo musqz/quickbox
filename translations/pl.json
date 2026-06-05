@@ -185,5 +185,7 @@
   "dlg_rsz_b": "Powiększyć dysk do {}GB. Istniejące dane zostaną zachowane.\nMożliwe, że trzeba będzie zmienić partycję wewnątrz VM.",
   "ntf_rsz_done": "Dysk powiększony do {}GB",
   "warn_rsz_fail_t": "Błąd powiększania",
-  "warn_rsz_fail_b": "qemu-img resize zwrócił błąd."
+  "warn_rsz_fail_b": "qemu-img resize zwrócił błąd.",
+  "dlg_stop_t": "Zatrzymać '{}'?",
+  "dlg_stop_b": "Maszyna wirtualna zostanie natychmiast wyłączona."
 }

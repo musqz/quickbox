@@ -185,5 +185,7 @@
   "dlg_rsz_b": "Disk {}GB'a genişletiliyor. Mevcut veriler korunacak.\nSonra VM içinde bölümü yeniden boyutlandırmanız gerekebilir.",
   "ntf_rsz_done": "Disk {}GB'a genişletildi",
   "warn_rsz_fail_t": "Genişletme başarısız",
-  "warn_rsz_fail_b": "qemu-img resize hata döndürdü."
+  "warn_rsz_fail_b": "qemu-img resize hata döndürdü.",
+  "dlg_stop_t": "'{}' durdurulsun mu?",
+  "dlg_stop_b": "VM hemen kapatılacak."
 }

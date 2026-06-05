@@ -185,5 +185,7 @@
   "dlg_rsz_b": "将磁盘扩容至 {}GB，现有数据将保留。\n扩容后可能需要在虚拟机内调整分区大小。",
   "ntf_rsz_done": "磁盘已扩容至 {}GB",
   "warn_rsz_fail_t": "扩容失败",
-  "warn_rsz_fail_b": "qemu-img resize 返回错误。"
+  "warn_rsz_fail_b": "qemu-img resize 返回错误。",
+  "dlg_stop_t": "停止 '{}' ？",
+  "dlg_stop_b": "虚拟机将立即关闭。"
 }

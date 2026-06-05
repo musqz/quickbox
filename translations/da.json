@@ -185,5 +185,7 @@
   "dlg_rsz_b": "Udvid disk til {}GB. Eksisterende data bevares.\nDu skal muligvis ændre partitionen inde i VM efterfølgende.",
   "ntf_rsz_done": "Disk udvidet til {}GB",
   "warn_rsz_fail_t": "Udvidelse mislykkedes",
-  "warn_rsz_fail_b": "qemu-img resize returnerede en fejl."
+  "warn_rsz_fail_b": "qemu-img resize returnerede en fejl.",
+  "dlg_stop_t": "Stop '{}'?",
+  "dlg_stop_b": "Den virtuelle maskine lukkes ned øjeblikkeligt."
 }

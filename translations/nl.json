@@ -185,5 +185,7 @@
   "dlg_rsz_b": "Schijf vergroten naar {}GB. Bestaande data blijft behouden.\nMogelijk dient u achteraf de partitie in de VM aan te passen.",
   "ntf_rsz_done": "Schijf vergroot naar {}GB",
   "warn_rsz_fail_t": "Vergroten mislukt",
-  "warn_rsz_fail_b": "qemu-img resize gaf een foutmelding terug."
+  "warn_rsz_fail_b": "qemu-img resize gaf een foutmelding terug.",
+  "dlg_stop_t": "'{}' stoppen?",
+  "dlg_stop_b": "De VM wordt onmiddellijk afgesloten."
 }

@@ -185,5 +185,7 @@
   "dlg_rsz_b": "Disk auf {}GB vergrößern. Vorhandene Daten bleiben erhalten.\nNach dem Neustart ggf. Partition im VM anpassen.",
   "ntf_rsz_done": "Disk auf {}GB vergrößert",
   "warn_rsz_fail_t": "Vergrößern fehlgeschlagen",
-  "warn_rsz_fail_b": "qemu-img resize hat einen Fehler zurückgegeben."
+  "warn_rsz_fail_b": "qemu-img resize hat einen Fehler zurückgegeben.",
+  "dlg_stop_t": "'{}' stoppen?",
+  "dlg_stop_b": "Die VM wird sofort heruntergefahren."
 }
