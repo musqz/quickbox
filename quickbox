@@ -252,7 +252,6 @@ _EN_STRINGS = {
     "adv_title": "Advanced",
     "adv_cur_dir": "Current VMs directory:",
     "adv_about": "About",
-    "adv_sec_about": "ABOUT",
     "adv_about_release": "Release",
     "adv_about_author": "Author",
     "adv_about_github": "GitHub",
