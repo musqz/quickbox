@@ -3284,7 +3284,7 @@ def _update_distro_list(parent_win):
     _set_icon(wait_win)
     wait_win.set_modal(True)
     wait_win.set_deletable(False)
-    wait_win.set_default_size(300, 110)
+    wait_win.set_default_size(-1, -1)
 
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
     box.set_margin_top(16); box.set_margin_bottom(16)
