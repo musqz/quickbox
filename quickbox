@@ -3368,13 +3368,15 @@ def _update_distro_list(parent_win):
         stdout_buf = "".join(lines)
         if proc.returncode != 0 or not stdout_buf.strip():
             GLib.idle_add(lambda: notify("Distro List", "✗ quickget returned an error", "critical"))
+            GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
         else:
             csv_path = Path.home() / ".config/quickbox/quickinst.csv"
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             csv_path.write_text(stdout_buf, encoding="utf-8")
+            GLib.idle_add(lbl.set_text, f"✓ {count} distros updated")
             GLib.idle_add(lambda: notify("Distro List", f"✓ Updated {count} distros", "low"))
-
-        GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
+            GLib.idle_add(lambda: GLib.timeout_add(1500,
+                lambda: wait_win.destroy() if wait_win.get_visible() else None))
 
     threading.Thread(target=run_update, daemon=True).start()
 
