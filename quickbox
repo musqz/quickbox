@@ -3315,21 +3315,17 @@ def _update_distro_list(parent_win):
     wait_win.present()
 
     def run_update():
-        stdout_buf = []
+        import time
+        lines = []
+        count = 0
+        timed_out = [False]
+
         try:
             qg_bin = _resolve_quickget() or "quickget"
             proc = subprocess.Popen([qg_bin, "--list-csv"],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                     text=True)
             proc_holder[0] = proc
-            stdout_buf, _ = proc.communicate(timeout=120)
-            rc = proc.returncode
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            if not cancelled[0]:
-                GLib.idle_add(lambda: notify("Distro List", "✗ Update timed out", "critical"))
-            GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
-            return
         except FileNotFoundError:
             if not cancelled[0]:
                 GLib.idle_add(lambda: notify("Distro List",
@@ -3343,16 +3339,39 @@ def _update_distro_list(parent_win):
             GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
             return
 
+        def _watchdog():
+            time.sleep(300)
+            if proc.poll() is None:
+                timed_out[0] = True
+                proc.kill()
+        threading.Thread(target=_watchdog, daemon=True).start()
+
+        for line in proc.stdout:
+            if cancelled[0]:
+                proc.terminate()
+                return
+            lines.append(line)
+            if len(lines) > 1 and line.strip():
+                count += 1
+                GLib.idle_add(lbl.set_text, f"Fetching… {count} distros found")
+        proc.wait()
+
         if cancelled[0]:
             return
 
-        if rc != 0 or not stdout_buf.strip():
+        if timed_out[0]:
+            if not cancelled[0]:
+                GLib.idle_add(lambda: notify("Distro List", "✗ Update timed out", "critical"))
+            GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
+            return
+
+        stdout_buf = "".join(lines)
+        if proc.returncode != 0 or not stdout_buf.strip():
             GLib.idle_add(lambda: notify("Distro List", "✗ quickget returned an error", "critical"))
         else:
             csv_path = Path.home() / ".config/quickbox/quickinst.csv"
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             csv_path.write_text(stdout_buf, encoding="utf-8")
-            count = sum(1 for line in stdout_buf.splitlines()[1:] if line.strip())
             GLib.idle_add(lambda: notify("Distro List", f"✓ Updated {count} distros", "low"))
 
         GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
