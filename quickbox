@@ -3269,57 +3269,27 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
 def _update_distro_list(parent_win):
     """Background thread to update ~/.config/quickbox/quickinst.csv from quickget --list-csv"""
-    import subprocess
+    proc_holder = [None]   # shared between thread and cancel handler
+    cancelled   = [False]
 
-    wait_win = None
+    def _cancel(win):
+        cancelled[0] = True
+        p = proc_holder[0]
+        if p and p.poll() is None:
+            p.terminate()
+        win.destroy()
 
-    def run_update():
-        nonlocal wait_win
-        try:
-            qg_bin = _resolve_quickget() or "quickget"
-            result = subprocess.run([qg_bin, "--list-csv"],
-                                    capture_output=True, text=True, timeout=120)
-
-            if result.returncode != 0 or not result.stdout.strip():
-                GLib.idle_add(lambda: notify("Distro List",
-                                             f"✗ Error: {result.stderr[:100]}", "critical"))
-                return
-
-            csv_path = Path.home() / ".config/quickbox/quickinst.csv"
-            csv_path.parent.mkdir(parents=True, exist_ok=True)
-            csv_path.write_text(result.stdout, encoding="utf-8")
-            count = sum(1 for line in result.stdout.splitlines()[1:] if line.strip())
-            GLib.idle_add(lambda: notify("Distro List",
-                                         f"✓ Updated {count} distros", "low"))
-                
-        except subprocess.TimeoutExpired:
-            GLib.idle_add(lambda: notify("Distro List", 
-                                        "✗ Timeout (>60s)", "critical"))
-        except FileNotFoundError:
-            GLib.idle_add(lambda: notify("Distro List", 
-                                        "✗ quickget not found. Install quickemu.", "critical"))
-        except Exception as e:
-            GLib.idle_add(lambda e=e: notify("Distro List",
-                                             f"✗ Error: {str(e)[:80]}", "critical"))
-        finally:
-            # Safely destroy wait_win
-            if wait_win:
-                GLib.idle_add(lambda: wait_win.destroy() if wait_win else None)
-    
-    # Create wait window (non-blocking)
-    wait_win = Gtk.Window()
+    wait_win = Gtk.Window(title=S["distro_updating"])
     wait_win.set_transient_for(parent_win)
     _set_icon(wait_win)
     wait_win.set_modal(True)
-    wait_win.set_decorated(False)
-    wait_win.set_default_size(300, 80)
-    
+    wait_win.set_deletable(False)
+    wait_win.set_default_size(300, 110)
+
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-    box.set_margin_top(16)
-    box.set_margin_bottom(16)
-    box.set_margin_start(16)
-    box.set_margin_end(16)
-    
+    box.set_margin_top(16); box.set_margin_bottom(16)
+    box.set_margin_start(16); box.set_margin_end(16)
+
     lbl = Gtk.Label(label=S["distro_updating"])
     lbl.set_wrap(True)
     box.append(lbl)
@@ -3327,13 +3297,64 @@ def _update_distro_list(parent_win):
     spinner = Gtk.Spinner()
     spinner.start()
     box.append(spinner)
-    
+
+    cancel_btn = Gtk.Button(label=S["btn_cancel"])
+    cancel_btn.connect("clicked", lambda b: _cancel(wait_win))
+    box.append(cancel_btn)
+
+    key_ctrl = Gtk.EventControllerKey()
+    key_ctrl.connect("key-pressed",
+        lambda c, kv, kc, mod, w=wait_win:
+            (_cancel(w), True)[1] if kv == 65307 else False)  # 65307 = Escape
+    wait_win.add_controller(key_ctrl)
+
     wait_win.set_child(box)
     wait_win.present()
-    
-    # Start update in background thread
-    t = threading.Thread(target=run_update, daemon=True)
-    t.start()
+
+    def run_update():
+        stdout_buf = []
+        try:
+            qg_bin = _resolve_quickget() or "quickget"
+            proc = subprocess.Popen([qg_bin, "--list-csv"],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    text=True)
+            proc_holder[0] = proc
+            stdout_buf, _ = proc.communicate(timeout=120)
+            rc = proc.returncode
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            if not cancelled[0]:
+                GLib.idle_add(lambda: notify("Distro List", "✗ Timeout (>120s)", "critical"))
+            GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
+            return
+        except FileNotFoundError:
+            if not cancelled[0]:
+                GLib.idle_add(lambda: notify("Distro List",
+                                             "✗ quickget not found. Install quickemu.", "critical"))
+            GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
+            return
+        except Exception as e:
+            if not cancelled[0]:
+                GLib.idle_add(lambda e=e: notify("Distro List",
+                                                 f"✗ Error: {str(e)[:80]}", "critical"))
+            GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
+            return
+
+        if cancelled[0]:
+            return
+
+        if rc != 0 or not stdout_buf.strip():
+            GLib.idle_add(lambda: notify("Distro List", "✗ quickget returned an error", "critical"))
+        else:
+            csv_path = Path.home() / ".config/quickbox/quickinst.csv"
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+            csv_path.write_text(stdout_buf, encoding="utf-8")
+            count = sum(1 for line in stdout_buf.splitlines()[1:] if line.strip())
+            GLib.idle_add(lambda: notify("Distro List", f"✓ Updated {count} distros", "low"))
+
+        GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
+
+    threading.Thread(target=run_update, daemon=True).start()
 
 
 class QuickboxApp(Gtk.Application):
