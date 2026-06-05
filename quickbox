@@ -2136,6 +2136,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         _set_icon(win)
         win.set_modal(True)
         win.set_default_size(640, 520)
+        win.set_size_request(500, 360)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         box.set_vexpand(True)
 
@@ -2689,6 +2690,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         _set_icon(dlg)
         dlg.set_modal(True)
         dlg.set_default_size(480, 540)
+        dlg.set_size_request(380, 420)
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -2949,6 +2951,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         _set_icon(pick)
         pick.set_modal(True)
         pick.set_default_size(440, 480)
+        pick.set_size_request(360, 360)
         pick_outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         pb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         pb.set_margin_top(14); pb.set_margin_bottom(14)
