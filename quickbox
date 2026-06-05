@@ -2388,7 +2388,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         btn_box.set_margin_top(12)
         cancel_btn = Gtk.Button(label=S["btn_cancel"])
         dl_btn     = Gtk.Button(label=S["btn_download"])
-        dl_btn.add_css_class("launch-btn")
+        dl_btn.add_css_class("suggested-action")
         _spacer = Gtk.Box()
         _spacer.set_hexpand(True)
         btn_box.append(_spacer)
