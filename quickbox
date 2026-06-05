@@ -1528,12 +1528,16 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.right_box.append(tog_grid)
 
         act_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        for lbl_key, tt_key, cb in [
-            ("act_edit_conf", "tt_edit_conf", lambda b: subprocess.Popen(["geany", vm["_conf"]])),
-            ("act_clone",     "tt_clone",     lambda b: self._clone_vm(vm)),
-            ("act_open_dir",  "tt_open_dir",  lambda b: subprocess.Popen(["xdg-open", str(Path(self.vms_dir) / vm["_name"])])),
+        for lbl_key, tt_key, icon, cb in [
+            ("act_edit_conf", "tt_edit_conf", "document-edit-symbolic",  lambda b: subprocess.Popen(["geany", vm["_conf"]])),
+            ("act_clone",     "tt_clone",     "edit-copy-symbolic",       lambda b: self._clone_vm(vm)),
+            ("act_open_dir",  "tt_open_dir",  "folder-open-symbolic",     lambda b: subprocess.Popen(["xdg-open", str(Path(self.vms_dir) / vm["_name"])])),
         ]:
-            btn = Gtk.Button(label=S[lbl_key])
+            btn = Gtk.Button()
+            inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+            inner.append(Gtk.Image.new_from_icon_name(icon))
+            inner.append(Gtk.Label(label=S[lbl_key]))
+            btn.set_child(inner)
             btn.set_tooltip_text(S[tt_key])
             btn.connect("clicked", cb)
             btn.set_sensitive(not read_only)
@@ -1543,17 +1547,28 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         dng_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         dng_box.set_margin_top(8)
-        resize_btn = Gtk.Button(label=S["act_resize_disk"])
+        resize_btn = Gtk.Button()
+        resize_inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        resize_inner.append(Gtk.Image.new_from_icon_name("zoom-in-symbolic"))
+        resize_inner.append(Gtk.Label(label=S["act_resize_disk"]))
+        resize_btn.set_child(resize_inner)
         resize_btn.set_tooltip_text(S["tt_resize_disk"])
         resize_btn.set_sensitive(not read_only)
         resize_btn.connect("clicked", lambda b: self._dlg_resize_disk(vm))
         dng_box.append(resize_btn)
-        for lbl_key, tt_key, cb in [
-            ("dng_del_disk", "tt_del_disk", lambda b: self._delete_disk(vm)),
-            ("dng_fmt_disk", "tt_fmt_disk", lambda b: self._dlg_format_disk(vm)),
-            ("dng_del_vm",   "tt_del_vm",   lambda b: self._delete_vm(vm)),
+        for lbl_key, tt_key, icon, cb in [
+            ("dng_del_disk", "tt_del_disk", None,                   lambda b: self._delete_disk(vm)),
+            ("dng_fmt_disk", "tt_fmt_disk", None,                   lambda b: self._dlg_format_disk(vm)),
+            ("dng_del_vm",   "tt_del_vm",   "user-trash-symbolic",  lambda b: self._delete_vm(vm)),
         ]:
-            btn = Gtk.Button(label=S[lbl_key])
+            btn = Gtk.Button()
+            if icon:
+                inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+                inner.append(Gtk.Image.new_from_icon_name(icon))
+                inner.append(Gtk.Label(label=S[lbl_key]))
+                btn.set_child(inner)
+            else:
+                btn.set_label(S[lbl_key])
             btn.set_tooltip_text(S[tt_key])
             btn.add_css_class("destructive-action")
             btn.set_sensitive(not read_only)
