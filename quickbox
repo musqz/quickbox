@@ -1030,9 +1030,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         self._hdr_action_btns = []
         for lbl_key, icon, tt_key, cb in [
-            ("hdr_download",  "folder-download-symbolic",      "tt_download",  self._dlg_download),
-            ("hdr_custom_vm", "list-add-symbolic",             "tt_custom_vm", self._dlg_custom),
-            ("hdr_advanced",  "preferences-system-symbolic",   "tt_advanced",  self._dlg_advanced),
+            ("hdr_download",  "folder-download-symbolic",  "tt_download",  self._dlg_download),
+            ("hdr_custom_vm", "list-add-symbolic",         "tt_custom_vm", self._dlg_custom),
         ]:
             btn = Gtk.Button()
             inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
@@ -1097,6 +1096,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._status.set_halign(Gtk.Align.START)
         self._status.set_hexpand(True)
         sb.append(self._status)
+        adv_btn = Gtk.Button()
+        adv_btn.set_child(Gtk.Image.new_from_icon_name("preferences-system-symbolic"))
+        adv_btn.set_tooltip_text(S["tt_advanced"])
+        adv_btn.connect("clicked", lambda b: self._dlg_advanced())
+        adv_btn.add_css_class("flat")
+        sb.append(adv_btn)
+        self._hdr_action_btns.append(adv_btn)
         vbox.append(sb)
 
     # ── refresh ──
