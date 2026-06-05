@@ -2808,25 +2808,23 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._refresh_loc_list(dlg)
         box.append(self._loc_list_box)
 
-        _sep_about = Gtk.Separator()
-        _sep_about.set_margin_top(8)
-        box.append(_sep_about)
-
-        hdr_about = Gtk.Label(label=S["adv_sec_about"])
-        hdr_about.set_halign(Gtk.Align.START)
-        hdr_about.add_css_class("section-hdr")
-        box.append(hdr_about)
+        btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_row.set_margin_top(8); btn_row.set_margin_bottom(8)
+        btn_row.set_margin_start(16); btn_row.set_margin_end(16)
 
         about_btn = Gtk.Button(label=S["adv_about"])
-        about_btn.set_margin_top(8)
         about_btn.connect("clicked", lambda b: self._dlg_about(dlg))
-        box.append(about_btn)
+        btn_row.append(about_btn)
+
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        btn_row.append(spacer)
 
         close_btn = Gtk.Button(label=S["btn_close"])
-        close_btn.set_margin_top(8); close_btn.set_margin_bottom(8)
-        close_btn.set_margin_start(16); close_btn.set_margin_end(16)
         close_btn.connect("clicked", lambda b: dlg.close())
-        outer.append(close_btn)
+        btn_row.append(close_btn)
+
+        outer.append(btn_row)
 
         dlg.set_child(outer)
         dlg.present()
