@@ -1684,7 +1684,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         return False
 
     def _stop_vm(self, vm):
-        subprocess.Popen(["pkill", "-f", f"name {vm['_name']},process={vm['_name']}"])
+        needle = f"name {vm['_name']},process={vm['_name']}"
+        r = subprocess.run(["pgrep", "-fa", "qemu-system"], capture_output=True, text=True)
+        for line in r.stdout.splitlines():
+            if needle in line:
+                pid = line.split()[0]
+                subprocess.Popen(["kill", "-TERM", pid])
         GLib.timeout_add(1500, self._refresh)
 
     # ── boot mode ──
