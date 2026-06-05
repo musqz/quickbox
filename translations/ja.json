@@ -206,5 +206,8 @@
   "snap_autosave_done": "現在の状態を '{}' として保存しました",
   "dl_search_ph": "ディストロを検索…",
   "dl2_cmd_note": "ダウンロードに失敗した場合は、{} のターミナルでこのコマンドを実行してください — VMは自動的にリストに表示されます。",
-  "standard": "標準"
+  "standard": "標準",
+  "adv_sec_notif": "通知",
+  "adv_notif_toggle": "通知を有効にする",
+  "adv_notif_hint": "VMイベントとバックグラウンドタスクのデスクトップ通知"
 }

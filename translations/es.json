@@ -206,5 +206,8 @@
   "snap_autosave_done": "Estado actual guardado como '{}'",
   "dl_search_ph": "Buscar distros…",
   "dl2_cmd_note": "Si la descarga falla, ejecuta este comando en una terminal en {} — la VM aparecerá automáticamente en la lista.",
-  "standard": "Estándar"
+  "standard": "Estándar",
+  "adv_sec_notif": "NOTIFICACIONES",
+  "adv_notif_toggle": "Activar notificaciones",
+  "adv_notif_hint": "Notificaciones de escritorio para eventos de VM y tareas en segundo plano"
 }

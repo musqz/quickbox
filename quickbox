@@ -85,6 +85,7 @@ icon.set_visible(True)
 icon.connect('button-press-event', lambda i, e: send('activate') if e.button == 1 else None)
 
 _running_vms = []
+_notif_on = True
 
 def _section_header(text):
     item = Gtk.MenuItem()
@@ -112,6 +113,11 @@ def on_popup(icon, button, time):
     show = Gtk.MenuItem(label='Show Quickbox')
     show.connect('activate', lambda *a: send('show'))
     menu.append(show)
+    notif_item = Gtk.CheckMenuItem(label='Notifications')
+    notif_item.set_active(_notif_on)
+    notif_item.connect('activate', lambda *a: send('notif_toggle'))
+    menu.append(notif_item)
+    menu.append(Gtk.SeparatorMenuItem())
     quit_item = Gtk.MenuItem(label='Quit Quickbox')
     quit_item.connect('activate', lambda *a: (send('quit'), Gtk.main_quit()))
     menu.append(quit_item)
@@ -121,7 +127,7 @@ def on_popup(icon, button, time):
 icon.connect('popup-menu', on_popup)
 
 def _read(fd, cond):
-    global _running_vms
+    global _running_vms, _notif_on
     line = sys.stdin.readline()
     if not line or line.strip() == 'quit':
         Gtk.main_quit()
@@ -130,6 +136,10 @@ def _read(fd, cond):
     if line.startswith('vms:'):
         payload = line[4:]
         _running_vms = [n for n in payload.split('|') if n]
+    elif line == 'notif:on':
+        _notif_on = True
+    elif line == 'notif:off':
+        _notif_on = False
     return True
 
 GLib.io_add_watch(sys.stdin.fileno(), GLib.IO_IN | GLib.IO_HUP, _read)
@@ -297,6 +307,9 @@ _EN_STRINGS = {
     "adv_about_author": "Author",
     "adv_about_github": "GitHub",
     "adv_about_license": "License",
+    "adv_sec_notif": "NOTIFICATIONS",
+    "adv_notif_toggle": "Enable notifications",
+    "adv_notif_hint": "Desktop notifications for VM events and background tasks",
     "adv_sec_loc": "LOCATION MANAGEMENT",
     "adv_sec_prof": "PROFILES MANAGEMENT",
     "adv_sec_saved": "SAVED LOCATIONS (click to switch)",
@@ -489,7 +502,11 @@ def _notify_icon():
     local = Path(__file__).parent / "icons/hicolor/scalable/apps/quickbox.svg"
     return str(local) if local.exists() else APP_ICON
 
+_notifications_on = True
+
 def notify(title, body, urgency="low"):
+    if not _notifications_on:
+        return
     subprocess.Popen(["notify-send", "-i", _notify_icon(), "-u", urgency, title, body])
 
 
@@ -729,6 +746,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.set_icon_name(APP_ICON)
         self.conf      = read_conf()
         self.vms_dir   = self.conf.get("vms_dir", str(Path.home() / "emu"))
+        global _notifications_on
+        _notifications_on = self.conf.get("notifications", "true") == "true"
         self.current_vm = None
         self._search_text = ""
         self._vms_dir_mtime = 0
@@ -785,6 +804,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 GLib.IO_IN, self._on_tray_output)
             self._indicator = self._tray_proc
             GLib.timeout_add(200, self._push_tray_vms)
+            GLib.timeout_add(250, self._push_tray_notif)
         except Exception:
             self._indicator = None
 
@@ -794,6 +814,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             if line.startswith("stop:"):
                 name = line[5:]
                 GLib.idle_add(self._stop_vm_by_name, name)
+            elif line == "notif_toggle":
+                GLib.idle_add(self._set_notifications, not _notifications_on)
             elif line == "show":
                 GLib.idle_add(self._tray_show)
             elif "activate" in line:
@@ -817,6 +839,24 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             GLib.timeout_add(1500, self._refresh)
         self._tray_show()
         self._confirm(S["dlg_stop_t"].format(name), S["dlg_stop_b"], on_confirm)
+
+    def _set_notifications(self, enabled):
+        global _notifications_on
+        _notifications_on = enabled
+        val = "true" if enabled else "false"
+        setconf("notifications", val)
+        self.conf["notifications"] = val
+        self._push_tray_notif()
+
+    def _push_tray_notif(self):
+        if not self._indicator:
+            return
+        try:
+            state = "on" if _notifications_on else "off"
+            self._tray_proc.stdin.write(f"notif:{state}\n")
+            self._tray_proc.stdin.flush()
+        except Exception:
+            pass
 
     def _push_tray_vms(self):
         if not self._indicator:
@@ -2134,8 +2174,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     import tempfile
                     tmp = tempfile.mktemp(suffix=".raw", dir=self.vms_dir)
                     try:
-                        GLib.idle_add(notify, "quickbox-gui",
-                                      S["ntf_fmt_start"].format(size_gb), "low")
                         subprocess.run(["qemu-img", "create", "-f", "raw", tmp, f"{size_gb}G"],
                                        check=True)
                         if layout == "gpt_esp_ext4":
@@ -2922,6 +2960,35 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         _sep = Gtk.Separator()
         _sep.set_margin_top(8)
         box.append(_sep)
+
+        # ── Notifications ──
+        hdr_notif = Gtk.Label(label=S["adv_sec_notif"])
+        hdr_notif.set_halign(Gtk.Align.START)
+        hdr_notif.add_css_class("section-hdr")
+        box.append(hdr_notif)
+
+        notif_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        notif_row.set_margin_top(8)
+        notif_row.set_margin_bottom(4)
+        notif_lbl = Gtk.Label(label=S["adv_notif_toggle"])
+        notif_lbl.set_halign(Gtk.Align.START)
+        notif_lbl.set_hexpand(True)
+        notif_sw = Gtk.Switch()
+        notif_sw.set_active(_notifications_on)
+        notif_sw.set_valign(Gtk.Align.CENTER)
+        notif_sw.connect("notify::active", lambda sw, _: self._set_notifications(sw.get_active()))
+        notif_row.append(notif_lbl)
+        notif_row.append(notif_sw)
+        box.append(notif_row)
+        notif_hint = Gtk.Label()
+        notif_hint.set_markup(f'<span size="small" color="gray">{S["adv_notif_hint"]}</span>')
+        notif_hint.set_halign(Gtk.Align.START)
+        notif_hint.set_margin_bottom(12)
+        box.append(notif_hint)
+
+        _sep_notif = Gtk.Separator()
+        _sep_notif.set_margin_top(8)
+        box.append(_sep_notif)
 
         # ── Location management ──
         hdr1 = Gtk.Label(label=S["adv_sec_loc"])

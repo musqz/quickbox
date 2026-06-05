@@ -206,5 +206,8 @@
   "snap_autosave_done": "Bieżący stan zapisany jako '{}'",
   "dl_search_ph": "Szukaj dystrybucji…",
   "dl2_cmd_note": "Jeśli pobieranie się nie powiedzie, uruchom to polecenie w terminalu w {} — VM pojawi się automatycznie na liście.",
-  "standard": "Standardowy"
+  "standard": "Standardowy",
+  "adv_sec_notif": "POWIADOMIENIA",
+  "adv_notif_toggle": "Włącz powiadomienia",
+  "adv_notif_hint": "Powiadomienia pulpitu dla zdarzeń VM i zadań w tle"
 }

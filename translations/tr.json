@@ -206,5 +206,8 @@
   "snap_autosave_done": "Mevcut durum '{}' olarak kaydedildi",
   "dl_search_ph": "Distro ara…",
   "dl2_cmd_note": "İndirme başarısız olursa, bu komutu {} içinde bir terminalde çalıştır — VM otomatik olarak listede görünecek.",
-  "standard": "Standart"
+  "standard": "Standart",
+  "adv_sec_notif": "BİLDİRİMLER",
+  "adv_notif_toggle": "Bildirimleri etkinleştir",
+  "adv_notif_hint": "VM olayları ve arka plan görevleri için masaüstü bildirimleri"
 }

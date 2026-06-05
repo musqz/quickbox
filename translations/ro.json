@@ -206,5 +206,8 @@
   "snap_autosave_done": "Starea curentă salvată ca '{}'",
   "dl_search_ph": "Caută distro-uri…",
   "dl2_cmd_note": "Dacă descărcarea eșuează, rulează această comandă într-un terminal în {} — VM-ul va apărea automat în listă.",
-  "standard": "Standard"
+  "standard": "Standard",
+  "adv_sec_notif": "NOTIFICĂRI",
+  "adv_notif_toggle": "Activează notificările",
+  "adv_notif_hint": "Notificări desktop pentru evenimente VM și sarcini în fundal"
 }

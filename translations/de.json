@@ -206,5 +206,8 @@
   "snap_autosave_done": "Aktueller Zustand gespeichert als '{}'",
   "dl_search_ph": "Distros suchen…",
   "dl2_cmd_note": "Falls der Download fehlschlägt, führe diesen Befehl im Terminal in {} aus — die VM erscheint dann automatisch in der Liste.",
-  "standard": "Standard"
+  "standard": "Standard",
+  "adv_sec_notif": "BENACHRICHTIGUNGEN",
+  "adv_notif_toggle": "Benachrichtigungen aktivieren",
+  "adv_notif_hint": "Desktop-Benachrichtigungen für VM-Ereignisse und Hintergrundaufgaben"
 }

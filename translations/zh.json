@@ -206,5 +206,8 @@
   "snap_autosave_done": "当前状态已保存为 '{}'",
   "dl_search_ph": "搜索发行版…",
   "dl2_cmd_note": "如果下载失败，请在 {} 中的终端运行此命令 — VM 将自动出现在列表中。",
-  "standard": "标准"
+  "standard": "标准",
+  "adv_sec_notif": "通知",
+  "adv_notif_toggle": "启用通知",
+  "adv_notif_hint": "虚拟机事件和后台任务的桌面通知"
 }
