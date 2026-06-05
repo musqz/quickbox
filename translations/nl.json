@@ -209,5 +209,9 @@
   "standard": "Standaard",
   "adv_sec_notif": "MELDINGEN",
   "adv_notif_toggle": "Meldingen inschakelen",
-  "adv_notif_hint": "Bureaubladmeldingen voor VM-gebeurtenissen en achtergrondtaken"
+  "adv_notif_hint": "Bureaubladmeldingen voor VM-gebeurtenissen en achtergrondtaken",
+  "snap_creating": "Snapshot '{}' aanmaken…",
+  "snap_applying": "Snapshot '{}' toepassen…",
+  "snap_saving": "Huidige toestand opslaan als '{}'…",
+  "snap_deleting": "Snapshot '{}' verwijderen…"
 }

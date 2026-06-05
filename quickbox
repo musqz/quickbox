@@ -234,6 +234,10 @@ _EN_STRINGS = {
     "snap_entry_ph": "New snapshot tag…",
     "snap_create": "Create snapshot",
     "snap_apply": "Apply",
+    "snap_creating": "Creating snapshot '{}'…",
+    "snap_applying": "Applying snapshot '{}'…",
+    "snap_saving":   "Saving current state as '{}'…",
+    "snap_deleting": "Deleting snapshot '{}'…",
     "snap_delete": "Delete",
     "snap_active": "Active: {}",
     "snap_stale": "Last applied: {} (deleted)",
@@ -1856,6 +1860,29 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     # ── snapshots ──
 
+    def _snap_spinner(self, label):
+        """Small modal spinner window. Returns (window, set_label_fn)."""
+        win = Gtk.Window()
+        win.set_transient_for(self)
+        win.set_modal(True)
+        win.set_deletable(False)
+        win.set_resizable(False)
+        win.set_default_size(260, -1)
+        self._track(win)
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        box.set_margin_top(16); box.set_margin_bottom(16)
+        box.set_margin_start(20); box.set_margin_end(20)
+        spinner = Gtk.Spinner()
+        spinner.start()
+        lbl = Gtk.Label(label=label)
+        lbl.set_halign(Gtk.Align.START)
+        lbl.set_hexpand(True)
+        box.append(spinner)
+        box.append(lbl)
+        win.set_child(box)
+        win.present()
+        return win, lbl.set_text
+
     def _snap_create(self, vm):
         tag = self._snap_entry.get_text().strip()
         if not tag:
@@ -1871,16 +1898,24 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         if tag in existing:
             self._warn(S["warn_dup_snap_t"], S["warn_dup_snap_b"].format(tag))
             return
-        result = subprocess.run(
-            ["qemu-img", "snapshot", "-c", tag, disk],
-            capture_output=True, text=True
-        )
-        if result.returncode == 0:
-            self._snap_entry.set_text("")
-            notify("quickbox", S["ntf_snap_created"].format(tag), "low")
-            self._show_panel(vm)
-        else:
-            self._warn(S["warn_snap_fail_t"], result.stderr or "qemu-img returned an error.")
+
+        spin_win, _ = self._snap_spinner(S["snap_creating"].format(tag))
+
+        def _run():
+            result = subprocess.run(
+                ["qemu-img", "snapshot", "-c", tag, disk],
+                capture_output=True, text=True)
+            def _done():
+                spin_win.destroy()
+                if result.returncode == 0:
+                    self._snap_entry.set_text("")
+                    notify("quickbox", S["ntf_snap_created"].format(tag), "low")
+                    self._show_panel(vm)
+                else:
+                    self._warn(S["warn_snap_fail_t"],
+                               result.stderr or "qemu-img returned an error.")
+            GLib.idle_add(_done)
+        threading.Thread(target=_run, daemon=True).start()
 
     def _snap_apply(self, vm, tag):
         auto_tag = f"pre-apply-{_date_tag(with_time=True)}"
@@ -1939,21 +1974,27 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             save_name = name_entry.get_text().strip() if (save_first and not disk_unchanged) else auto_tag
             win.close()
 
+            spin_win, set_spin_lbl = self._snap_spinner(S["snap_applying"].format(tag))
+
             def _run():
                 if save_first:
+                    GLib.idle_add(set_spin_lbl, S["snap_saving"].format(save_name))
                     r = subprocess.run(
                         ["qemu-img", "snapshot", "-c", save_name, vm["_disk"]],
                         capture_output=True, text=True)
                     if r.returncode != 0:
+                        GLib.idle_add(spin_win.destroy)
                         GLib.idle_add(self._warn, S["warn_snap_fail_t"],
                                       f"Auto-save failed: {r.stderr}")
                         return
                     GLib.idle_add(notify, "quickbox",
                                   S["snap_autosave_done"].format(save_name), "low")
 
+                GLib.idle_add(set_spin_lbl, S["snap_applying"].format(tag))
                 r = subprocess.run(
                     ["qemu-img", "snapshot", "-a", tag, vm["_disk"]],
                     capture_output=True, text=True)
+                GLib.idle_add(spin_win.destroy)
                 if r.returncode != 0:
                     GLib.idle_add(self._warn, S["warn_snap_fail_t"],
                                   r.stderr or "qemu-img returned an error.")
@@ -1977,11 +2018,15 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         def on_confirm(yes):
             if not yes:
                 return
-            subprocess.run(["qemu-img", "snapshot", "-d", tag, vm["_disk"]])
-            if vm.get("current_snap") == tag:
-                remove_key("current_snap", vm["_conf"])
-                vm.pop("current_snap", None)
-            self._show_panel(vm)
+            spin_win, _ = self._snap_spinner(S["snap_deleting"].format(tag))
+            def _run():
+                subprocess.run(["qemu-img", "snapshot", "-d", tag, vm["_disk"]])
+                if vm.get("current_snap") == tag:
+                    remove_key("current_snap", vm["_conf"])
+                    vm.pop("current_snap", None)
+                GLib.idle_add(spin_win.destroy)
+                GLib.idle_add(self._show_panel, vm)
+            threading.Thread(target=_run, daemon=True).start()
         self._confirm(S["dlg_snap_del_t"].format(tag), S["dlg_snap_del_b"], on_confirm)
 
     # ── clone ──

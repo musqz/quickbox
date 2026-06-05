@@ -209,5 +209,9 @@
   "standard": "Standart",
   "adv_sec_notif": "BİLDİRİMLER",
   "adv_notif_toggle": "Bildirimleri etkinleştir",
-  "adv_notif_hint": "VM olayları ve arka plan görevleri için masaüstü bildirimleri"
+  "adv_notif_hint": "VM olayları ve arka plan görevleri için masaüstü bildirimleri",
+  "snap_creating": "'{}' snapshot oluşturuluyor…",
+  "snap_applying": "'{}' snapshot uygulanıyor…",
+  "snap_saving": "Mevcut durum '{}' olarak kaydediliyor…",
+  "snap_deleting": "'{}' snapshot siliniyor…"
 }

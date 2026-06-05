@@ -209,5 +209,9 @@
   "standard": "Estándar",
   "adv_sec_notif": "NOTIFICACIONES",
   "adv_notif_toggle": "Activar notificaciones",
-  "adv_notif_hint": "Notificaciones de escritorio para eventos de VM y tareas en segundo plano"
+  "adv_notif_hint": "Notificaciones de escritorio para eventos de VM y tareas en segundo plano",
+  "snap_creating": "Creando snapshot '{}'…",
+  "snap_applying": "Aplicando snapshot '{}'…",
+  "snap_saving": "Guardando estado actual como '{}'…",
+  "snap_deleting": "Eliminando snapshot '{}'…"
 }

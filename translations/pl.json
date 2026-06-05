@@ -209,5 +209,9 @@
   "standard": "Standardowy",
   "adv_sec_notif": "POWIADOMIENIA",
   "adv_notif_toggle": "Włącz powiadomienia",
-  "adv_notif_hint": "Powiadomienia pulpitu dla zdarzeń VM i zadań w tle"
+  "adv_notif_hint": "Powiadomienia pulpitu dla zdarzeń VM i zadań w tle",
+  "snap_creating": "Tworzenie migawki '{}'…",
+  "snap_applying": "Stosowanie migawki '{}'…",
+  "snap_saving": "Zapisywanie bieżącego stanu jako '{}'…",
+  "snap_deleting": "Usuwanie migawki '{}'…"
 }

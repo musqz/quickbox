@@ -209,5 +209,9 @@
   "standard": "Standard",
   "adv_sec_notif": "NOTIFICĂRI",
   "adv_notif_toggle": "Activează notificările",
-  "adv_notif_hint": "Notificări desktop pentru evenimente VM și sarcini în fundal"
+  "adv_notif_hint": "Notificări desktop pentru evenimente VM și sarcini în fundal",
+  "snap_creating": "Se creează snapshot '{}'…",
+  "snap_applying": "Se aplică snapshot '{}'…",
+  "snap_saving": "Se salvează starea curentă ca '{}'…",
+  "snap_deleting": "Se șterge snapshot '{}'…"
 }

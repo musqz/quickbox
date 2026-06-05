@@ -209,5 +209,9 @@
   "standard": "Standard",
   "adv_sec_notif": "BENACHRICHTIGUNGEN",
   "adv_notif_toggle": "Benachrichtigungen aktivieren",
-  "adv_notif_hint": "Desktop-Benachrichtigungen für VM-Ereignisse und Hintergrundaufgaben"
+  "adv_notif_hint": "Desktop-Benachrichtigungen für VM-Ereignisse und Hintergrundaufgaben",
+  "snap_creating": "Snapshot '{}' wird erstellt…",
+  "snap_applying": "Snapshot '{}' wird angewendet…",
+  "snap_saving": "Aktuellen Zustand wird gespeichert als '{}'…",
+  "snap_deleting": "Snapshot '{}' wird gelöscht…"
 }

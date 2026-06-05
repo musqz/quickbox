@@ -209,5 +209,9 @@
   "standard": "Standard",
   "adv_sec_notif": "NOTIFICATIONS",
   "adv_notif_toggle": "Activer les notifications",
-  "adv_notif_hint": "Notifications bureau pour les événements VM et les tâches en arrière-plan"
+  "adv_notif_hint": "Notifications bureau pour les événements VM et les tâches en arrière-plan",
+  "snap_creating": "Création du snapshot '{}' en cours…",
+  "snap_applying": "Application du snapshot '{}' en cours…",
+  "snap_saving": "Sauvegarde de l'état actuel sous '{}' en cours…",
+  "snap_deleting": "Suppression du snapshot '{}' en cours…"
 }

@@ -209,5 +209,9 @@
   "standard": "Padrão",
   "adv_sec_notif": "NOTIFICAÇÕES",
   "adv_notif_toggle": "Ativar notificações",
-  "adv_notif_hint": "Notificações de área de trabalho para eventos de VM e tarefas em segundo plano"
+  "adv_notif_hint": "Notificações de área de trabalho para eventos de VM e tarefas em segundo plano",
+  "snap_creating": "Criando snapshot '{}'…",
+  "snap_applying": "Aplicando snapshot '{}'…",
+  "snap_saving": "Salvando estado atual como '{}'…",
+  "snap_deleting": "Excluindo snapshot '{}'…"
 }

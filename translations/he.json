@@ -209,5 +209,9 @@
   "standard": "סטנדרטי",
   "adv_sec_notif": "התראות",
   "adv_notif_toggle": "הפעל התראות",
-  "adv_notif_hint": "התראות שולחן עבודה לאירועי VM ומשימות ברקע"
+  "adv_notif_hint": "התראות שולחן עבודה לאירועי VM ומשימות ברקע",
+  "snap_creating": "יוצר סנפשוט '{}'…",
+  "snap_applying": "מחיל סנפשוט '{}'…",
+  "snap_saving": "שומר את המצב הנוכחי בשם '{}'…",
+  "snap_deleting": "מוחק סנפשוט '{}'…"
 }

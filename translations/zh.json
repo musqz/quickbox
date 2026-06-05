@@ -209,5 +209,9 @@
   "standard": "标准",
   "adv_sec_notif": "通知",
   "adv_notif_toggle": "启用通知",
-  "adv_notif_hint": "虚拟机事件和后台任务的桌面通知"
+  "adv_notif_hint": "虚拟机事件和后台任务的桌面通知",
+  "snap_creating": "正在创建快照 '{}'…",
+  "snap_applying": "正在应用快照 '{}'…",
+  "snap_saving": "正在将当前状态保存为 '{}'…",
+  "snap_deleting": "正在删除快照 '{}'…"
 }

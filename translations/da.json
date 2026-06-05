@@ -209,5 +209,9 @@
   "standard": "Standard",
   "adv_sec_notif": "NOTIFIKATIONER",
   "adv_notif_toggle": "Aktiver notifikationer",
-  "adv_notif_hint": "Skrivebordsnotifikationer for VM-hændelser og baggrundsopgaver"
+  "adv_notif_hint": "Skrivebordsnotifikationer for VM-hændelser og baggrundsopgaver",
+  "snap_creating": "Opretter snapshot '{}'…",
+  "snap_applying": "Anvender snapshot '{}'…",
+  "snap_saving": "Gemmer nuværende tilstand som '{}'…",
+  "snap_deleting": "Sletter snapshot '{}'…"
 }
