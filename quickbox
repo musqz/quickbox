@@ -1086,11 +1086,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         # Paned
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        paned.set_position(280)
-        paned.set_sensitive(True)
-        # prevent user from dragging the divider
-        paned.set_property("position-set", True)
+        paned.set_position(int(self.conf.get("pane_pos", "280")))
         paned.set_vexpand(True)
+        paned.connect("notify::position",
+                      lambda p, _: setconf("pane_pos", str(p.get_position())))
         vbox.append(paned)
 
         # Left — list
