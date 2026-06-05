@@ -2261,7 +2261,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 if resp == Gtk.ResponseType.ACCEPT:
                     f = native.get_file()
                     if f:
-                        iso_path = f.get_path()
+                        abs_path = f.get_path()
+                        try:
+                            iso_path = str(Path(abs_path).relative_to(self.vms_dir))
+                        except ValueError:
+                            iso_path = abs_path
                         setconf("iso", iso_path, vm["_conf"])
                         vm["iso"] = iso_path
                         self._refresh()
