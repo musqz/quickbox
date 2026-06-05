@@ -165,6 +165,7 @@ _EN_STRINGS = {
     "tt_download": "Download a new distro ISO via quickget",
     "tt_custom_vm": "Create a VM from a local ISO or IMG file",
     "tt_advanced": "Migrate VMs, switch location, manage saved paths",
+    "tt_update_distros": "Update distro list — fetches the latest available distros from quickget",
     "search_ph": "Filter VMs…",
     "search_tt": "Type to filter the VM list by name",
     "badge_running": "running",
@@ -257,12 +258,10 @@ _EN_STRINGS = {
     "adv_about_github": "GitHub",
     "adv_about_license": "License",
     "adv_sec_loc": "LOCATION MANAGEMENT",
-    "adv_sec_distro": "DISTRO LIST MANAGEMENT",
     "adv_sec_prof": "PROFILES MANAGEMENT",
     "adv_sec_saved": "SAVED LOCATIONS (click to switch)",
     "adv_migrate": "Migrate VMs to new location",
     "adv_add_loc": "Add to switch list",
-    "adv_update_dl": "Update Distro List from quickget",
     "adv_update_hint": "Updates ~/.config/quickbox/quickinst.csv (takes ~30s)",
     "adv_open_prof": "Open profiles folder",
     "adv_reset_prof": "Reset default profiles",
@@ -939,6 +938,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._tray_btn.set_tooltip_text(S["tt_tray"])
         self._tray_btn.connect("toggled", self._on_tray_header_toggle)
         hb.pack_start(self._tray_btn)
+
+        update_distros_btn = Gtk.Button()
+        update_distros_btn.set_child(Gtk.Image.new_from_icon_name("view-refresh-symbolic"))
+        update_distros_btn.set_tooltip_text(S["tt_update_distros"])
+        update_distros_btn.connect("clicked", lambda b: _update_distro_list(self))
+        hb.pack_end(update_distros_btn)
 
         self._hdr_action_btns = []
         for lbl_key, icon, tt_key, cb in [
@@ -2739,17 +2744,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         _sep2.set_margin_top(8)
         box.append(_sep2)
 
-        # ── Distro list management ──
-        hdr_distro = Gtk.Label(label=S["adv_sec_distro"])
-        hdr_distro.set_halign(Gtk.Align.START)
-        hdr_distro.add_css_class("section-hdr")
-        box.append(hdr_distro)
-
-        update_btn = Gtk.Button(label=S["adv_update_dl"])
-        update_btn.set_margin_top(8)
-        update_btn.connect("clicked", lambda b: _update_distro_list(self))
-        box.append(update_btn)
-
         _csv = Path.home() / ".config/quickbox/quickinst.csv"
         if _csv.exists():
             _mtime = _csv.stat().st_mtime
@@ -3103,16 +3097,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         box.set_margin_start(28); box.set_margin_end(28)
         box.set_valign(Gtk.Align.CENTER)
 
-        # Title + spinner row
-        hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        hdr.set_halign(Gtk.Align.CENTER)
-        spinner = Gtk.Spinner()
-        spinner.start()
-        hdr.append(spinner)
         title_lbl = Gtk.Label()
         title_lbl.set_markup(f'<span weight="bold" size="large">{title}</span>')
-        hdr.append(title_lbl)
-        box.append(hdr)
+        title_lbl.set_halign(Gtk.Align.CENTER)
+        box.append(title_lbl)
 
         progress = Gtk.ProgressBar()
         progress.set_show_text(False)
@@ -3126,19 +3114,44 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         dlg.set_child(box)
         dlg.present()
 
+        self._proc_running = True
+
+        def _fmt_bytes(n):
+            for unit in ("B", "KB", "MB", "GB", "TB"):
+                if n < 1024 or unit == "TB":
+                    return f"{n:.1f} {unit}" if unit != "B" else f"{n} B"
+                n /= 1024
+
         def _pulse():
             progress.pulse()
             return self._proc_running
 
-        self._proc_running = True
         GLib.timeout_add(150, _pulse)
 
         def _run():
+            import re
+            # rsync --info=progress2 lines:  "   sent_bytes  pct%  speed  eta  total_bytes"
+            _progress2 = re.compile(
+                r'^\s*([\d,]+)\s+(\d+)%.*?([\d,]+)$'
+            )
             try:
-                proc = subprocess.run(
+                proc = subprocess.Popen(
                     cmd_list, cwd=cwd,
-                    capture_output=True, text=True
+                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                    text=True
                 )
+                for line in proc.stdout:
+                    line = line.rstrip('\r\n ')
+                    m = _progress2.match(line)
+                    if m:
+                        sent = int(m.group(1).replace(',', ''))
+                        pct  = int(m.group(2))
+                        total = int(m.group(3).replace(',', ''))
+                        frac = pct / 100.0
+                        label = f"{_fmt_bytes(sent)} / {_fmt_bytes(total)}"
+                        GLib.idle_add(progress.set_fraction, frac)
+                        GLib.idle_add(status_lbl.set_text, label)
+                proc.wait()
                 rc = proc.returncode
             except Exception:
                 rc = 1
@@ -3147,11 +3160,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
             if rc == 0:
                 GLib.idle_add(progress.set_fraction, 1.0)
-                GLib.idle_add(spinner.stop)
                 GLib.idle_add(status_lbl.set_markup,
                     f'<span color="gray">{S["prog_done"]}</span>')
             else:
-                GLib.idle_add(spinner.stop)
                 GLib.idle_add(status_lbl.set_markup,
                     f'<span color="red">{S["prog_fail"]}</span>')
 
