@@ -1073,15 +1073,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         hb.pack_end(update_distros_btn)
 
         self._hdr_action_btns = []
-        for lbl_key, icon, tt_key, cb in [
-            ("hdr_download",  "folder-download-symbolic",  "tt_download",  self._dlg_download),
-            ("hdr_custom_vm", "list-add-symbolic",         "tt_custom_vm", self._dlg_custom),
+        for icon, tt_key, cb in [
+            ("folder-download-symbolic", "tt_download",  self._dlg_download),
+            ("document-open-symbolic",   "tt_custom_vm", self._dlg_custom),
         ]:
             btn = Gtk.Button()
-            inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-            inner.append(Gtk.Image.new_from_icon_name(icon))
-            inner.append(Gtk.Label(label=S[lbl_key]))
-            btn.set_child(inner)
+            btn.set_child(Gtk.Image.new_from_icon_name(icon))
             btn.set_tooltip_text(S[tt_key])
             btn.connect("clicked", cb)
             hb.pack_end(btn)
