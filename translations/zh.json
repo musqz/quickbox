@@ -213,5 +213,6 @@
   "snap_creating": "正在创建快照 '{}'…",
   "snap_applying": "正在应用快照 '{}'…",
   "snap_saving": "正在将当前状态保存为 '{}'…",
-  "snap_deleting": "正在删除快照 '{}'…"
+  "snap_deleting": "正在删除快照 '{}'…",
+  "rsz_cur_lbl": "当前大小："
 }

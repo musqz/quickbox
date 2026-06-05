@@ -213,5 +213,6 @@
   "snap_creating": "Snapshot '{}' wird erstellt…",
   "snap_applying": "Snapshot '{}' wird angewendet…",
   "snap_saving": "Aktuellen Zustand wird gespeichert als '{}'…",
-  "snap_deleting": "Snapshot '{}' wird gelöscht…"
+  "snap_deleting": "Snapshot '{}' wird gelöscht…",
+  "rsz_cur_lbl": "Aktuelle Größe:"
 }

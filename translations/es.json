@@ -213,5 +213,6 @@
   "snap_creating": "Creando snapshot '{}'…",
   "snap_applying": "Aplicando snapshot '{}'…",
   "snap_saving": "Guardando estado actual como '{}'…",
-  "snap_deleting": "Eliminando snapshot '{}'…"
+  "snap_deleting": "Eliminando snapshot '{}'…",
+  "rsz_cur_lbl": "Tamaño actual:"
 }

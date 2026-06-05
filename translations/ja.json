@@ -213,5 +213,6 @@
   "snap_creating": "スナップショット '{}' を作成中…",
   "snap_applying": "スナップショット '{}' を適用中…",
   "snap_saving": "現在の状態を '{}' として保存中…",
-  "snap_deleting": "スナップショット '{}' を削除中…"
+  "snap_deleting": "スナップショット '{}' を削除中…",
+  "rsz_cur_lbl": "現在のサイズ："
 }

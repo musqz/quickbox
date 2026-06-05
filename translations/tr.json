@@ -213,5 +213,6 @@
   "snap_creating": "'{}' snapshot oluşturuluyor…",
   "snap_applying": "'{}' snapshot uygulanıyor…",
   "snap_saving": "Mevcut durum '{}' olarak kaydediliyor…",
-  "snap_deleting": "'{}' snapshot siliniyor…"
+  "snap_deleting": "'{}' snapshot siliniyor…",
+  "rsz_cur_lbl": "Mevcut boyut:"
 }

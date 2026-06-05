@@ -213,5 +213,6 @@
   "snap_creating": "Tworzenie migawki '{}'…",
   "snap_applying": "Stosowanie migawki '{}'…",
   "snap_saving": "Zapisywanie bieżącego stanu jako '{}'…",
-  "snap_deleting": "Usuwanie migawki '{}'…"
+  "snap_deleting": "Usuwanie migawki '{}'…",
+  "rsz_cur_lbl": "Aktualny rozmiar:"
 }

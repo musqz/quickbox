@@ -213,5 +213,6 @@
   "snap_creating": "Création du snapshot '{}' en cours…",
   "snap_applying": "Application du snapshot '{}' en cours…",
   "snap_saving": "Sauvegarde de l'état actuel sous '{}' en cours…",
-  "snap_deleting": "Suppression du snapshot '{}' en cours…"
+  "snap_deleting": "Suppression du snapshot '{}' en cours…",
+  "rsz_cur_lbl": "Taille actuelle :"
 }

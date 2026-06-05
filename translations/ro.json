@@ -213,5 +213,6 @@
   "snap_creating": "Se creează snapshot '{}'…",
   "snap_applying": "Se aplică snapshot '{}'…",
   "snap_saving": "Se salvează starea curentă ca '{}'…",
-  "snap_deleting": "Se șterge snapshot '{}'…"
+  "snap_deleting": "Se șterge snapshot '{}'…",
+  "rsz_cur_lbl": "Dimensiune curentă:"
 }

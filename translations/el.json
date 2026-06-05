@@ -213,5 +213,6 @@
   "snap_creating": "Δημιουργία snapshot '{}'…",
   "snap_applying": "Εφαρμογή snapshot '{}'…",
   "snap_saving": "Αποθήκευση τρέχουσας κατάστασης ως '{}'…",
-  "snap_deleting": "Διαγραφή snapshot '{}'…"
+  "snap_deleting": "Διαγραφή snapshot '{}'…",
+  "rsz_cur_lbl": "Τρέχον μέγεθος:"
 }

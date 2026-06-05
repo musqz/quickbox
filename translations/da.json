@@ -213,5 +213,6 @@
   "snap_creating": "Opretter snapshot '{}'…",
   "snap_applying": "Anvender snapshot '{}'…",
   "snap_saving": "Gemmer nuværende tilstand som '{}'…",
-  "snap_deleting": "Sletter snapshot '{}'…"
+  "snap_deleting": "Sletter snapshot '{}'…",
+  "rsz_cur_lbl": "Nuværende størrelse:"
 }

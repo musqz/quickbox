@@ -213,5 +213,6 @@
   "snap_creating": "יוצר סנפשוט '{}'…",
   "snap_applying": "מחיל סנפשוט '{}'…",
   "snap_saving": "שומר את המצב הנוכחי בשם '{}'…",
-  "snap_deleting": "מוחק סנפשוט '{}'…"
+  "snap_deleting": "מוחק סנפשוט '{}'…",
+  "rsz_cur_lbl": "גודל נוכחי:"
 }

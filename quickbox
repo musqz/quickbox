@@ -256,7 +256,8 @@ _EN_STRINGS = {
     "act_resize_disk": "Resize disk",
     "tt_resize_disk": "Grow the disk non-destructively — keeps all data",
     "rsz_title": "Resize disk",
-    "rsz_size_lbl": "New size (GB):",
+    "rsz_cur_lbl": "Current size:",
+    "rsz_size_lbl": "New total size (GB):",
     "rsz_warn_small": "New size must be larger than current size ({} GB).",
     "btn_resize": "Resize",
     "dlg_rsz_t": "Resize disk?",
@@ -2298,11 +2299,16 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             self._warn(S["warn_no_disk_t"], S["warn_no_disk_b"])
             return
 
-        cur_size_str = vm.get("disk_size", "0G")
+        # Read actual disk size from qemu-img — more reliable than conf value
+        cur_gb = 0
         try:
-            cur_gb = int(cur_size_str.rstrip("GgBb"))
-        except (ValueError, AttributeError):
-            cur_gb = 0
+            r = subprocess.run(["qemu-img", "info", "--output=json", disk_path],
+                               capture_output=True, text=True)
+            import json as _j
+            info = _j.loads(r.stdout)
+            cur_gb = max(int(info.get("virtual-size", 0)) // (1024 ** 3), 0)
+        except Exception:
+            pass
 
         win = Gtk.Window(title=S["rsz_title"])
         win.set_transient_for(self)
@@ -2311,24 +2317,43 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         win.set_default_size(320, -1)
         self._track(win)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.set_margin_top(16); box.set_margin_bottom(16)
         box.set_margin_start(16); box.set_margin_end(16)
 
+        cur_lbl = Gtk.Label()
+        cur_lbl.set_markup(
+            f'<span size="small" color="gray">{S["rsz_cur_lbl"]}</span>  '
+            f'<b>{cur_gb} GB</b>')
+        cur_lbl.set_halign(Gtk.Align.START)
+        box.append(cur_lbl)
+
         lbl = Gtk.Label(label=S["rsz_size_lbl"])
         lbl.set_halign(Gtk.Align.START)
+        lbl.set_margin_top(6)
         box.append(lbl)
 
+        spin_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         spin = Gtk.SpinButton()
         spin.set_range(max(cur_gb + 1, 1), 9999)
         spin.set_increments(1, 10)
         spin.set_value(max(cur_gb + 10, cur_gb + 1))
         spin.set_digits(0)
-        box.append(spin)
+        spin_row.append(spin)
+        delta_lbl = Gtk.Label()
+        delta_lbl.add_css_class("dim-label")
+        spin_row.append(delta_lbl)
+        box.append(spin_row)
+
+        def _update_delta(*_):
+            delta = int(spin.get_value()) - cur_gb
+            delta_lbl.set_text(f"+{delta} GB" if delta > 0 else "")
+        spin.connect("value-changed", _update_delta)
+        _update_delta()
 
         btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         btn_row.set_halign(Gtk.Align.END)
-        btn_row.set_margin_top(4)
+        btn_row.set_margin_top(8)
         cancel_btn = Gtk.Button(label=S["btn_cancel"])
         cancel_btn.connect("clicked", lambda b: win.destroy())
         resize_btn = Gtk.Button(label=S["btn_resize"])
