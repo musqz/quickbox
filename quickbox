@@ -2899,7 +2899,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     lbl.set_markup(f'     {safe_loc}')
                 lbl.set_halign(Gtk.Align.START)
                 lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
-                lbl.set_max_width_chars(36)
                 lbl.set_hexpand(True)
                 row.append(lbl)
 
