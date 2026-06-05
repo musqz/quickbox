@@ -697,6 +697,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             _f.unlink(missing_ok=True)
         self._timeout_handlers = []
         self._indicator = None
+        self._transients = []
         self._build_css()
         self._build_ui()
         self._refresh()
@@ -775,14 +776,18 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     pass
             self._indicator = None
 
+    def _track(self, win):
+        self._transients.append(win)
+        win.connect('destroy', lambda w: self._transients.remove(w) if w in self._transients else None)
+
     def _tray_toggle(self, *_):
         if self.get_visible():
             self.hide()
         else:
             self.set_visible(True)
             self.present()
-            for win in Gtk.Window.list_toplevels():
-                if win is not self and win.get_visible() and win.get_transient_for() is self:
+            for win in self._transients:
+                if win.get_visible():
                     win.present()
 
     def _on_tray_header_toggle(self, btn):
@@ -1734,7 +1739,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         auto_tag = f"pre-apply-{_date_tag(with_time=True)}"
 
         win = Gtk.Window(title=S["dlg_snap_apply_t"].format(tag))
-        win.set_transient_for(self)
+        win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
         win.set_default_size(460, 200)
@@ -1838,7 +1843,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         suggested = f"{vm['_name']}-{_date_tag()}"
 
         win = Gtk.Window(title=S["clone_title"])
-        win.set_transient_for(self)
+        win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
         win.set_default_size(380, 180)
@@ -1934,7 +1939,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     def _dlg_format_disk(self, vm):
         win = Gtk.Window(title=S["fmt_title"])
-        win.set_transient_for(self)
+        win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
         win.set_default_size(420, 340)
@@ -2142,7 +2147,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         distros = self._parse_quickinst()
 
         win = Gtk.Window(title=S["dl_title"])
-        win.set_transient_for(self)
+        win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
         win.set_default_size(640, 520)
@@ -2313,7 +2318,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                             if n == distro_name), 0)
 
         dlg = Gtk.Window(title=f"Download — {base_distro}")
-        dlg.set_transient_for(self)
+        dlg.set_transient_for(self); self._track(dlg)
         _set_icon(dlg)
         dlg.set_modal(True)
         dlg.set_default_size(560, 420)
@@ -2576,7 +2581,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     def _dlg_custom(self, *_):
         name_win = Gtk.Window(title=S["cvm_title"])
-        name_win.set_transient_for(self)
+        name_win.set_transient_for(self); self._track(name_win)
         _set_icon(name_win)
         name_win.set_modal(True)
         name_win.set_default_size(380, 150)
@@ -2698,7 +2703,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     def _dlg_advanced(self, *_):
         dlg = Gtk.Window(title="Advanced")
-        dlg.set_transient_for(self)
+        dlg.set_transient_for(self); self._track(dlg)
         _set_icon(dlg)
         dlg.set_modal(True)
         dlg.set_default_size(480, 540)
@@ -2948,7 +2953,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             return
 
         pick = Gtk.Window(title=S["mig_title"])
-        pick.set_transient_for(self)
+        pick.set_transient_for(self); self._track(pick)
         _set_icon(pick)
         pick.set_modal(True)
         pick.set_default_size(440, 480)
@@ -3093,7 +3098,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _run_with_progress(self, title, cmd_list, cwd=None, on_done=None,
                             total_bytes=0, watch_path=None):
         dlg = Gtk.Window(title=title)
-        dlg.set_transient_for(self)
+        dlg.set_transient_for(self); self._track(dlg)
         _set_icon(dlg)
         dlg.set_modal(True)
         dlg.set_deletable(False)
@@ -3203,7 +3208,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _confirm_danger(self, title, body, callback):
         win = Gtk.Window()
         win.set_title(title)
-        win.set_transient_for(self)
+        win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
         win.set_resizable(False)
@@ -3277,6 +3282,8 @@ def _update_distro_list(parent_win):
 
     wait_win = Gtk.Window(title=S["distro_updating"])
     wait_win.set_transient_for(parent_win)
+    if hasattr(parent_win, '_track'):
+        parent_win._track(wait_win)
     _set_icon(wait_win)
     wait_win.set_modal(True)
     wait_win.set_deletable(False)
