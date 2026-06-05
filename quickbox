@@ -3317,7 +3317,7 @@ def _update_distro_list(parent_win):
         except subprocess.TimeoutExpired:
             proc.kill()
             if not cancelled[0]:
-                GLib.idle_add(lambda: notify("Distro List", "✗ Timeout (>120s)", "critical"))
+                GLib.idle_add(lambda: notify("Distro List", "✗ Update timed out", "critical"))
             GLib.idle_add(lambda: wait_win.destroy() if wait_win.get_visible() else None)
             return
         except FileNotFoundError:
