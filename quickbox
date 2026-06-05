@@ -86,9 +86,19 @@ icon.connect('button-press-event', lambda i, e: send('activate') if e.button == 
 
 _running_vms = []
 
+def _section_header(text):
+    item = Gtk.MenuItem()
+    lbl = Gtk.Label()
+    lbl.set_markup(f'<span size="small" weight="bold" color="gray">{text}</span>')
+    lbl.set_xalign(0)
+    item.add(lbl)
+    item.set_sensitive(False)
+    return item
+
 def on_popup(icon, button, time):
     menu = Gtk.Menu()
     if _running_vms:
+        menu.append(_section_header('RUNNING'))
         for name in _running_vms:
             item = Gtk.MenuItem()
             lbl = Gtk.Label()
@@ -98,10 +108,10 @@ def on_popup(icon, button, time):
             item.connect('activate', lambda _a, n=name: send(f'stop:{n}'))
             menu.append(item)
         menu.append(Gtk.SeparatorMenuItem())
+    menu.append(_section_header('QUICKBOX'))
     show = Gtk.MenuItem(label='Show Quickbox')
     show.connect('activate', lambda *a: send('show'))
     menu.append(show)
-    menu.append(Gtk.SeparatorMenuItem())
     quit_item = Gtk.MenuItem(label='Quit Quickbox')
     quit_item.connect('activate', lambda *a: (send('quit'), Gtk.main_quit()))
     menu.append(quit_item)
