@@ -196,8 +196,7 @@ _lang = (_locale.getlocale()[0] or "en")[:2]
 
 _EN_STRINGS = {
     "app_title": "Quickbox",
-    "hdr_download": "Download",       "hdr_custom_vm": "Custom VM",
-    "hdr_advanced": "Advanced",       "hdr_tray": "Tray",
+    "hdr_tray": "Tray",
     "tt_tray": "Enable system tray icon",
     "tt_download": "Download a new distro ISO via quickget",
     "tt_custom_vm": "Create a VM from a local ISO or IMG file",
@@ -2009,8 +2008,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         apply_btn.connect("clicked", _do_apply)
         win.present()
 
-
-
     def _snap_delete(self, vm, tag):
         def on_confirm(yes):
             if not yes:
@@ -2405,19 +2402,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             pass
         return sorted(distros, key=lambda x: x[0].lower())
 
-    def _get_distro_versions(self, distros, distro_name):
-        """Get all available versions/editions for a distro name (first word match)."""
-        # Extract base distro from display name — e.g. "Ubuntu 24.04 LTS" -> "ubuntu"
-        first_word = distro_name.split()[0].lower()
-        versions = []
-        for name, cmd in distros:
-            parts = cmd.split()  # quickget distro release edition
-            if len(parts) >= 2 and parts[1].lower() == first_word:
-                # version label = everything after distro name in display
-                label = name
-                versions.append((label, cmd))
-        return versions
-
     def _dlg_download(self, *_):
         distros = self._parse_quickinst()
 
@@ -2672,8 +2656,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         note.set_halign(Gtk.Align.START)
         note.set_margin_top(2)
         box.append(note)
-
-        # Show/hide output toggle — removed, not needed for download
 
         # Buttons — spacer pushes cancel+download to the right
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
