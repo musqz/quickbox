@@ -2698,10 +2698,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
 
         # State — local to this dialog, not instance vars
-        _dl = {"process": None, "cancelled": False, "watching": False}
+        _dl = {"process": None, "cancelled": False}
 
         def _run_download():
-            import subprocess as sp, time as _time, math as _math
+            import subprocess as sp, time as _time, re as _re
             cmd = cmd_entry.get_text().strip().split()
             GLib.idle_add(progress.set_text, S["dl2_starting"])
             GLib.idle_add(dl_btn.set_sensitive, False)
@@ -2709,20 +2709,18 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
             t0 = _time.monotonic()
 
-            def _find_file():
-                try:
-                    cutoff = t0 - 2.0
-                    files = []
-                    for f in Path(self.vms_dir).rglob("*"):
-                        if f.is_file() and f.suffix.lower() in (
-                                ".iso", ".img", ".qcow2", ".gz", ".xz", ".zip",
-                                ".part", ".tmp", ".download"):
-                            st = f.stat()
-                            if st.st_mtime >= cutoff:
-                                files.append((st.st_mtime, f))
-                    return sorted(files)[-1][1] if files else None
-                except Exception:
-                    return None
+            _ansi = _re.compile(r"\x1b\[[0-9;]*[A-Za-z]|\x1b\].*?\x07")
+            # aria2c progress: [#<gid> <done>/<total>(<pct>%) CN:<n> DL:<speed> ETA:<eta>]
+            _aria2 = _re.compile(
+                r"\[#[0-9a-f]+\s+([\d.]+\s*(?:KiB|MiB|GiB|TiB|B))/"
+                r"([\d.]+\s*(?:KiB|MiB|GiB|TiB|B))\((\d+)%\)"
+                r".*?DL:([\d.]+\s*(?:KiB|MiB|GiB|TiB|B))(?:.*?ETA:([\dhmds]+))?"
+            )
+            _UNITS = {"B": 1/1048576, "KiB": 1/1024, "MiB": 1, "GiB": 1024, "TiB": 1048576}
+
+            def _to_mb(s):
+                m = _re.match(r"([\d.]+)\s*(\w+)", s.strip())
+                return float(m.group(1)) * _UNITS.get(m.group(2), 1) if m else 0.0
 
             def _set_indeterminate():
                 progress.set_fraction(0)
@@ -2731,50 +2729,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             def _set_determinate(frac):
                 progress.set_fraction(frac)
 
-            def _watch_progress():
-                elapsed, last_size, last_mb, target, stall = 0, 0, 0.0, None, 0
-                while _dl["watching"] and not _dl["cancelled"]:
-                    _time.sleep(1)
-                    elapsed += 1
-                    dot = "." * (elapsed % 4)
-                    if target is None or not target.exists():
-                        target = _find_file()
-                    if target and target.exists():
-                        try:
-                            size = target.stat().st_size
-                            mb = size / (1024 * 1024)
-                            if size > last_size:
-                                frac = _math.log1p(mb) / (_math.log1p(mb) + 8)
-                                speed = (size - last_size) / (1024 * 1024)
-                                last_mb, last_size, stall = mb, size, 0
-                                GLib.idle_add(_set_determinate, min(frac, 0.95))
-                                GLib.idle_add(progress.set_text,
-                                    S["dl2_progress"].format(f"{mb:.0f}", f"{speed:.1f}"))
-                            else:
-                                stall += 1
-                                if stall >= 5:
-                                    GLib.idle_add(_set_indeterminate)
-                                    GLib.idle_add(progress.set_text,
-                                        f"Server is slow — {last_mb:.0f} MB received, still connected{dot}  ({stall}s)")
-                                else:
-                                    GLib.idle_add(progress.set_text,
-                                        S["dl2_progress"].format(f"{last_mb:.0f}", "–"))
-                        except Exception:
-                            pass
-                    else:
-                        GLib.idle_add(_set_indeterminate)
-                        if elapsed <= 3:
-                            GLib.idle_add(progress.set_text, S["dl2_starting"])
-                        else:
-                            hint = "  —  slow servers may take a minute" if elapsed > 15 else ""
-                            GLib.idle_add(progress.set_text,
-                                f"Contacting server{dot}  ({elapsed}s){hint}")
-
-            _dl["watching"] = True
-            watcher = threading.Thread(target=_watch_progress, daemon=True)
-            watcher.start()
-
             _dl_stderr = ""
+            rc = 1
+            last_ui = 0.0
+            got_aria2 = False
+
             try:
                 import shlex as _shlex
                 qg_bin = _resolve_quickget() or "quickget"
@@ -2787,15 +2746,62 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT,
                     cwd=self.vms_dir
                 )
-                _out_bytes, _ = _dl["process"].communicate()
-                _dl_stderr = _out_bytes.decode(errors="replace").strip() if _out_bytes else ""
+
+                buf = b""
+                output_lines = []
+
+                while True:
+                    chunk = _dl["process"].stdout.read(256)
+                    if not chunk:
+                        break
+                    buf += chunk
+                    parts = _re.split(b"[\r\n]", buf)
+                    buf = parts[-1]
+                    for raw in parts[:-1]:
+                        line = _ansi.sub("", raw.decode(errors="replace")).strip()
+                        if not line:
+                            continue
+                        output_lines.append(line)
+                        now = _time.monotonic()
+                        m = _aria2.search(line)
+                        if m:
+                            got_aria2 = True
+                            if now - last_ui < 0.4:
+                                continue
+                            last_ui = now
+                            try:
+                                frac = min(int(m.group(3)) / 100.0, 0.99)
+                                total_mb = _to_mb(m.group(2))
+                                speed_mb = _to_mb(m.group(4))
+                                eta_s    = m.group(5) or ""
+                                total_str = (f"{total_mb / 1024:.1f} GB"
+                                             if total_mb >= 1024 else f"{total_mb:.0f} MB")
+                                speed_str = (f"{speed_mb:.1f} MB/s" if speed_mb >= 1
+                                             else f"{speed_mb * 1024:.0f} KB/s"
+                                             if speed_mb >= 0.001 else "–")
+                                eta_str = f"  ETA {eta_s}" if eta_s else ""
+                                GLib.idle_add(_set_determinate, frac)
+                                GLib.idle_add(progress.set_text,
+                                    f"{m.group(3)}%  of {total_str}  —  {speed_str}{eta_str}")
+                            except Exception:
+                                pass
+                        elif not got_aria2 and now - last_ui >= 1.0:
+                            last_ui = now
+                            GLib.idle_add(_set_indeterminate)
+                            GLib.idle_add(progress.set_text, line[:72])
+
+                if buf:
+                    line = _ansi.sub("", buf.decode(errors="replace")).strip()
+                    if line:
+                        output_lines.append(line)
+
+                _dl["process"].wait()
                 rc = _dl["process"].returncode
+                _dl_stderr = "\n".join(output_lines)
+
             except Exception as e:
                 _dl_stderr = str(e)
                 rc = 1
-
-            _dl["watching"] = False
-            _time.sleep(1.2)
 
             def _fmt_duration(secs):
                 secs = int(secs)
