@@ -723,7 +723,6 @@ class VMRow(Gtk.ListBoxRow):
             name = Gtk.Label(label=vm["_pretty"])
             name.set_halign(Gtk.Align.START)
             name.set_ellipsize(Pango.EllipsizeMode.END)
-            name.set_max_width_chars(22)
             name.set_hexpand(True)
             box.append(name)
             if vm["_running"]:
