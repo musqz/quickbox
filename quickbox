@@ -95,7 +95,7 @@ def on_popup(icon, button, time):
             menu.append(item)
         menu.append(Gtk.SeparatorMenuItem())
     show = Gtk.MenuItem(label='Show Quickbox')
-    show.connect('activate', lambda *a: send('activate'))
+    show.connect('activate', lambda *a: send('show'))
     menu.append(show)
     menu.append(Gtk.SeparatorMenuItem())
     quit_item = Gtk.MenuItem(label='Quit Quickbox')
@@ -778,6 +778,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             if line.startswith("stop:"):
                 name = line[5:]
                 GLib.idle_add(self._stop_vm_by_name, name)
+            elif line == "show":
+                GLib.idle_add(self._tray_show)
             elif "activate" in line:
                 GLib.idle_add(self._tray_toggle)
             elif "quit" in line:
@@ -829,15 +831,18 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._transients.append(win)
         win.connect('destroy', lambda w: self._transients.remove(w) if w in self._transients else None)
 
+    def _tray_show(self):
+        self.set_visible(True)
+        self.present()
+        for win in self._transients:
+            if win.get_visible():
+                win.present()
+
     def _tray_toggle(self, *_):
         if self.get_visible():
             self.hide()
         else:
-            self.set_visible(True)
-            self.present()
-            for win in self._transients:
-                if win.get_visible():
-                    win.present()
+            self._tray_show()
 
     def _on_tray_header_toggle(self, btn):
         val = "true" if btn.get_active() else "false"
