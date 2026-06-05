@@ -82,7 +82,7 @@ icon.set_from_icon_name(sys.argv[1] if len(sys.argv)>1 else 'quickbox')
 GLib.timeout_add(100, _load_icon)
 icon.set_tooltip_text('Quickbox')
 icon.set_visible(True)
-icon.connect('activate', lambda *a: send('activate'))
+icon.connect('button-press-event', lambda i, e: send('activate') if e.button == 1 else None)
 
 def on_popup(icon, button, time):
     menu = Gtk.Menu()
