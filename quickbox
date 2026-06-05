@@ -3025,11 +3025,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     if not yes:
                         return
                     Path(newdir).mkdir(parents=True, exist_ok=True)
-                    rsync_cmd = ["rsync", "-a", "--info=progress2"]
+                    rsync_cmd = ["rsync", "-a"]
+                    total_bytes = 0
                     for vm in selected:
                         vm_dir = str(Path(self.vms_dir) / vm["_name"])
                         if Path(vm_dir).exists():
                             rsync_cmd.append(vm_dir)
+                            total_bytes += dir_size_bytes(vm_dir)
                         rsync_cmd.append(vm["_conf"])
                     rsync_cmd.append(f"{newdir}/")
 
@@ -3056,7 +3058,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     self._run_with_progress(
                         f"Migrating {len(selected)} VM(s)",
                         rsync_cmd,
-                        on_done=_migration_done
+                        on_done=_migration_done,
+                        total_bytes=total_bytes,
+                        watch_path=newdir,
                     )
                 self._confirm(
                     S["dlg_migrate_t"],
@@ -3084,7 +3088,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     # ── dialogs helpers ──
 
-    def _run_with_progress(self, title, cmd_list, cwd=None, on_done=None):
+    def _run_with_progress(self, title, cmd_list, cwd=None, on_done=None,
+                            total_bytes=0, watch_path=None):
         dlg = Gtk.Window(title=title)
         dlg.set_transient_for(self)
         _set_icon(dlg)
@@ -3122,36 +3127,25 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     return f"{n:.1f} {unit}" if unit != "B" else f"{n} B"
                 n /= 1024
 
-        def _pulse():
-            progress.pulse()
-            return self._proc_running
-
-        GLib.timeout_add(150, _pulse)
+        if total_bytes > 0 and watch_path:
+            def _poll_progress():
+                if not self._proc_running:
+                    return False
+                done = dir_size_bytes(watch_path)
+                frac = min(done / total_bytes, 0.99)
+                progress.set_fraction(frac)
+                status_lbl.set_text(f"{_fmt_bytes(done)} / {_fmt_bytes(total_bytes)}")
+                return True
+            GLib.timeout_add(500, _poll_progress)
+        else:
+            def _pulse():
+                progress.pulse()
+                return self._proc_running
+            GLib.timeout_add(150, _pulse)
 
         def _run():
-            import re
-            # rsync --info=progress2 lines:  "   sent_bytes  pct%  speed  eta  total_bytes"
-            _progress2 = re.compile(
-                r'^\s*([\d,]+)\s+(\d+)%.*?([\d,]+)$'
-            )
             try:
-                proc = subprocess.Popen(
-                    cmd_list, cwd=cwd,
-                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                    text=True
-                )
-                for line in proc.stdout:
-                    line = line.rstrip('\r\n ')
-                    m = _progress2.match(line)
-                    if m:
-                        sent = int(m.group(1).replace(',', ''))
-                        pct  = int(m.group(2))
-                        total = int(m.group(3).replace(',', ''))
-                        frac = pct / 100.0
-                        label = f"{_fmt_bytes(sent)} / {_fmt_bytes(total)}"
-                        GLib.idle_add(progress.set_fraction, frac)
-                        GLib.idle_add(status_lbl.set_text, label)
-                proc.wait()
+                proc = subprocess.run(cmd_list, cwd=cwd, capture_output=True, text=True)
                 rc = proc.returncode
             except Exception:
                 rc = 1
