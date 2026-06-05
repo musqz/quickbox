@@ -3213,7 +3213,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         if Path(vm_dir).exists():
                             rsync_cmd.append(vm_dir)
                             total_bytes += dir_size_bytes(vm_dir)
-                        rsync_cmd.append(vm["_conf"])
+                        conf_path = Path(vm["_conf"])
+                        if conf_path.exists():
+                            rsync_cmd.append(vm["_conf"])
+                            total_bytes += conf_path.stat().st_size
                     rsync_cmd.append(f"{newdir}/")
 
                     def _migration_done(ok):
@@ -3309,10 +3312,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 n /= 1024
 
         if total_bytes > 0 and watch_path:
+            initial_size = dir_size_bytes(watch_path)
             def _poll_progress():
                 if not self._proc_running:
                     return False
-                done = dir_size_bytes(watch_path)
+                done = max(dir_size_bytes(watch_path) - initial_size, 0)
                 frac = min(done / total_bytes, 0.99)
                 progress.set_fraction(frac)
                 status_lbl.set_text(f"{_fmt_bytes(done)} / {_fmt_bytes(total_bytes)}")
