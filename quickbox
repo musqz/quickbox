@@ -781,6 +781,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         else:
             self.set_visible(True)
             self.present()
+            for win in Gtk.Window.list_toplevels():
+                if win is not self and win.get_visible() and win.get_transient_for() is self:
+                    win.present()
 
     def _on_tray_header_toggle(self, btn):
         val = "true" if btn.get_active() else "false"
