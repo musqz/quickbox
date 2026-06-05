@@ -3197,7 +3197,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             def _on_folder(path):
                 if not path:
                     return
-                newdir = str(Path(path) / "emu")
+                newdir = path
                 if newdir == self.vms_dir:
                     self._warn(S["warn_same_loc_t"], S["warn_same_loc_b"])
                     return
