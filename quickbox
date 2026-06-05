@@ -2253,8 +2253,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 cancel_label=S["btn_cancel"],
             )
             iso_filter = Gtk.FileFilter()
-            iso_filter.set_name("ISO images (*.iso)")
+            iso_filter.set_name("Disk images (*.iso, *.img)")
             iso_filter.add_pattern("*.iso")
+            iso_filter.add_pattern("*.img")
             fc.add_filter(iso_filter)
             def _on_response(native, resp):
                 if resp == Gtk.ResponseType.ACCEPT:
