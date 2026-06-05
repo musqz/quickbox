@@ -102,7 +102,7 @@ def on_popup(icon, button, time):
         for name in _running_vms:
             item = Gtk.MenuItem()
             lbl = Gtk.Label()
-            lbl.set_markup(f'● {GLib.markup_escape_text(name)}   <span color="#e53935">Stop</span>')
+            lbl.set_markup(f'<span color="#4caf50">●</span> {GLib.markup_escape_text(name)}   <span color="#e53935">Stop</span>')
             lbl.set_xalign(0)
             item.add(lbl)
             item.connect('activate', lambda _a, n=name: send(f'stop:{n}'))
