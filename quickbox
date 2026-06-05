@@ -84,9 +84,17 @@ icon.set_tooltip_text('Quickbox')
 icon.set_visible(True)
 icon.connect('button-press-event', lambda i, e: send('activate') if e.button == 1 else None)
 
+_running_vms = []
+
 def on_popup(icon, button, time):
     menu = Gtk.Menu()
-    show = Gtk.MenuItem(label='Show / Hide')
+    if _running_vms:
+        for name in _running_vms:
+            item = Gtk.MenuItem(label=f'● {name}   Stop')
+            item.connect('activate', lambda _a, n=name: send(f'stop:{n}'))
+            menu.append(item)
+        menu.append(Gtk.SeparatorMenuItem())
+    show = Gtk.MenuItem(label='Show Quickbox')
     show.connect('activate', lambda *a: send('activate'))
     menu.append(show)
     menu.append(Gtk.SeparatorMenuItem())
@@ -99,10 +107,15 @@ def on_popup(icon, button, time):
 icon.connect('popup-menu', on_popup)
 
 def _read(fd, cond):
+    global _running_vms
     line = sys.stdin.readline()
     if not line or line.strip() == 'quit':
         Gtk.main_quit()
         return False
+    line = line.strip()
+    if line.startswith('vms:'):
+        payload = line[4:]
+        _running_vms = [n for n in payload.split('|') if n]
     return True
 
 GLib.io_add_watch(sys.stdin.fileno(), GLib.IO_IN | GLib.IO_HUP, _read)
@@ -755,19 +768,42 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 self._tray_proc.stdout.fileno(),
                 GLib.IO_IN, self._on_tray_output)
             self._indicator = self._tray_proc
+            GLib.timeout_add(200, self._push_tray_vms)
         except Exception:
             self._indicator = None
 
     def _on_tray_output(self, fd, condition):
         try:
             line = os.read(fd, 256).decode().strip()
-            if "activate" in line:
+            if line.startswith("stop:"):
+                name = line[5:]
+                GLib.idle_add(self._stop_vm_by_name, name)
+            elif "activate" in line:
                 GLib.idle_add(self._tray_toggle)
             elif "quit" in line:
                 GLib.idle_add(self._tray_quit)
             return True
         except Exception:
             return False
+
+    def _stop_vm_by_name(self, name):
+        needle = f"name {name},process={name}"
+        r = subprocess.run(["pgrep", "-fa", "qemu-system"], capture_output=True, text=True)
+        for line in r.stdout.splitlines():
+            if needle in line:
+                pid = line.split()[0]
+                subprocess.Popen(["kill", "-TERM", pid])
+        GLib.timeout_add(1500, self._refresh)
+
+    def _push_tray_vms(self):
+        if not self._indicator:
+            return
+        running = [vm["_name"] for vm in self.vms if vm.get("_running")]
+        try:
+            self._tray_proc.stdin.write(f"vms:{'|'.join(running)}\n")
+            self._tray_proc.stdin.flush()
+        except Exception:
+            pass
 
     def _tray_quit(self):
         self._teardown_systray()
@@ -1064,6 +1100,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     self.current_vm = row.vm
                     break
                 row = row.get_next_sibling()
+        self._push_tray_vms()
         return False  # stop GLib.timeout_add
 
     # ── list helpers ──
