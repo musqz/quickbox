@@ -2304,8 +2304,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         try:
             r = subprocess.run(["qemu-img", "info", "--output=json", disk_path],
                                capture_output=True, text=True)
-            import json as _j
-            info = _j.loads(r.stdout)
+            info = _json.loads(r.stdout)
             cur_gb = max(int(info.get("virtual-size", 0)) // (1024 ** 3), 0)
         except Exception:
             pass
