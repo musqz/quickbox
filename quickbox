@@ -2650,9 +2650,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         cmd_note = Gtk.Label()
         cmd_note.set_markup(
-            f'<span size="small" color="gray">'
-            f'{S["dl2_cmd_note"].format(self.vms_dir)}'
-            f'</span>'
+            f'<span size="small" color="gray">If download fails, run this command in a terminal in\n</span>'
+            f'<span size="small"><tt><b>{self.vms_dir}</b></tt></span>'
+            f'<span size="small" color="gray">\n— the VM will appear in the list automatically.</span>'
         )
         cmd_note.set_halign(Gtk.Align.START)
         cmd_note.set_wrap(True)
