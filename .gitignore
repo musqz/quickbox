@@ -9,5 +9,3 @@ __pycache__/
 *.vdi
 *.raw
 gtk.css
-trisquel-11.0-lxde.conf
-trisquel-11.0-lxde/
