@@ -645,7 +645,7 @@ def get_vms(vms_dir):
             vm["_copy_done_bytes"] = dir_size_bytes(str(Path(vms_dir) / vm["_name"]))
         vm["_size"]    = dir_size(str(Path(vms_dir) / vm["_name"]))
         vms.append(vm)
-    vms.sort(key=lambda v: (not v["_running"], v["_name"].lower()))
+    vms.sort(key=lambda v: (not v["_running"], v["_has_disk"], v["_name"].lower()))
     return vms
 
 
