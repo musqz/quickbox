@@ -2893,8 +2893,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             try:
                 r = _sp.run([qg_bin, "--url"] + cmd_parts[1:],
                             capture_output=True, text=True, timeout=15)
-                urls = [u.strip() for u in r.stdout.splitlines()
-                        if u.strip().startswith("http")]
+                import re as _re
+                urls = [m.group(0) for line in r.stdout.splitlines()
+                        for m in [_re.search(r'https?://\S+', line)] if m]
             except Exception as e:
                 GLib.idle_add(speed_lbl.set_markup,
                     f'<span color="#e53935">✗ {str(e)[:60]}</span>')
