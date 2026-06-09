@@ -1,8 +1,5 @@
 {
   "app_title": "Quickbox",
-  "hdr_download": "İndir",
-  "hdr_custom_vm": "Özel VM",
-  "hdr_advanced": "Gelişmiş",
   "tt_download": "quickget aracılığıyla yeni bir distro ISO'su indir",
   "tt_custom_vm": "Yerel ISO veya IMG dosyasından VM oluştur",
   "tt_advanced": "VM'leri taşı, konum değiştir, kayıtlı yolları yönet",
@@ -206,7 +203,6 @@
   "snap_autosave_done": "Mevcut durum '{}' olarak kaydedildi",
   "dl_search_ph": "Distro ara…",
   "dl2_cmd_note": "İndirme başarısız olursa, bu komutu {} içinde bir terminalde çalıştır — VM otomatik olarak listede görünecek.",
-  "standard": "Standart",
   "adv_sec_notif": "BİLDİRİMLER",
   "adv_notif_toggle": "Bildirimleri etkinleştir",
   "adv_notif_hint": "VM olayları ve arka plan görevleri için masaüstü bildirimleri",

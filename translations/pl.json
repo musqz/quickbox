@@ -1,8 +1,5 @@
 {
   "app_title": "Quickbox",
-  "hdr_download": "Pobierz",
-  "hdr_custom_vm": "Własna VM",
-  "hdr_advanced": "Zaawansowane",
   "tt_download": "Pobierz nowy ISO dystrybucji przez quickget",
   "tt_custom_vm": "Utwórz VM z lokalnego pliku ISO lub IMG",
   "tt_advanced": "Migruj VM, zmień lokalizację, zarządzaj zapisanymi ścieżkami",
@@ -206,7 +203,6 @@
   "snap_autosave_done": "Bieżący stan zapisany jako '{}'",
   "dl_search_ph": "Szukaj dystrybucji…",
   "dl2_cmd_note": "Jeśli pobieranie się nie powiedzie, uruchom to polecenie w terminalu w {} — VM pojawi się automatycznie na liście.",
-  "standard": "Standardowy",
   "adv_sec_notif": "POWIADOMIENIA",
   "adv_notif_toggle": "Włącz powiadomienia",
   "adv_notif_hint": "Powiadomienia pulpitu dla zdarzeń VM i zadań w tle",

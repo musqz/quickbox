@@ -291,7 +291,6 @@ _EN_STRINGS = {
     "dl2_cmd_lbl": "Command:",
     "dl2_ready": "Ready to download",
     "dl2_starting": "Starting download…",
-    "dl2_progress": "Downloading… {} MB  ({} MB/s)",
     "dl2_verifying": "Verifying…",   "dl2_done": "Download complete!",
     "dl2_failed": "Download failed.", "dl2_cancelled": "Cancelled",
     "dl2_connecting": "Connecting… ({}s)",

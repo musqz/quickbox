@@ -1,8 +1,5 @@
 {
   "app_title": "Quickbox",
-  "hdr_download": "下载",
-  "hdr_custom_vm": "自定义虚拟机",
-  "hdr_advanced": "高级",
   "tt_download": "通过 quickget 下载新发行版 ISO",
   "tt_custom_vm": "从本地 ISO 或 IMG 文件创建虚拟机",
   "tt_advanced": "迁移虚拟机、切换位置、管理已保存路径",
@@ -206,7 +203,6 @@
   "snap_autosave_done": "当前状态已保存为 '{}'",
   "dl_search_ph": "搜索发行版…",
   "dl2_cmd_note": "如果下载失败，请在 {} 中的终端运行此命令 — VM 将自动出现在列表中。",
-  "standard": "标准",
   "adv_sec_notif": "通知",
   "adv_notif_toggle": "启用通知",
   "adv_notif_hint": "虚拟机事件和后台任务的桌面通知",

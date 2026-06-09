@@ -1,8 +1,5 @@
 {
   "app_title": "Quickbox",
-  "hdr_download": "הורדה",
-  "hdr_custom_vm": "מכונה מותאמת",
-  "hdr_advanced": "מתקדם",
   "tt_download": "הורדת ISO חדש לתפוצה דרך quickget",
   "tt_custom_vm": "יצירת מכונה מקובץ ISO או IMG מקומי",
   "tt_advanced": "העברת מכונות, שינוי מיקום, ניהול נתיבים שמורים",
@@ -206,7 +203,6 @@
   "snap_autosave_done": "המצב הנוכחי נשמר בשם '{}'",
   "dl_search_ph": "חיפוש הפצות…",
   "dl2_cmd_note": "אם ההורדה נכשלת, הרץ פקודה זו בטרמינל ב-{} — ה-VM יופיע אוטומטית ברשימה.",
-  "standard": "סטנדרטי",
   "adv_sec_notif": "התראות",
   "adv_notif_toggle": "הפעל התראות",
   "adv_notif_hint": "התראות שולחן עבודה לאירועי VM ומשימות ברקע",

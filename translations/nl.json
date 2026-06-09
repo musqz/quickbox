@@ -1,8 +1,5 @@
 {
   "app_title": "Quickbox",
-  "hdr_download": "Downloaden",
-  "hdr_custom_vm": "Eigen VM",
-  "hdr_advanced": "Geavanceerd",
   "tt_download": "Nieuwe distro-ISO downloaden via quickget",
   "tt_custom_vm": "VM aanmaken vanuit lokaal ISO- of IMG-bestand",
   "tt_advanced": "VM's migreren, locatie wisselen, opgeslagen paden beheren",
@@ -206,7 +203,6 @@
   "snap_autosave_done": "Huidige toestand opgeslagen als '{}'",
   "dl_search_ph": "Distro's zoeken…",
   "dl2_cmd_note": "Als de download mislukt, voer dit commando uit in een terminal in {} — de VM verschijnt automatisch in de lijst.",
-  "standard": "Standaard",
   "adv_sec_notif": "MELDINGEN",
   "adv_notif_toggle": "Meldingen inschakelen",
   "adv_notif_hint": "Bureaubladmeldingen voor VM-gebeurtenissen en achtergrondtaken",

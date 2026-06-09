@@ -1,8 +1,5 @@
 {
   "app_title": "Quickbox",
-  "hdr_download": "Descărcare",
-  "hdr_custom_vm": "VM proprie",
-  "hdr_advanced": "Avansat",
   "tt_download": "Descarcă un ISO de distro nou prin quickget",
   "tt_custom_vm": "Creează o VM dintr-un fișier ISO sau IMG local",
   "tt_advanced": "Migrează VM-uri, schimbă locația, gestionează căile salvate",
@@ -206,7 +203,6 @@
   "snap_autosave_done": "Starea curentă salvată ca '{}'",
   "dl_search_ph": "Caută distro-uri…",
   "dl2_cmd_note": "Dacă descărcarea eșuează, rulează această comandă într-un terminal în {} — VM-ul va apărea automat în listă.",
-  "standard": "Standard",
   "adv_sec_notif": "NOTIFICĂRI",
   "adv_notif_toggle": "Activează notificările",
   "adv_notif_hint": "Notificări desktop pentru evenimente VM și sarcini în fundal",
