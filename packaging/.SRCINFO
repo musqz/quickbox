@@ -1,6 +1,6 @@
 pkgbase = quickbox
 	pkgdesc = GTK4 GUI for managing QEMU virtual machines via quickemu
-	pkgver = 1.3.5
+	pkgver = 1.3.6
 	pkgrel = 1
 	url = https://github.com/musqz/quickbox
 	arch = any
@@ -10,7 +10,7 @@ pkgbase = quickbox
 	depends = gtk4
 	depends = quickemu
 	optdepends = libnotify: desktop notifications
-	source = quickbox-1.3.5.tar.gz::https://github.com/musqz/quickbox/archive/refs/tags/v1.3.5.tar.gz
-	sha256sums = 4130f62cf90a2d44b396e5419127f48ab4a66d879de637b4ba7f18b4e1dfb732
+	source = quickbox-1.3.6.tar.gz::https://github.com/musqz/quickbox/archive/refs/tags/v1.3.6.tar.gz
+	sha256sums = SKIP
 
 pkgname = quickbox
