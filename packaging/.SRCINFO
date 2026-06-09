@@ -11,6 +11,6 @@ pkgbase = quickbox
 	depends = quickemu
 	optdepends = libnotify: desktop notifications
 	source = quickbox-1.3.5.tar.gz::https://github.com/musqz/quickbox/archive/refs/tags/v1.3.5.tar.gz
-	sha256sums = SKIP
+	sha256sums = 4130f62cf90a2d44b396e5419127f48ab4a66d879de637b4ba7f18b4e1dfb732
 
 pkgname = quickbox
