@@ -1108,6 +1108,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.listbox.add_css_class("vm-listbox")
         self.listbox.set_filter_func(self._filter)
         self.listbox.connect("row-selected", self._on_select)
+        _dbl = Gtk.GestureClick.new()
+        _dbl.set_button(1)
+        _dbl.connect("pressed", self._on_list_double_click)
+        self.listbox.add_controller(_dbl)
         scroll_l.set_child(self.listbox)
         left.append(scroll_l)
         paned.set_start_child(left)
@@ -1193,6 +1197,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         if row:
             self.current_vm = row.vm
             self._show_panel(row.vm)
+
+    def _on_list_double_click(self, gesture, n_press, x, y):
+        if n_press != 2:
+            return
+        row = self.listbox.get_row_at_y(int(y))
+        if not row or not hasattr(row, "vm"):
+            return
+        vm = row.vm
+        if vm.get("_running") or vm.get("_copying") or self._any_importing:
+            return
+        self._launch_vm(vm)
 
     # ── welcome ──
 
