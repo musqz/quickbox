@@ -1107,7 +1107,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.listbox = Gtk.ListBox()
         self.listbox.add_css_class("vm-listbox")
         self.listbox.set_filter_func(self._filter)
-        self.listbox.connect("row-selected", self._on_select)
+        self._select_handler = self.listbox.connect("row-selected", self._on_select)
         _dbl = Gtk.GestureClick.new()
         _dbl.set_button(1)
         _dbl.connect("pressed", self._on_list_double_click)
@@ -1151,6 +1151,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     # ── refresh ──
 
     def _refresh(self):
+        self.listbox.handler_block(self._select_handler)
+        self.listbox.freeze_notify()
         while row := self.listbox.get_first_child():
             self.listbox.remove(row)
         self.vms = get_vms(self.vms_dir)
@@ -1175,6 +1177,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     self.current_vm = row.vm
                     break
                 row = row.get_next_sibling()
+        self.listbox.thaw_notify()
+        self.listbox.handler_unblock(self._select_handler)
         self._push_tray_vms()
         return False  # stop GLib.timeout_add
 
