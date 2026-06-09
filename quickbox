@@ -844,7 +844,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             if not yes:
                 return
             self._kill_vm_process(name)
-            GLib.timeout_add(2500, self._refresh)
+            def _after():
+                self._refresh()
+                if self.current_vm:
+                    self._show_panel(self.current_vm)
+                return False
+            GLib.timeout_add(2500, _after)
         self._tray_show()
         self._confirm(S["dlg_stop_t"].format(name), S["dlg_stop_b"], on_confirm)
 
@@ -1831,7 +1836,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             if not yes:
                 return
             self._kill_vm_process(vm["_name"])
-            GLib.timeout_add(2500, self._refresh)
+            def _after():
+                self._refresh()
+                if self.current_vm:
+                    self._show_panel(self.current_vm)
+                return False
+            GLib.timeout_add(2500, _after)
         self._confirm(
             S["dlg_stop_t"].format(vm["_pretty"]),
             S["dlg_stop_b"], on_confirm)
