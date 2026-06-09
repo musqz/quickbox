@@ -2684,8 +2684,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             idx = combo.get_selected()
             if 0 <= idx < len(versions):
                 cmd_entry.set_text(versions[idx][1])
-            speed_lbl.set_visible(False)
-            check_btn.set_sensitive(True)
         ver_combo.connect("notify::selected", _on_ver_changed)
 
         _sep2 = Gtk.Separator()
@@ -2705,22 +2703,14 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         note.set_margin_top(2)
         box.append(note)
 
-        speed_lbl = Gtk.Label()
-        speed_lbl.set_halign(Gtk.Align.START)
-        speed_lbl.set_margin_top(2)
-        speed_lbl.set_visible(False)
-        box.append(speed_lbl)
-
-        # Buttons — check speed left, spacer, cancel + download right
+        # Buttons — spacer pushes cancel+download to the right
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         btn_box.set_margin_top(12)
-        check_btn  = Gtk.Button(label="Check speed")
         cancel_btn = Gtk.Button(label=S["btn_cancel"])
         dl_btn     = Gtk.Button(label=S["btn_download"])
         dl_btn.add_css_class("suggested-action")
         _spacer = Gtk.Box()
         _spacer.set_hexpand(True)
-        btn_box.append(check_btn)
         btn_box.append(_spacer)
         btn_box.append(cancel_btn)
         btn_box.append(dl_btn)
@@ -2749,6 +2739,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
             _dl_output = []
             rc = 1
+            _spd_pct  = [0.0]
+            _spd_t    = [_time.monotonic()]
+            _spd_mbs  = [0.0]
             try:
                 qg_bin = _resolve_quickget() or "quickget"
                 cmd[0] = qg_bin
@@ -2814,9 +2807,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         if m:
                             pct = float(m.group(1))
                             got_progress = True
-                            size_str = f" of {_fmt_size(total_mb)}" if total_mb else ""
+                            now = _time.monotonic()
+                            dt = now - _spd_t[0]
+                            if dt >= 1.0 and total_mb and pct > _spd_pct[0]:
+                                _spd_mbs[0] = (total_mb * (pct - _spd_pct[0]) / 100) / dt
+                                _spd_pct[0] = pct
+                                _spd_t[0]   = now
+                            size_str  = f" of {_fmt_size(total_mb)}" if total_mb else ""
+                            speed_str = f"  —  {_spd_mbs[0]:.1f} MB/s" if _spd_mbs[0] > 0 else ""
                             GLib.idle_add(_set_determinate, min(pct / 100.0, 0.99))
-                            GLib.idle_add(progress.set_text, f"Downloading… {pct:.1f}%{size_str}")
+                            GLib.idle_add(progress.set_text,
+                                f"Downloading… {pct:.1f}%{size_str}{speed_str}")
                         else:
                             _dl_output.append(segment)
                             if not got_progress:
@@ -2880,61 +2881,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 GLib.idle_add(dl_btn.set_label, S["btn_close"])
                 GLib.idle_add(dl_btn.set_sensitive, True)
 
-        def _run_speed_check():
-            import subprocess as _sp
-            cmd_parts = cmd_entry.get_text().strip().split()
-            if len(cmd_parts) < 3:
-                GLib.idle_add(speed_lbl.set_markup,
-                    '<span color="#e53935">✗ Cannot determine URL</span>')
-                GLib.idle_add(speed_lbl.set_visible, True)
-                GLib.idle_add(check_btn.set_sensitive, True)
-                return
-            qg_bin = _resolve_quickget() or "quickget"
-            try:
-                r = _sp.run([qg_bin, "--url"] + cmd_parts[1:],
-                            capture_output=True, text=True, timeout=15)
-                import re as _re
-                urls = [m.group(0) for line in r.stdout.splitlines()
-                        for m in [_re.search(r'https?://\S+', line)] if m]
-            except Exception as e:
-                GLib.idle_add(speed_lbl.set_markup,
-                    f'<span color="#e53935">✗ {str(e)[:60]}</span>')
-                GLib.idle_add(speed_lbl.set_visible, True)
-                GLib.idle_add(check_btn.set_sensitive, True)
-                return
-            if not urls:
-                GLib.idle_add(speed_lbl.set_markup,
-                    '<span color="#ff9800">⚠ No URL found for this release</span>')
-                GLib.idle_add(speed_lbl.set_visible, True)
-                GLib.idle_add(check_btn.set_sensitive, True)
-                return
-            url = urls[0]
-            try:
-                r2 = _sp.run(
-                    ["curl", "-o", "/dev/null", "--max-time", "8",
-                     "--range", "0-3145727", "-w", "%{speed_download}", "-s", url],
-                    capture_output=True, text=True, timeout=15)
-                speed_mbs = float(r2.stdout.strip()) / (1024 * 1024)
-                if speed_mbs >= 2.0:
-                    color, verdict = "#4caf50", "fast"
-                elif speed_mbs >= 0.5:
-                    color, verdict = "#ff9800", "ok"
-                else:
-                    color, verdict = "#e53935", "slow"
-                GLib.idle_add(speed_lbl.set_markup,
-                    f'<span color="{color}">● {speed_mbs:.1f} MB/s — {verdict}</span>')
-            except Exception:
-                GLib.idle_add(speed_lbl.set_markup,
-                    '<span color="#e53935">✗ Server unreachable</span>')
-            GLib.idle_add(speed_lbl.set_visible, True)
-            GLib.idle_add(check_btn.set_sensitive, True)
-
-        def _on_check_speed(_btn):
-            check_btn.set_sensitive(False)
-            speed_lbl.set_markup('<span color="gray">Checking…</span>')
-            speed_lbl.set_visible(True)
-            threading.Thread(target=_run_speed_check, daemon=True).start()
-
         def _on_download(btn):
             if btn.get_label() in (S["dl2_done_close"], S["btn_close"]):
                 dlg.close()
@@ -2947,7 +2893,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 _dl["process"].terminate()
             dlg.close()
 
-        check_btn.connect("clicked", _on_check_speed)
         dl_btn.connect("clicked", _on_download)
         cancel_btn.connect("clicked", _on_cancel)
         dlg.connect("close-request", lambda w: _on_cancel(cancel_btn) or False)
