@@ -1161,6 +1161,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         while row := self.listbox.get_first_child():
             self.listbox.remove(row)
         self.vms = get_vms(self.vms_dir)
+        used = {int(v["ssh_port"]) for v in self.vms
+                if v.get("ssh_port") and v["ssh_port"].isdigit()}
+        p = 2222
+        for vm in self.vms:
+            if not vm.get("ssh_port"):
+                while p in used and p < 2300:
+                    p += 1
+                if p < 2300:
+                    setconf("ssh_port", str(p), vm["_conf"])
+                    vm["ssh_port"] = str(p)
+                    used.add(p)
         for vm in self.vms:
             self.listbox.append(VMRow(vm))
         importing = any(vm.get("_copying") for vm in self.vms)
