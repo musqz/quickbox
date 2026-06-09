@@ -828,17 +828,23 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         except Exception:
             return False
 
+    def _kill_vm_process(self, name):
+        import signal as _signal
+        needle = f"name {name},process={name}"
+        r = subprocess.run(["pgrep", "-fa", "qemu-system"], capture_output=True, text=True)
+        for line in r.stdout.splitlines():
+            if needle in line:
+                try:
+                    os.kill(int(line.split()[0]), _signal.SIGTERM)
+                except (ValueError, ProcessLookupError, PermissionError):
+                    pass
+
     def _stop_vm_by_name(self, name):
         def on_confirm(yes):
             if not yes:
                 return
-            needle = f"name {name},process={name}"
-            r = subprocess.run(["pgrep", "-fa", "qemu-system"], capture_output=True, text=True)
-            for line in r.stdout.splitlines():
-                if needle in line:
-                    pid = line.split()[0]
-                    subprocess.Popen(["kill", "-TERM", pid])
-            GLib.timeout_add(1500, self._refresh)
+            self._kill_vm_process(name)
+            GLib.timeout_add(2500, self._refresh)
         self._tray_show()
         self._confirm(S["dlg_stop_t"].format(name), S["dlg_stop_b"], on_confirm)
 
@@ -1821,13 +1827,14 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         return False
 
     def _stop_vm(self, vm):
-        needle = f"name {vm['_name']},process={vm['_name']}"
-        r = subprocess.run(["pgrep", "-fa", "qemu-system"], capture_output=True, text=True)
-        for line in r.stdout.splitlines():
-            if needle in line:
-                pid = line.split()[0]
-                subprocess.Popen(["kill", "-TERM", pid])
-        GLib.timeout_add(1500, self._refresh)
+        def on_confirm(yes):
+            if not yes:
+                return
+            self._kill_vm_process(vm["_name"])
+            GLib.timeout_add(2500, self._refresh)
+        self._confirm(
+            S["dlg_stop_t"].format(vm["_pretty"]),
+            S["dlg_stop_b"], on_confirm)
 
     # ── boot mode ──
 
