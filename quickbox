@@ -372,6 +372,7 @@ _EN_STRINGS = {
     "warn_dup_snap_t": "Duplicate tag",
     "warn_dup_snap_b": "Snapshot '{}' already exists.",
     "warn_snap_running_b": "Stop the VM before creating a snapshot.",
+    "warn_clone_running_b": "Stop the VM before cloning.",
     "warn_snap_fail_t": "Snapshot failed",
     "warn_fmt_fail_t": "Format failed",
     "warn_fmt_fail_b": "Command failed: {}",
@@ -2063,6 +2064,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     # ── clone ──
 
     def _clone_vm(self, vm):
+        if vm["_running"]:
+            self._warn(S["vm_running"], S["warn_clone_running_b"])
+            return
         suggested = f"{vm['_name']}-{_date_tag()}"
 
         win = Gtk.Window(title=S["clone_title"])
