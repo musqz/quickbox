@@ -1550,7 +1550,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             self._snap_entry.set_placeholder_text(S["snap_entry_ph"])
             self._snap_entry.set_size_request(160, -1)
             create_btn = Gtk.Button(label=S["snap_create"])
-            create_btn.set_sensitive(not read_only)
+            snap_locked = read_only or vm["_running"]
+            self._snap_entry.set_sensitive(not snap_locked)
+            create_btn.set_sensitive(not snap_locked)
+            if vm["_running"]:
+                self._snap_entry.set_placeholder_text(S["warn_snap_running_b"])
             create_btn.connect("clicked", lambda b: self._snap_create(vm))
             create_row.append(self._snap_entry)
             create_row.append(create_btn)
