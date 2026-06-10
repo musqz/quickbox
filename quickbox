@@ -2264,6 +2264,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 if not yes:
                     return
                 disk_path = vm["_disk"] or str(Path(self.vms_dir) / vm["_name"] / "disk.qcow2")
+                spin_win, _ = self._snap_spinner(S["ntf_fmt_start"].format(size_gb))
 
                 def _do_format():
                     import tempfile
@@ -2300,10 +2301,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         GLib.idle_add(self._warn, S["warn_fmt_fail_t"],
                                       S["warn_fmt_fail_b"].format(' '.join(str(x) for x in e.cmd)))
                     finally:
+                        GLib.idle_add(spin_win.destroy)
                         if Path(tmp).exists():
                             Path(tmp).unlink()
 
-                self._run_with_progress(f"Formatting disk — {size_gb}GB {layout}", ["true"])
                 threading.Thread(target=_do_format, daemon=True).start()
 
             self._confirm(
