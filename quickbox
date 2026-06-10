@@ -369,6 +369,8 @@ _EN_STRINGS = {
     "warn_clone_conf": "Could not write conf: {}",
     "warn_clone_dir": "Directory copy failed: {}",
     "warn_no_disk_t": "No disk",     "warn_no_disk_b": "Disk image not found.",
+    "warn_import_t": "Import failed",
+    "warn_import_b": "Could not import {}: {}",
     "warn_dup_snap_t": "Duplicate tag",
     "warn_dup_snap_b": "Snapshot '{}' already exists.",
     "warn_snap_running_b": "Stop the VM before creating a snapshot.",
@@ -3020,9 +3022,25 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     def _convert():
                         disk = str(dest_dir / "disk.qcow2")
                         try:
-                            subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
-                                             str(src_path), disk])
-                            subprocess.run(["qemu-img", "resize", disk, "20G"])
+                            r = subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
+                                                str(src_path), disk],
+                                               capture_output=True, text=True)
+                            if r.returncode != 0:
+                                err = (r.stderr or "").strip()[-300:] or "qemu-img convert failed"
+                                GLib.idle_add(self._warn, S["warn_import_t"],
+                                              S["warn_import_b"].format(src_path.name, err))
+                                GLib.idle_add(self._refresh)
+                                return
+                            # grow to 20G only if smaller — qemu-img refuses to shrink
+                            try:
+                                info = _json.loads(subprocess.run(
+                                    ["qemu-img", "info", "--output=json", disk],
+                                    capture_output=True, text=True).stdout)
+                                if int(info.get("virtual-size", 0)) < 20 * 1024 ** 3:
+                                    subprocess.run(["qemu-img", "resize", disk, "20G"],
+                                                   capture_output=True)
+                            except Exception:
+                                pass
                         finally:
                             flag.unlink(missing_ok=True)
                         notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
@@ -3046,6 +3064,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     def _copy():
                         try:
                             shutil.copy2(str(src_path), str(dest_dir / src_path.name))
+                        except OSError as e:
+                            GLib.idle_add(self._warn, S["warn_import_t"],
+                                          S["warn_import_b"].format(src_path.name, e))
+                            GLib.idle_add(self._refresh)
+                            return
                         finally:
                             flag.unlink(missing_ok=True)
                         notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
