@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "Kommando (redigerbar):",
   "dl2_ready": "Klar til download",
   "dl2_starting": "Starter download…",
-  "dl2_progress": "Downloader… {} MB  ({} MB/s)",
   "dl2_verifying": "Verificerer…",
   "dl2_done": "Download fuldført!",
   "dl2_failed": "Download mislykkedes.",
@@ -191,8 +190,6 @@
   "hdr_tray": "Systembakke",
   "tt_tray": "Aktiver ikon i systembakken",
   "tt_update_distros": "Opdater distroliste — henter de nyeste distroer fra quickget",
-  "set_quiet": "Stille start:",
-  "set_quiet_note": "Ingen startmeddelelse",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "Anvender snapshot '{}'…",
   "snap_saving": "Gemmer nuværende tilstand som '{}'…",
   "snap_deleting": "Sletter snapshot '{}'…",
-  "rsz_cur_lbl": "Nuværende størrelse:"
+  "rsz_cur_lbl": "Nuværende størrelse:",
+  "warn_clone_running_b": "Stop VM'en inden kloning.",
+  "warn_import_t": "Import mislykkedes",
+  "warn_import_b": "Kunne ikke importere {}: {}",
+  "warn_launch_fail_t": "Start mislykkedes",
+  "warn_launch_fail_b": "QEMU afsluttede med kode {}."
 }

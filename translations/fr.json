@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "Commande (modifiable) :",
   "dl2_ready": "Prêt à télécharger",
   "dl2_starting": "Démarrage du téléchargement…",
-  "dl2_progress": "Téléchargement… {} Mo  ({} Mo/s)",
   "dl2_verifying": "Vérification…",
   "dl2_done": "Téléchargement terminé !",
   "dl2_failed": "Échec du téléchargement.",
@@ -191,8 +190,6 @@
   "hdr_tray": "Barre système",
   "tt_tray": "Activer l'icône de la barre système",
   "tt_update_distros": "Mettre à jour la liste des distros — récupère les dernières distros depuis quickget",
-  "set_quiet": "Lancement silencieux :",
-  "set_quiet_note": "Pas de notification au démarrage",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "Application du snapshot '{}' en cours…",
   "snap_saving": "Sauvegarde de l'état actuel sous '{}' en cours…",
   "snap_deleting": "Suppression du snapshot '{}' en cours…",
-  "rsz_cur_lbl": "Taille actuelle :"
+  "rsz_cur_lbl": "Taille actuelle :",
+  "warn_clone_running_b": "Arrêtez la VM avant de la cloner.",
+  "warn_import_t": "Échec de l'importation",
+  "warn_import_b": "Impossible d'importer {} : {}",
+  "warn_launch_fail_t": "Échec du lancement",
+  "warn_launch_fail_b": "QEMU s'est terminé avec le code {}."
 }

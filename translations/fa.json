@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "دستور (قابل ویرایش):",
   "dl2_ready": "آماده دانلود",
   "dl2_starting": "شروع دانلود…",
-  "dl2_progress": "در حال دانلود… {} MB  ({} MB/s)",
   "dl2_verifying": "در حال تایید…",
   "dl2_done": "دانلود کامل شد!",
   "dl2_failed": "دانلود ناموفق بود.",
@@ -191,8 +190,6 @@
   "hdr_tray": "سینی سیستم",
   "tt_tray": "فعال‌کردن آیکون سینی سیستم",
   "tt_update_distros": "به‌روزرسانی لیست توزیع‌ها — آخرین توزیع‌ها را از quickget دریافت می‌کند",
-  "set_quiet": "راه‌اندازی بی‌صدا:",
-  "set_quiet_note": "بدون اعلان راه‌اندازی",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "در حال اعمال اسنپ‌شات '{}'…",
   "snap_saving": "در حال ذخیره وضعیت فعلی به عنوان '{}'…",
   "snap_deleting": "در حال حذف اسنپ‌شات '{}'…",
-  "rsz_cur_lbl": "اندازه فعلی:"
+  "rsz_cur_lbl": "اندازه فعلی:",
+  "warn_clone_running_b": "قبل از کلون‌سازی، ماشین مجازی را متوقف کنید.",
+  "warn_import_t": "وارد کردن ناموفق بود",
+  "warn_import_b": "نمی‌توان {} را وارد کرد: {}",
+  "warn_launch_fail_t": "اجرا ناموفق بود",
+  "warn_launch_fail_b": "QEMU با کد {} خارج شد."
 }

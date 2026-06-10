@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "コマンド (編集可能):",
   "dl2_ready": "ダウンロード準備完了",
   "dl2_starting": "ダウンロードを開始中…",
-  "dl2_progress": "ダウンロード中… {} MB  ({} MB/s)",
   "dl2_verifying": "検証中…",
   "dl2_done": "ダウンロード完了!",
   "dl2_failed": "ダウンロードに失敗しました。",
@@ -191,8 +190,6 @@
   "hdr_tray": "システムトレイ",
   "tt_tray": "システムトレイアイコンを有効にする",
   "tt_update_distros": "ディストロリストを更新 — quickgetから最新のディストロを取得",
-  "set_quiet": "サイレント起動：",
-  "set_quiet_note": "起動通知なし",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "スナップショット '{}' を適用中…",
   "snap_saving": "現在の状態を '{}' として保存中…",
   "snap_deleting": "スナップショット '{}' を削除中…",
-  "rsz_cur_lbl": "現在のサイズ："
+  "rsz_cur_lbl": "現在のサイズ：",
+  "warn_clone_running_b": "クローン作成前にVMを停止してください。",
+  "warn_import_t": "インポート失敗",
+  "warn_import_b": "{} をインポートできません: {}",
+  "warn_launch_fail_t": "起動失敗",
+  "warn_launch_fail_b": "QEMUがコード{}で終了しました。"
 }

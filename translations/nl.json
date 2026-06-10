@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "Opdracht (bewerkbaar):",
   "dl2_ready": "Klaar om te downloaden",
   "dl2_starting": "Download starten…",
-  "dl2_progress": "Downloaden… {} MB  ({} MB/s)",
   "dl2_verifying": "Verifiëren…",
   "dl2_done": "Download voltooid!",
   "dl2_failed": "Download mislukt.",
@@ -191,8 +190,6 @@
   "hdr_tray": "Systeemvak",
   "tt_tray": "Systeemvakpictogram inschakelen",
   "tt_update_distros": "Distrolijst bijwerken — haalt de nieuwste distro's op van quickget",
-  "set_quiet": "Stille start:",
-  "set_quiet_note": "Geen startmelding",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "Snapshot '{}' toepassen…",
   "snap_saving": "Huidige toestand opslaan als '{}'…",
   "snap_deleting": "Snapshot '{}' verwijderen…",
-  "rsz_cur_lbl": "Huidige grootte:"
+  "rsz_cur_lbl": "Huidige grootte:",
+  "warn_clone_running_b": "Stop de VM voordat u kloont.",
+  "warn_import_t": "Importeren mislukt",
+  "warn_import_b": "Kan {} niet importeren: {}",
+  "warn_launch_fail_t": "Starten mislukt",
+  "warn_launch_fail_b": "QEMU is afgesloten met code {}."
 }

@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "Komut (düzenlenebilir):",
   "dl2_ready": "İndirmeye hazır",
   "dl2_starting": "İndirme başlatılıyor…",
-  "dl2_progress": "İndiriliyor… {} MB  ({} MB/s)",
   "dl2_verifying": "Doğrulanıyor…",
   "dl2_done": "İndirme tamamlandı!",
   "dl2_failed": "İndirme başarısız.",
@@ -191,8 +190,6 @@
   "hdr_tray": "Sistem tepsisi",
   "tt_tray": "Sistem tepsisi simgesini etkinleştir",
   "tt_update_distros": "Distro listesini güncelle — quickget'ten en son distroları getirir",
-  "set_quiet": "Sessiz başlatma:",
-  "set_quiet_note": "Başlatma bildirimi yok",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "'{}' snapshot uygulanıyor…",
   "snap_saving": "Mevcut durum '{}' olarak kaydediliyor…",
   "snap_deleting": "'{}' snapshot siliniyor…",
-  "rsz_cur_lbl": "Mevcut boyut:"
+  "rsz_cur_lbl": "Mevcut boyut:",
+  "warn_clone_running_b": "Klonlamadan önce VM'yi durdurun.",
+  "warn_import_t": "İçe aktarma başarısız",
+  "warn_import_b": "{} içe aktarılamadı: {}",
+  "warn_launch_fail_t": "Başlatma başarısız",
+  "warn_launch_fail_b": "QEMU {} koduyla çıktı."
 }

@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "Befehl (bearbeitbar):",
   "dl2_ready": "Bereit zum Herunterladen",
   "dl2_starting": "Download wird gestartet…",
-  "dl2_progress": "Herunterladen… {} MB  ({} MB/s)",
   "dl2_verifying": "Verifizieren…",
   "dl2_done": "Download abgeschlossen!",
   "dl2_failed": "Download fehlgeschlagen.",
@@ -191,8 +190,6 @@
   "hdr_tray": "Benachrichtigungsbereich",
   "tt_tray": "Symbol im Benachrichtigungsbereich aktivieren",
   "tt_update_distros": "Distro-Liste aktualisieren — neueste Distros von quickget abrufen",
-  "set_quiet": "Lautloser Start:",
-  "set_quiet_note": "Keine Startbenachrichtigung",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "Snapshot '{}' wird angewendet…",
   "snap_saving": "Aktuellen Zustand wird gespeichert als '{}'…",
   "snap_deleting": "Snapshot '{}' wird gelöscht…",
-  "rsz_cur_lbl": "Aktuelle Größe:"
+  "rsz_cur_lbl": "Aktuelle Größe:",
+  "warn_clone_running_b": "Stoppe die VM vor dem Klonen.",
+  "warn_import_t": "Import fehlgeschlagen",
+  "warn_import_b": "Konnte {} nicht importieren: {}",
+  "warn_launch_fail_t": "Start fehlgeschlagen",
+  "warn_launch_fail_b": "QEMU beendet mit Code {}."
 }

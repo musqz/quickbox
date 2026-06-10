@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "פקודה (ניתנת לעריכה):",
   "dl2_ready": "מוכן להורדה",
   "dl2_starting": "מתחיל הורדה…",
-  "dl2_progress": "מוריד… {} MB  ({} MB/s)",
   "dl2_verifying": "מאמת…",
   "dl2_done": "ההורדה הושלמה!",
   "dl2_failed": "ההורדה נכשלה.",
@@ -191,8 +190,6 @@
   "hdr_tray": "מגש מערכת",
   "tt_tray": "הפעל סמל במגש המערכת",
   "tt_update_distros": "עדכן רשימת הפצות — מביא את ההפצות העדכניות מ-quickget",
-  "set_quiet": "הפעלה שקטה:",
-  "set_quiet_note": "ללא הודעת הפעלה",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "מחיל סנפשוט '{}'…",
   "snap_saving": "שומר את המצב הנוכחי בשם '{}'…",
   "snap_deleting": "מוחק סנפשוט '{}'…",
-  "rsz_cur_lbl": "גודל נוכחי:"
+  "rsz_cur_lbl": "גודל נוכחי:",
+  "warn_clone_running_b": "עצור את המכונה הווירטואלית לפני השכפול.",
+  "warn_import_t": "ייבוא נכשל",
+  "warn_import_b": "לא ניתן לייבא {}: {}",
+  "warn_launch_fail_t": "ההפעלה נכשלה",
+  "warn_launch_fail_b": "QEMU יצא עם קוד {}."
 }

@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "الأمر (قابل للتعديل):",
   "dl2_ready": "جاهز للتنزيل",
   "dl2_starting": "بدء التنزيل…",
-  "dl2_progress": "جارٍ التنزيل… {} MB  ({} MB/s)",
   "dl2_verifying": "جارٍ التحقق…",
   "dl2_done": "اكتمل التنزيل!",
   "dl2_failed": "فشل التنزيل.",
@@ -191,8 +190,6 @@
   "hdr_tray": "حاوية النظام",
   "tt_tray": "تفعيل أيقونة حاوية النظام",
   "tt_update_distros": "تحديث قائمة التوزيعات — يجلب أحدث التوزيعات من quickget",
-  "set_quiet": "تشغيل صامت:",
-  "set_quiet_note": "بدون إشعار عند التشغيل",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "جارٍ تطبيق اللقطة '{}'…",
   "snap_saving": "جارٍ حفظ الحالة الحالية باسم '{}'…",
   "snap_deleting": "جارٍ حذف اللقطة '{}'…",
-  "rsz_cur_lbl": "الحجم الحالي:"
+  "rsz_cur_lbl": "الحجم الحالي:",
+  "warn_clone_running_b": "أوقف الجهاز الافتراضي قبل الاستنساخ.",
+  "warn_import_t": "فشل الاستيراد",
+  "warn_import_b": "تعذّر استيراد {}: {}",
+  "warn_launch_fail_t": "فشل التشغيل",
+  "warn_launch_fail_b": "خرج QEMU برمز {}."
 }

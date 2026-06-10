@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "命令（可编辑）:",
   "dl2_ready": "准备下载",
   "dl2_starting": "正在开始下载…",
-  "dl2_progress": "下载中… {} MB  ({} MB/s)",
   "dl2_verifying": "验证中…",
   "dl2_done": "下载完成！",
   "dl2_failed": "下载失败。",
@@ -191,8 +190,6 @@
   "hdr_tray": "系统托盘",
   "tt_tray": "启用系统托盘图标",
   "tt_update_distros": "更新发行版列表 — 从 quickget 获取最新发行版",
-  "set_quiet": "静默启动：",
-  "set_quiet_note": "无启动通知",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "正在应用快照 '{}'…",
   "snap_saving": "正在将当前状态保存为 '{}'…",
   "snap_deleting": "正在删除快照 '{}'…",
-  "rsz_cur_lbl": "当前大小："
+  "rsz_cur_lbl": "当前大小：",
+  "warn_clone_running_b": "克隆前请先停止虚拟机。",
+  "warn_import_t": "导入失败",
+  "warn_import_b": "无法导入 {}: {}",
+  "warn_launch_fail_t": "启动失败",
+  "warn_launch_fail_b": "QEMU 以代码 {} 退出。"
 }

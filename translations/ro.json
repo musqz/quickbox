@@ -76,7 +76,6 @@
   "dl2_cmd_lbl": "Comandă (editabilă):",
   "dl2_ready": "Gata de descărcare",
   "dl2_starting": "Se pornește descărcarea…",
-  "dl2_progress": "Se descarcă… {} MB  ({} MB/s)",
   "dl2_verifying": "Se verifică…",
   "dl2_done": "Descărcare finalizată!",
   "dl2_failed": "Descărcarea a eșuat.",
@@ -191,8 +190,6 @@
   "hdr_tray": "Tavă sistem",
   "tt_tray": "Activează pictograma din tava de sistem",
   "tt_update_distros": "Actualizează lista de distro-uri — preia cele mai recente distro-uri din quickget",
-  "set_quiet": "Pornire silențioasă:",
-  "set_quiet_note": "Fără notificare la pornire",
   "display_dsl": "DSL",
   "display_gtk": "GTK",
   "display_spice": "SPICE App",
@@ -210,5 +207,10 @@
   "snap_applying": "Se aplică snapshot '{}'…",
   "snap_saving": "Se salvează starea curentă ca '{}'…",
   "snap_deleting": "Se șterge snapshot '{}'…",
-  "rsz_cur_lbl": "Dimensiune curentă:"
+  "rsz_cur_lbl": "Dimensiune curentă:",
+  "warn_clone_running_b": "Opriți VM-ul înainte de clonare.",
+  "warn_import_t": "Import eșuat",
+  "warn_import_b": "Nu s-a putut importa {}: {}",
+  "warn_launch_fail_t": "Pornire eșuată",
+  "warn_launch_fail_b": "QEMU a ieșit cu codul {}."
 }
