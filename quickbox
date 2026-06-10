@@ -1036,6 +1036,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         scrollbar slider { background-color:alpha(@theme_fg_color,0.45); border-radius:4px;
                            min-width:6px; min-height:6px; }
         scrollbar slider:hover { background-color:alpha(@theme_fg_color,0.70); }
+
+        /* dropdown: ensure button border and arrow are always visible */
+        dropdown > button { border:1px solid alpha(@theme_fg_color,0.28);
+                            border-radius:6px; padding:5px 10px; }
+        dropdown > button:hover { border-color:alpha(@theme_fg_color,0.55); }
+        dropdown > button > box > image { -gtk-icon-size:16px; }
         """
         p = Gtk.CssProvider()
         p.load_from_string(css.decode())
@@ -2683,15 +2689,22 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         box.append(_sep)
 
         # Version/edition selector
-        ver_lbl = Gtk.Label(label=S["dl2_ver_lbl"])
+        ver_lbl = Gtk.Label()
+        ver_lbl.set_markup(f'<b>{S["dl2_ver_lbl"]}</b>')
         ver_lbl.set_halign(Gtk.Align.START)
-        ver_lbl.add_css_class("dim-label")
-        ver_lbl.set_margin_top(2)
+        ver_lbl.set_margin_top(10)
         box.append(ver_lbl)
 
         ver_combo = Gtk.DropDown(model=Gtk.StringList.new(version_labels))
         ver_combo.set_selected(default_idx)
         ver_combo.set_margin_top(4)
+        ver_combo.set_hexpand(True)
+        ver_combo.set_visible(len(versions) > 1)
+        if len(versions) <= 1:
+            single_lbl = Gtk.Label(label=version_labels[0] if version_labels else "")
+            single_lbl.set_halign(Gtk.Align.START)
+            single_lbl.set_margin_top(4)
+            box.append(single_lbl)
         box.append(ver_combo)
 
         # Command preview / manual edit
