@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # quickbox - GTK4 GUI / quickemu VM manager
 # Author: musqz
-# License: GPL3
+# License: MIT
 
 # ─── SINGLE INSTANCE LOCK (MUST BE FIRST!) ────────────────────────────────────
 import socket
@@ -3300,7 +3300,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             grid.attach(val, 1, row, 1, 1)
 
         _row(S["adv_about_release"], APP_VERSION, 0)
-        _row(S["adv_about_author"],  "Musqz <musqz@mf.com>", 1)
+        _row(S["adv_about_author"],  "Musqz", 1)
         _row(S["adv_about_github"],  "github.com/musqz/quickbox", 2,
              uri="https://github.com/musqz/quickbox")
         _row(S["adv_about_license"], "MIT", 3)
