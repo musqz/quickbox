@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # quickbox - GTK4 GUI / quickemu VM manager
 # Author: musqz
-# License: GPL3
+# License: MIT
 
 # ─── SINGLE INSTANCE LOCK (MUST BE FIRST!) ────────────────────────────────────
 import socket
@@ -46,8 +46,6 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Pango, Gdk, Gio
 
 # System tray via GTK3 StatusIcon subprocess (avoids GTK3/GTK4 conflict)
-HAVE_TRAY = True
-
 _TRAY_HELPER = r"""
 import gi, sys
 gi.require_version('Gtk','3.0')
@@ -221,9 +219,8 @@ _EN_STRINGS = {
     "info_ssh_port": "SSH port",     "info_disk": "Disk",
     "info_iso": "ISO",
     "set_profile": "Profile:",       "set_compat": "Compatibility mode:",
-    "set_boot": "Boot mode:",        "set_quiet": "Quiet launch:",
+    "set_boot": "Boot mode:",
     "set_compat_hint": "Use minimal QEMU without VirGL — for lightweight or older distros that show a blank screen.",
-    "set_quiet_note": "No launch notification",
     "boot_uefi": "UEFI",             "boot_legacy": "Legacy (BIOS)",
     "set_display": "Display:",
     "display_dsl": "DSL",            "display_gtk": "GTK",            "display_spice": "SPICE App",
@@ -265,12 +262,12 @@ _EN_STRINGS = {
     "ntf_rsz_done": "Disk resized to {}GB",
     "warn_rsz_fail_t": "Resize failed",
     "warn_rsz_fail_b": "qemu-img resize returned an error.",
-    "clone_title": "Clone VM",
+    "warn_launch_fail_t": "Launch failed",
+    "warn_launch_fail_b": "QEMU exited with code {}.",
     "clone_label": "Clone '{}' as:",
     "clone_tt": "Name for the cloned VM — date suffix helps track when it was made",
     "clone_hint": "The clone will appear in the VM list as a separate VM.",
     "btn_cancel": "Cancel",          "btn_clone": "Clone",
-    "fmt_title": "Format disk",
     "fmt_warn": "⚠ This will ERASE all data on the disk!",
     "fmt_size_lbl": "Disk size (GB):",
     "fmt_layout_lbl": "Partition layout:",
@@ -283,7 +280,6 @@ _EN_STRINGS = {
     "tt_fmt_fat": "For distros that need FAT32 working partition (e.g. EasyOS style)",
     "tt_fmt_raw": "Let the distro installer handle partitioning",
     "btn_format": "Format",
-    "dl_title": "Download Distro",
     "dl_search_ph": "Search distros…",
     "dl_hint2": "Click a distro to select version and download",
     "btn_close": "Close",
@@ -292,18 +288,15 @@ _EN_STRINGS = {
     "dl2_ready": "Ready to download",
     "dl2_starting": "Starting download…",
     "dl2_verifying": "Verifying…",   "dl2_done": "Download complete!",
-    "dl2_failed": "Download failed.", "dl2_cancelled": "Cancelled",
-    "dl2_connecting": "Connecting… ({}s)",
+    "dl2_cancelled": "Cancelled",
     "dl2_note": "Download time varies depending on ISO size and server speed.",
     "dl2_cmd_note": "If download fails, run this command in a terminal in {} — the VM will appear in the list automatically.",
     "btn_download": "Download",      "dl2_done_close": "Done — Close",
-    "cvm_title": "Create Custom VM",
     "cvm_name_lbl": "Enter a name for the new VM:",
     "cvm_name_def": "My custom VM",
     "cvm_file_title": "Select ISO or IMG file",
     "cvm_filter": "Disk images (*.iso, *.img)",
     "btn_next": "Next",
-    "adv_title": "Advanced",
     "adv_cur_dir": "Current VMs directory:",
     "adv_about": "About",
     "adv_about_release": "Release",
@@ -326,7 +319,6 @@ _EN_STRINGS = {
     "tt_reset_prof": "Restore the 5 built-in profiles (Standard, Live ISO, Lightweight, Performance, Server). Custom profiles are kept.",
     "btn_switch": "Switch",          "btn_remove": "Remove",
     "btn_open_loc": "Open",
-    "mig_title": "Select VMs to migrate",
     "mig_hint": "Tick the VMs you want to copy to the new location.",
     "mig_all": "Select all",         "mig_none": "Select none",
     "mig_running_tag": "  [running]",
@@ -369,9 +361,12 @@ _EN_STRINGS = {
     "warn_clone_conf": "Could not write conf: {}",
     "warn_clone_dir": "Directory copy failed: {}",
     "warn_no_disk_t": "No disk",     "warn_no_disk_b": "Disk image not found.",
+    "warn_import_t": "Import failed",
+    "warn_import_b": "Could not import {}: {}",
     "warn_dup_snap_t": "Duplicate tag",
     "warn_dup_snap_b": "Snapshot '{}' already exists.",
     "warn_snap_running_b": "Stop the VM before creating a snapshot.",
+    "warn_clone_running_b": "Stop the VM before cloning.",
     "warn_snap_fail_t": "Snapshot failed",
     "warn_fmt_fail_t": "Format failed",
     "warn_fmt_fail_b": "Command failed: {}",
@@ -649,14 +644,6 @@ def get_vms(vms_dir):
 
 
 # ─── SSH helpers ──────────────────────────────────────────────────────────────
-
-def get_ssh_user(guest_os):
-    """Auto-detect SSH user by distro."""
-    guest_os = guest_os.lower()
-    if any(x in guest_os for x in ["ubuntu", "debian", "mint", "elementary"]):
-        return "ubuntu"
-    return "root"
-
 
 def get_next_ssh_port(vms_dir, vmname):
     """Assign unique SSH port 2222-2299 per VM, stored in .conf."""
@@ -1007,10 +994,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .launch-btn label { color:white; }
         .launch-btn:hover { background-color:#1976d2; }
 
-        .ssh-btn { background-color:#455a64; color:white;
-                   border-radius:4px; padding:6px 12px; }
-        .ssh-btn label { color:white; }
-        .ssh-btn:hover { background-color:#546e7a; }
         .snap-row { background-color:alpha(@theme_fg_color,0.06);
                     border-radius:5px;
                     border:1px solid alpha(@theme_fg_color,0.12);
@@ -1032,6 +1015,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         scrollbar slider { background-color:alpha(@theme_fg_color,0.45); border-radius:4px;
                            min-width:6px; min-height:6px; }
         scrollbar slider:hover { background-color:alpha(@theme_fg_color,0.70); }
+
+        /* dropdown: ensure button border and arrow are always visible */
+        dropdown > button { border:1px solid alpha(@theme_fg_color,0.28);
+                            border-radius:6px; padding:5px 10px; }
+        dropdown > button:hover { border-color:alpha(@theme_fg_color,0.55); }
+        dropdown > button > box > image { -gtk-icon-size:16px; }
         """
         p = Gtk.CssProvider()
         p.load_from_string(css.decode())
@@ -1161,6 +1150,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         while row := self.listbox.get_first_child():
             self.listbox.remove(row)
         self.vms = get_vms(self.vms_dir)
+        used = {int(v["ssh_port"]) for v in self.vms
+                if v.get("ssh_port") and v["ssh_port"].isdigit()}
+        p = 2222
+        for vm in self.vms:
+            if not vm.get("ssh_port"):
+                while p in used and p < 2300:
+                    p += 1
+                if p < 2300:
+                    setconf("ssh_port", str(p), vm["_conf"])
+                    vm["ssh_port"] = str(p)
+                    used.add(p)
         for vm in self.vms:
             self.listbox.append(VMRow(vm))
         importing = any(vm.get("_copying") for vm in self.vms)
@@ -1249,14 +1249,16 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self._clear_right()
         self.right_box.set_valign(Gtk.Align.FILL)
         read_only = self._any_importing
+        locked    = read_only or vm["_running"]
 
         # Title
+        esc = GLib.markup_escape_text
         t = Gtk.Label()
-        t.set_markup(f'<span size="x-large" weight="bold">{vm["_pretty"]}</span>')
+        t.set_markup(f'<span size="x-large" weight="bold">{esc(vm["_pretty"])}</span>')
         t.set_halign(Gtk.Align.START)
         self.right_box.append(t)
         sub = Gtk.Label()
-        sub.set_markup(f'<span size="small" color="gray">{vm["_name"]}  •  {vm["_size"]}</span>')
+        sub.set_markup(f'<span size="small" color="gray">{esc(vm["_name"])}  •  {esc(vm["_size"])}</span>')
         sub.set_halign(Gtk.Align.START)
         sub.set_margin_top(2)
         self.right_box.append(sub)
@@ -1268,6 +1270,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         if read_only and not this_vm_copying:
             notice = Gtk.Label()
             notice.set_markup('<span size="small" color="#ff9800">⏳ Import in progress — settings locked</span>')
+            notice.set_halign(Gtk.Align.START)
+            notice.set_margin_top(4)
+            self.right_box.append(notice)
+        elif vm["_running"]:
+            notice = Gtk.Label()
+            notice.set_markup('<span size="small" color="#4caf50">● VM is running — stop the VM to change settings</span>')
             notice.set_halign(Gtk.Align.START)
             notice.set_margin_top(4)
             self.right_box.append(notice)
@@ -1388,7 +1396,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         profile_desc.set_wrap(True)
         profile_desc.set_max_width_chars(42)
         pc.connect("notify::selected", self._on_profile_changed, profile_desc, vm, _profile_ids)
-        pc.set_sensitive(not read_only)
+        pc.set_sensitive(not locked)
         sg.attach(pl, 0, 0, 1, 1); sg.attach(pc, 1, 0, 1, 1)
         sg.attach(profile_desc, 1, 1, 1, 1)
 
@@ -1397,7 +1405,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         lambda sw, p, v=vm: setconf("compat_mode",
                             "true" if sw.get_active() else "false", v["_conf"]) or
                             v.update({"compat_mode": "true" if sw.get_active() else "false"}))
-        cs.set_sensitive(not read_only)
+        cs.set_sensitive(not locked)
         sg.attach(cl, 0, 2, 1, 1); sg.attach(cs, 1, 2, 1, 1)
         compat_hint = Gtk.Label()
         compat_hint.set_markup(f'<span size="small" color="gray">{S["set_compat_hint"]}</span>')
@@ -1414,7 +1422,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         cur = vm.get("boot", "uefi")
         bc.set_selected(_boot_ids.index(cur) if cur in _boot_ids else 0)
         bc.connect("notify::selected", self._on_boot_changed, vm, _boot_ids)
-        bc.set_sensitive(not read_only)
+        bc.set_sensitive(not locked)
         sg.attach(bl, 0, 4, 1, 1); sg.attach(bc, 1, 4, 1, 1)
 
         dl = Gtk.Label(label=S["set_display"])
@@ -1425,7 +1433,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         cur_disp = vm.get("display", "dsl")
         dc.set_selected(_display_ids.index(cur_disp) if cur_disp in _display_ids else 0)
         dc.connect("notify::selected", self._on_display_changed, vm, _display_ids)
-        dc.set_sensitive(not read_only)
+        dc.set_sensitive(not locked)
         sg.attach(dl, 0, 5, 1, 1); sg.attach(dc, 1, 5, 1, 1)
         display_hint = Gtk.Label()
         display_hint.set_markup(f'<span size="small" color="gray">{S["set_display_hint"]}</span>')
@@ -1478,10 +1486,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 if current_snap in snap_tags:
                     indicator.set_markup(
                         f'<span color="#4caf50" weight="bold">● '
-                        f'{S["snap_active"].format(current_snap)}</span>')
+                        f'{S["snap_active"].format(esc(current_snap))}</span>')
                 else:
                     indicator.set_markup(
-                        f'<span color="#888">{S["snap_stale"].format(current_snap)}</span>')
+                        f'<span color="#888">{S["snap_stale"].format(esc(current_snap))}</span>')
                 indicator.set_halign(Gtk.Align.START)
                 indicator.set_margin_bottom(6)
                 snap_vbox.append(indicator)
@@ -1497,22 +1505,22 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         "snap-row-active" if is_active else "snap-row")
                     lbl = Gtk.Label()
                     if is_active:
-                        lbl.set_markup(f'<b>● {snap["tag"]}</b>')
+                        lbl.set_markup(f'<b>● {esc(snap["tag"])}</b>')
                     else:
-                        lbl.set_markup(f'<span color="#aaa">○</span>  {snap["tag"]}')
+                        lbl.set_markup(f'<span color="#aaa">○</span>  {esc(snap["tag"])}')
                     lbl.set_halign(Gtk.Align.START)
                     lbl.set_hexpand(True)
                     row.append(lbl)
                     del_btn = Gtk.Button(label=S["snap_delete"])
                     del_btn.set_size_request(68, -1)
-                    del_btn.set_sensitive(not read_only)
+                    del_btn.set_sensitive(not locked)
                     del_btn.connect("clicked",
                         lambda b, t=snap["tag"]: self._snap_delete(vm, t))
                     row.append(del_btn)
 
                     apply_btn = Gtk.Button(label=S["snap_apply"])
                     apply_btn.set_size_request(68, -1)
-                    apply_btn.set_sensitive(not read_only)
+                    apply_btn.set_sensitive(not locked)
                     apply_btn.connect("clicked",
                         lambda b, t=snap["tag"]: self._snap_apply(vm, t))
                     row.append(apply_btn)
@@ -1533,7 +1541,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             self._snap_entry.set_placeholder_text(S["snap_entry_ph"])
             self._snap_entry.set_size_request(160, -1)
             create_btn = Gtk.Button(label=S["snap_create"])
-            create_btn.set_sensitive(not read_only)
+            self._snap_entry.set_sensitive(not locked)
+            create_btn.set_sensitive(not locked)
+            if vm["_running"]:
+                self._snap_entry.set_placeholder_text(S["warn_snap_running_b"])
             create_btn.connect("clicked", lambda b: self._snap_create(vm))
             create_row.append(self._snap_entry)
             create_row.append(create_btn)
@@ -1566,37 +1577,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         acts_hdr.append(acts_toggle_btn)
         self.right_box.append(acts_hdr)
 
-        def _note(text):
-            l = Gtk.Label()
-            l.set_markup(f'<span size="small" color="gray">{text}</span>')
-            l.set_halign(Gtk.Align.START)
-            return l
-
-        # Toggles right after the header
-        tog_grid = Gtk.Grid()
-        tog_grid.set_column_spacing(10)
-        tog_grid.set_row_spacing(4)
-        tog_grid.set_margin_top(6)
-        tog_grid.set_margin_bottom(6)
-
-        qtl, qts = sw_row(S["set_quiet"].rstrip(":"),
-                          vm.get("quiet_launch") == "true",
-                          lambda sw, p, v=vm: setconf("quiet_launch",
-                              "true" if sw.get_active() else "false", v["_conf"]) or
-                              v.update({"quiet_launch": "true" if sw.get_active() else "false"}))
-        qts.set_sensitive(not read_only)
-        tog_grid.attach(qtl, 0, 0, 1, 1)
-        tog_grid.attach(qts, 1, 0, 1, 1)
-        tog_grid.attach(_note(S["set_quiet_note"]), 2, 0, 1, 1)
-
-        tog_grid.set_visible(acts_expanded[0])
-        self.right_box.append(tog_grid)
-
         act_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        for lbl_key, tt_key, icon, cb in [
-            ("act_edit_conf", "tt_edit_conf", "document-edit-symbolic",  lambda b: subprocess.Popen(["geany", vm["_conf"]])),
-            ("act_clone",     "tt_clone",     "edit-copy-symbolic",       lambda b: self._clone_vm(vm)),
-            ("act_open_dir",  "tt_open_dir",  "folder-open-symbolic",     lambda b: subprocess.Popen(["xdg-open", str(Path(self.vms_dir) / vm["_name"])])),
+        for lbl_key, tt_key, icon, cb, btn_locked in [
+            ("act_edit_conf", "tt_edit_conf", "document-edit-symbolic", lambda b: self._edit_conf(vm["_conf"]),                                            locked),
+            ("act_clone",     "tt_clone",     "edit-copy-symbolic",     lambda b: self._clone_vm(vm),                                                      locked),
+            ("act_open_dir",  "tt_open_dir",  "folder-open-symbolic",   lambda b: subprocess.Popen(["xdg-open", str(Path(self.vms_dir) / vm["_name"])]),  read_only),
         ]:
             btn = Gtk.Button()
             inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
@@ -1605,7 +1590,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             btn.set_child(inner)
             btn.set_tooltip_text(S[tt_key])
             btn.connect("clicked", cb)
-            btn.set_sensitive(not read_only)
+            btn.set_sensitive(not btn_locked)
             act_box.append(btn)
         act_box.set_visible(acts_expanded[0])
         self.right_box.append(act_box)
@@ -1618,7 +1603,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         resize_inner.append(Gtk.Label(label=S["act_resize_disk"]))
         resize_btn.set_child(resize_inner)
         resize_btn.set_tooltip_text(S["tt_resize_disk"])
-        resize_btn.set_sensitive(not read_only)
+        resize_btn.set_sensitive(not locked)
         resize_btn.connect("clicked", lambda b: self._dlg_resize_disk(vm))
         dng_box.append(resize_btn)
         for lbl_key, tt_key, icon, cb in [
@@ -1636,7 +1621,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 btn.set_label(S[lbl_key])
             btn.set_tooltip_text(S[tt_key])
             btn.add_css_class("destructive-action")
-            btn.set_sensitive(not read_only)
+            btn.set_sensitive(not locked)
             btn.connect("clicked", cb)
             dng_box.append(btn)
         dng_box.set_visible(acts_expanded[0])
@@ -1645,13 +1630,22 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         def _toggle_acts(_btn):
             acts_expanded[0] = not acts_expanded[0]
             act_box.set_visible(acts_expanded[0])
-            tog_grid.set_visible(acts_expanded[0])
             dng_box.set_visible(acts_expanded[0])
             acts_toggle_btn.set_label(
                 S["btn_hide"] if acts_expanded[0] else S["btn_show"])
             v = "true" if acts_expanded[0] else "false"
             setconf("acts_expanded", v); self.conf["acts_expanded"] = v
         acts_toggle_btn.connect("clicked", _toggle_acts)
+
+    def _edit_conf(self, path):
+        """Open a VM conf in a text editor; geany if present, else system default."""
+        if shutil.which("geany"):
+            subprocess.Popen(["geany", path])
+            return
+        try:
+            Gio.AppInfo.launch_default_for_uri(f"file://{path}", None)
+        except GLib.Error:
+            subprocess.Popen(["xdg-open", path])
 
     # ── launch / stop ──
 
@@ -1667,7 +1661,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         # preview_disk forces direct QEMU mode — quickemu can't use a custom disk path
         compat    = True if preview_disk else vm.get("compat_mode") == "true"
         boot      = vm.get("boot", "uefi")
-        quiet     = vm.get("quiet_launch") == "true"
         disk_if   = vm.get("disk_if", "")
         net_dev   = vm.get("net_device", "e1000")
         disk_img  = vm.get("disk_img", "")
@@ -1699,8 +1692,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         accel   = "kvm" if KVM_AVAILABLE else "tcg"
 
-        if not quiet:
-            notify("quickbox", S["ntf_launching"].format(vmname), "low")
+        notify("quickbox", S["ntf_launching"].format(vmname), "low")
 
         # Base QEMU args (all modes)
         base_args = [
@@ -1808,7 +1800,20 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             cmd = ["quickemu", "--vm", conf_path]
 
         with open(log, "w") as logfile:
-            subprocess.Popen(cmd, stdout=logfile, stderr=logfile)
+            proc = subprocess.Popen(cmd, stdout=logfile, stderr=logfile)
+
+        def _check_launch():
+            if proc.poll() is not None and proc.returncode != 0:
+                body = S["warn_launch_fail_b"].format(proc.returncode)
+                try:
+                    tail = Path(log).read_text(errors="replace").strip().splitlines()[-6:]
+                    if tail:
+                        body += "\n\n" + "\n".join(tail)
+                except Exception:
+                    pass
+                self._warn(S["warn_launch_fail_t"], body)
+            return False
+        GLib.timeout_add(1500, _check_launch)
 
         # Mark disk as potentially changed — cleared when a snapshot is applied
         if not preview_disk:
@@ -1942,7 +1947,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _snap_apply(self, vm, tag):
         auto_tag = f"pre-apply-{_date_tag(with_time=True)}"
 
-        win = Gtk.Window(title=S["dlg_snap_apply_t"].format(tag))
+        win = Gtk.Window(title="Quickbox")
         win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
@@ -1951,6 +1956,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_margin_top(20); box.set_margin_bottom(16)
         box.set_margin_start(20); box.set_margin_end(20)
+
+        hdr_lbl = Gtk.Label()
+        hdr_lbl.set_markup(
+            f'<b>{GLib.markup_escape_text(S["dlg_snap_apply_t"].format(tag))}</b>')
+        hdr_lbl.set_halign(Gtk.Align.START)
+        box.append(hdr_lbl)
 
         warn_lbl = Gtk.Label(label=S["dlg_snap_apply_b"])
         warn_lbl.set_halign(Gtk.Align.START)
@@ -2052,9 +2063,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     # ── clone ──
 
     def _clone_vm(self, vm):
+        if vm["_running"]:
+            self._warn(S["vm_running"], S["warn_clone_running_b"])
+            return
         suggested = f"{vm['_name']}-{_date_tag()}"
 
-        win = Gtk.Window(title=S["clone_title"])
+        win = Gtk.Window(title="Quickbox")
         win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
@@ -2154,7 +2168,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     # ── delete ──
 
     def _dlg_format_disk(self, vm):
-        win = Gtk.Window(title=S["fmt_title"])
+        win = Gtk.Window(title="Quickbox")
         win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
@@ -2238,6 +2252,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 if not yes:
                     return
                 disk_path = vm["_disk"] or str(Path(self.vms_dir) / vm["_name"] / "disk.qcow2")
+                spin_win, _ = self._snap_spinner(S["ntf_fmt_start"].format(size_gb))
 
                 def _do_format():
                     import tempfile
@@ -2274,10 +2289,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         GLib.idle_add(self._warn, S["warn_fmt_fail_t"],
                                       S["warn_fmt_fail_b"].format(' '.join(str(x) for x in e.cmd)))
                     finally:
+                        GLib.idle_add(spin_win.destroy)
                         if Path(tmp).exists():
                             Path(tmp).unlink()
 
-                self._run_with_progress(f"Formatting disk — {size_gb}GB {layout}", ["true"])
                 threading.Thread(target=_do_format, daemon=True).start()
 
             self._confirm(
@@ -2290,10 +2305,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         win.present()
 
     def _delete_disk(self, vm):
+        if not vm.get("disk_img"):
+            self._warn(S["warn_no_disk_t"], S["warn_no_disk_b"])
+            return
         def on_confirm(yes):
             if not yes:
                 return
-            disk = Path(self.vms_dir) / vm.get("disk_img", "")
+            disk = Path(self.vms_dir) / vm["disk_img"]
             if disk.exists():
                 disk.unlink()
             self._refresh()
@@ -2338,7 +2356,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         except Exception:
             pass
 
-        win = Gtk.Window(title=S["rsz_title"])
+        win = Gtk.Window(title="Quickbox")
         win.set_transient_for(self)
         win.set_modal(True)
         win.set_resizable(False)
@@ -2458,7 +2476,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     def _dlg_download(self, *_):
         distros = self._parse_quickinst()
 
-        win = Gtk.Window(title=S["dl_title"])
+        win = Gtk.Window(title="Quickbox")
         win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
@@ -2629,7 +2647,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         default_idx = next((i for i, (n, c) in enumerate(versions)
                             if n == distro_name), 0)
 
-        dlg = Gtk.Window(title=f"Download — {base_distro}")
+        dlg = Gtk.Window(title="Quickbox")
         dlg.set_transient_for(self); self._track(dlg)
         _set_icon(dlg)
         dlg.set_modal(True)
@@ -2650,15 +2668,22 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         box.append(_sep)
 
         # Version/edition selector
-        ver_lbl = Gtk.Label(label=S["dl2_ver_lbl"])
+        ver_lbl = Gtk.Label()
+        ver_lbl.set_markup(f'<b>{S["dl2_ver_lbl"]}</b>')
         ver_lbl.set_halign(Gtk.Align.START)
-        ver_lbl.add_css_class("dim-label")
-        ver_lbl.set_margin_top(2)
+        ver_lbl.set_margin_top(10)
         box.append(ver_lbl)
 
         ver_combo = Gtk.DropDown(model=Gtk.StringList.new(version_labels))
         ver_combo.set_selected(default_idx)
         ver_combo.set_margin_top(4)
+        ver_combo.set_hexpand(True)
+        ver_combo.set_visible(len(versions) > 1)
+        if len(versions) <= 1:
+            single_lbl = Gtk.Label(label=version_labels[0] if version_labels else "")
+            single_lbl.set_halign(Gtk.Align.START)
+            single_lbl.set_margin_top(4)
+            box.append(single_lbl)
         box.append(ver_combo)
 
         # Command preview / manual edit
@@ -2676,10 +2701,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         box.append(cmd_entry)
 
         cmd_note = Gtk.Label()
+        _esc = GLib.markup_escape_text
+        _pre, _, _post = S["dl2_cmd_note"].partition("{}")
         cmd_note.set_markup(
-            f'<span size="small" color="gray">If download fails, run this command in a terminal in\n</span>'
-            f'<span size="small"><tt><b>{self.vms_dir}</b></tt></span>'
-            f'<span size="small" color="gray">\n— the VM will appear in the list automatically.</span>'
+            f'<span size="small" color="gray">{_esc(_pre)}</span>'
+            f'<span size="small"><tt><b>{_esc(self.vms_dir)}</b></tt></span>'
+            f'<span size="small" color="gray">{_esc(_post)}</span>'
         )
         cmd_note.set_halign(Gtk.Align.START)
         cmd_note.set_wrap(True)
@@ -2911,7 +2938,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
 
     def _dlg_custom(self, *_):
-        name_win = Gtk.Window(title=S["cvm_title"])
+        name_win = Gtk.Window(title="Quickbox")
         name_win.set_transient_for(self); self._track(name_win)
         _set_icon(name_win)
         name_win.set_modal(True)
@@ -2990,9 +3017,25 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     def _convert():
                         disk = str(dest_dir / "disk.qcow2")
                         try:
-                            subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
-                                             str(src_path), disk])
-                            subprocess.run(["qemu-img", "resize", disk, "20G"])
+                            r = subprocess.run(["qemu-img", "convert", "-f", "raw", "-O", "qcow2",
+                                                str(src_path), disk],
+                                               capture_output=True, text=True)
+                            if r.returncode != 0:
+                                err = (r.stderr or "").strip()[-300:] or "qemu-img convert failed"
+                                GLib.idle_add(self._warn, S["warn_import_t"],
+                                              S["warn_import_b"].format(src_path.name, err))
+                                GLib.idle_add(self._refresh)
+                                return
+                            # grow to 20G only if smaller — qemu-img refuses to shrink
+                            try:
+                                info = _json.loads(subprocess.run(
+                                    ["qemu-img", "info", "--output=json", disk],
+                                    capture_output=True, text=True).stdout)
+                                if int(info.get("virtual-size", 0)) < 20 * 1024 ** 3:
+                                    subprocess.run(["qemu-img", "resize", disk, "20G"],
+                                                   capture_output=True)
+                            except Exception:
+                                pass
                         finally:
                             flag.unlink(missing_ok=True)
                         notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
@@ -3016,6 +3059,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                     def _copy():
                         try:
                             shutil.copy2(str(src_path), str(dest_dir / src_path.name))
+                        except OSError as e:
+                            GLib.idle_add(self._warn, S["warn_import_t"],
+                                          S["warn_import_b"].format(src_path.name, e))
+                            GLib.idle_add(self._refresh)
+                            return
                         finally:
                             flag.unlink(missing_ok=True)
                         notify("quickbox", S["ntf_vm_created"].format(vm_name), "low")
@@ -3033,7 +3081,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
     # ── Advanced dialog ──
 
     def _dlg_advanced(self, *_):
-        dlg = Gtk.Window(title="Advanced")
+        dlg = Gtk.Window(title="Quickbox")
         dlg.set_transient_for(self); self._track(dlg)
         _set_icon(dlg)
         dlg.set_modal(True)
@@ -3198,7 +3246,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         dlg.present()
 
     def _dlg_about(self, parent):
-        win = Gtk.Window(title=S["adv_about"])
+        win = Gtk.Window(title="Quickbox")
         win.set_transient_for(parent)
         _set_icon(win)
         win.set_modal(True)
@@ -3232,7 +3280,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             grid.attach(val, 1, row, 1, 1)
 
         _row(S["adv_about_release"], APP_VERSION, 0)
-        _row(S["adv_about_author"],  "Musqz <musqz@mf.com>", 1)
+        _row(S["adv_about_author"],  "Musqz", 1)
         _row(S["adv_about_github"],  "github.com/musqz/quickbox", 2,
              uri="https://github.com/musqz/quickbox")
         _row(S["adv_about_license"], "MIT", 3)
@@ -3312,7 +3360,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             self._warn(S["warn_no_vms_t"], S["warn_no_vms_b"])
             return
 
-        pick = Gtk.Window(title=S["mig_title"])
+        pick = Gtk.Window(title="Quickbox")
         pick.set_transient_for(self); self._track(pick)
         _set_icon(pick)
         pick.set_modal(True)
@@ -3460,7 +3508,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     def _run_with_progress(self, title, cmd_list, cwd=None, on_done=None,
                             total_bytes=0, watch_path=None):
-        dlg = Gtk.Window(title=title)
+        dlg = Gtk.Window(title="Quickbox")
         dlg.set_transient_for(self); self._track(dlg)
         _set_icon(dlg)
         dlg.set_modal(True)
@@ -3571,7 +3619,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     def _confirm_danger(self, title, body, callback):
         win = Gtk.Window()
-        win.set_title(title)
+        win.set_title("Quickbox")
         win.set_transient_for(self); self._track(win)
         _set_icon(win)
         win.set_modal(True)
@@ -3634,7 +3682,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
 def _update_distro_list(parent_win):
     """Background thread to update ~/.config/quickbox/quickinst.csv from quickget --list-csv"""
-    wait_win = Gtk.Window(title=S["distro_updating"])
+    wait_win = Gtk.Window(title="Quickbox")
     wait_win.set_transient_for(parent_win)
     if hasattr(parent_win, '_track'):
         parent_win._track(wait_win)
