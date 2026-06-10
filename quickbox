@@ -1263,12 +1263,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         read_only = self._any_importing
 
         # Title
+        esc = GLib.markup_escape_text
         t = Gtk.Label()
-        t.set_markup(f'<span size="x-large" weight="bold">{vm["_pretty"]}</span>')
+        t.set_markup(f'<span size="x-large" weight="bold">{esc(vm["_pretty"])}</span>')
         t.set_halign(Gtk.Align.START)
         self.right_box.append(t)
         sub = Gtk.Label()
-        sub.set_markup(f'<span size="small" color="gray">{vm["_name"]}  •  {vm["_size"]}</span>')
+        sub.set_markup(f'<span size="small" color="gray">{esc(vm["_name"])}  •  {esc(vm["_size"])}</span>')
         sub.set_halign(Gtk.Align.START)
         sub.set_margin_top(2)
         self.right_box.append(sub)
@@ -1490,10 +1491,10 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                 if current_snap in snap_tags:
                     indicator.set_markup(
                         f'<span color="#4caf50" weight="bold">● '
-                        f'{S["snap_active"].format(current_snap)}</span>')
+                        f'{S["snap_active"].format(esc(current_snap))}</span>')
                 else:
                     indicator.set_markup(
-                        f'<span color="#888">{S["snap_stale"].format(current_snap)}</span>')
+                        f'<span color="#888">{S["snap_stale"].format(esc(current_snap))}</span>')
                 indicator.set_halign(Gtk.Align.START)
                 indicator.set_margin_bottom(6)
                 snap_vbox.append(indicator)
@@ -1509,9 +1510,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         "snap-row-active" if is_active else "snap-row")
                     lbl = Gtk.Label()
                     if is_active:
-                        lbl.set_markup(f'<b>● {snap["tag"]}</b>')
+                        lbl.set_markup(f'<b>● {esc(snap["tag"])}</b>')
                     else:
-                        lbl.set_markup(f'<span color="#aaa">○</span>  {snap["tag"]}')
+                        lbl.set_markup(f'<span color="#aaa">○</span>  {esc(snap["tag"])}')
                     lbl.set_halign(Gtk.Align.START)
                     lbl.set_hexpand(True)
                     row.append(lbl)
