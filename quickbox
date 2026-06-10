@@ -2306,10 +2306,13 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         win.present()
 
     def _delete_disk(self, vm):
+        if not vm.get("disk_img"):
+            self._warn(S["warn_no_disk_t"], S["warn_no_disk_b"])
+            return
         def on_confirm(yes):
             if not yes:
                 return
-            disk = Path(self.vms_dir) / vm.get("disk_img", "")
+            disk = Path(self.vms_dir) / vm["disk_img"]
             if disk.exists():
                 disk.unlink()
             self._refresh()
