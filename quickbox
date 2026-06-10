@@ -1607,7 +1607,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         act_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         for lbl_key, tt_key, icon, cb in [
-            ("act_edit_conf", "tt_edit_conf", "document-edit-symbolic",  lambda b: subprocess.Popen(["geany", vm["_conf"]])),
+            ("act_edit_conf", "tt_edit_conf", "document-edit-symbolic",  lambda b: self._edit_conf(vm["_conf"])),
             ("act_clone",     "tt_clone",     "edit-copy-symbolic",       lambda b: self._clone_vm(vm)),
             ("act_open_dir",  "tt_open_dir",  "folder-open-symbolic",     lambda b: subprocess.Popen(["xdg-open", str(Path(self.vms_dir) / vm["_name"])])),
         ]:
@@ -1665,6 +1665,16 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             v = "true" if acts_expanded[0] else "false"
             setconf("acts_expanded", v); self.conf["acts_expanded"] = v
         acts_toggle_btn.connect("clicked", _toggle_acts)
+
+    def _edit_conf(self, path):
+        """Open a VM conf in a text editor; geany if present, else system default."""
+        if shutil.which("geany"):
+            subprocess.Popen(["geany", path])
+            return
+        try:
+            Gio.AppInfo.launch_default_for_uri(f"file://{path}", None)
+        except GLib.Error:
+            subprocess.Popen(["xdg-open", path])
 
     # ── launch / stop ──
 
