@@ -46,8 +46,6 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Pango, Gdk, Gio
 
 # System tray via GTK3 StatusIcon subprocess (avoids GTK3/GTK4 conflict)
-HAVE_TRAY = True
-
 _TRAY_HELPER = r"""
 import gi, sys
 gi.require_version('Gtk','3.0')
@@ -266,12 +264,10 @@ _EN_STRINGS = {
     "warn_rsz_fail_b": "qemu-img resize returned an error.",
     "warn_launch_fail_t": "Launch failed",
     "warn_launch_fail_b": "QEMU exited with code {}.",
-    "clone_title": "Clone VM",
     "clone_label": "Clone '{}' as:",
     "clone_tt": "Name for the cloned VM — date suffix helps track when it was made",
     "clone_hint": "The clone will appear in the VM list as a separate VM.",
     "btn_cancel": "Cancel",          "btn_clone": "Clone",
-    "fmt_title": "Format disk",
     "fmt_warn": "⚠ This will ERASE all data on the disk!",
     "fmt_size_lbl": "Disk size (GB):",
     "fmt_layout_lbl": "Partition layout:",
@@ -284,7 +280,6 @@ _EN_STRINGS = {
     "tt_fmt_fat": "For distros that need FAT32 working partition (e.g. EasyOS style)",
     "tt_fmt_raw": "Let the distro installer handle partitioning",
     "btn_format": "Format",
-    "dl_title": "Download Distro",
     "dl_search_ph": "Search distros…",
     "dl_hint2": "Click a distro to select version and download",
     "btn_close": "Close",
@@ -293,18 +288,15 @@ _EN_STRINGS = {
     "dl2_ready": "Ready to download",
     "dl2_starting": "Starting download…",
     "dl2_verifying": "Verifying…",   "dl2_done": "Download complete!",
-    "dl2_failed": "Download failed.", "dl2_cancelled": "Cancelled",
-    "dl2_connecting": "Connecting… ({}s)",
+    "dl2_cancelled": "Cancelled",
     "dl2_note": "Download time varies depending on ISO size and server speed.",
     "dl2_cmd_note": "If download fails, run this command in a terminal in {} — the VM will appear in the list automatically.",
     "btn_download": "Download",      "dl2_done_close": "Done — Close",
-    "cvm_title": "Create Custom VM",
     "cvm_name_lbl": "Enter a name for the new VM:",
     "cvm_name_def": "My custom VM",
     "cvm_file_title": "Select ISO or IMG file",
     "cvm_filter": "Disk images (*.iso, *.img)",
     "btn_next": "Next",
-    "adv_title": "Advanced",
     "adv_cur_dir": "Current VMs directory:",
     "adv_about": "About",
     "adv_about_release": "Release",
@@ -327,7 +319,6 @@ _EN_STRINGS = {
     "tt_reset_prof": "Restore the 5 built-in profiles (Standard, Live ISO, Lightweight, Performance, Server). Custom profiles are kept.",
     "btn_switch": "Switch",          "btn_remove": "Remove",
     "btn_open_loc": "Open",
-    "mig_title": "Select VMs to migrate",
     "mig_hint": "Tick the VMs you want to copy to the new location.",
     "mig_all": "Select all",         "mig_none": "Select none",
     "mig_running_tag": "  [running]",
@@ -653,14 +644,6 @@ def get_vms(vms_dir):
 
 
 # ─── SSH helpers ──────────────────────────────────────────────────────────────
-
-def get_ssh_user(guest_os):
-    """Auto-detect SSH user by distro."""
-    guest_os = guest_os.lower()
-    if any(x in guest_os for x in ["ubuntu", "debian", "mint", "elementary"]):
-        return "ubuntu"
-    return "root"
-
 
 def get_next_ssh_port(vms_dir, vmname):
     """Assign unique SSH port 2222-2299 per VM, stored in .conf."""
@@ -1011,10 +994,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         .launch-btn label { color:white; }
         .launch-btn:hover { background-color:#1976d2; }
 
-        .ssh-btn { background-color:#455a64; color:white;
-                   border-radius:4px; padding:6px 12px; }
-        .ssh-btn label { color:white; }
-        .ssh-btn:hover { background-color:#546e7a; }
         .snap-row { background-color:alpha(@theme_fg_color,0.06);
                     border-radius:5px;
                     border:1px solid alpha(@theme_fg_color,0.12);
@@ -1598,12 +1577,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         acts_hdr.append(acts_toggle_btn)
         self.right_box.append(acts_hdr)
 
-        def _note(text):
-            l = Gtk.Label()
-            l.set_markup(f'<span size="small" color="gray">{text}</span>')
-            l.set_halign(Gtk.Align.START)
-            return l
-
         act_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         for lbl_key, tt_key, icon, cb, btn_locked in [
             ("act_edit_conf", "tt_edit_conf", "document-edit-symbolic", lambda b: self._edit_conf(vm["_conf"]),                                            locked),
@@ -1983,6 +1956,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_margin_top(20); box.set_margin_bottom(16)
         box.set_margin_start(20); box.set_margin_end(20)
+
+        hdr_lbl = Gtk.Label()
+        hdr_lbl.set_markup(
+            f'<b>{GLib.markup_escape_text(S["dlg_snap_apply_t"].format(tag))}</b>')
+        hdr_lbl.set_halign(Gtk.Align.START)
+        box.append(hdr_lbl)
 
         warn_lbl = Gtk.Label(label=S["dlg_snap_apply_b"])
         warn_lbl.set_halign(Gtk.Align.START)
@@ -2722,10 +2701,12 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         box.append(cmd_entry)
 
         cmd_note = Gtk.Label()
+        _esc = GLib.markup_escape_text
+        _pre, _, _post = S["dl2_cmd_note"].partition("{}")
         cmd_note.set_markup(
-            f'<span size="small" color="gray">If download fails, run this command in a terminal in\n</span>'
-            f'<span size="small"><tt><b>{self.vms_dir}</b></tt></span>'
-            f'<span size="small" color="gray">\n— the VM will appear in the list automatically.</span>'
+            f'<span size="small" color="gray">{_esc(_pre)}</span>'
+            f'<span size="small"><tt><b>{_esc(self.vms_dir)}</b></tt></span>'
+            f'<span size="small" color="gray">{_esc(_post)}</span>'
         )
         cmd_note.set_halign(Gtk.Align.START)
         cmd_note.set_wrap(True)
