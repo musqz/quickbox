@@ -221,9 +221,8 @@ _EN_STRINGS = {
     "info_ssh_port": "SSH port",     "info_disk": "Disk",
     "info_iso": "ISO",
     "set_profile": "Profile:",       "set_compat": "Compatibility mode:",
-    "set_boot": "Boot mode:",        "set_quiet": "Quiet launch:",
+    "set_boot": "Boot mode:",
     "set_compat_hint": "Use minimal QEMU without VirGL — for lightweight or older distros that show a blank screen.",
-    "set_quiet_note": "No launch notification",
     "boot_uefi": "UEFI",             "boot_legacy": "Legacy (BIOS)",
     "set_display": "Display:",
     "display_dsl": "DSL",            "display_gtk": "GTK",            "display_spice": "SPICE App",
@@ -1599,26 +1598,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             l.set_halign(Gtk.Align.START)
             return l
 
-        # Toggles right after the header
-        tog_grid = Gtk.Grid()
-        tog_grid.set_column_spacing(10)
-        tog_grid.set_row_spacing(4)
-        tog_grid.set_margin_top(6)
-        tog_grid.set_margin_bottom(6)
-
-        qtl, qts = sw_row(S["set_quiet"].rstrip(":"),
-                          vm.get("quiet_launch") == "true",
-                          lambda sw, p, v=vm: setconf("quiet_launch",
-                              "true" if sw.get_active() else "false", v["_conf"]) or
-                              v.update({"quiet_launch": "true" if sw.get_active() else "false"}))
-        qts.set_sensitive(not locked)
-        tog_grid.attach(qtl, 0, 0, 1, 1)
-        tog_grid.attach(qts, 1, 0, 1, 1)
-        tog_grid.attach(_note(S["set_quiet_note"]), 2, 0, 1, 1)
-
-        tog_grid.set_visible(acts_expanded[0])
-        self.right_box.append(tog_grid)
-
         act_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         for lbl_key, tt_key, icon, cb, btn_locked in [
             ("act_edit_conf", "tt_edit_conf", "document-edit-symbolic", lambda b: self._edit_conf(vm["_conf"]),                                            locked),
@@ -1672,7 +1651,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         def _toggle_acts(_btn):
             acts_expanded[0] = not acts_expanded[0]
             act_box.set_visible(acts_expanded[0])
-            tog_grid.set_visible(acts_expanded[0])
             dng_box.set_visible(acts_expanded[0])
             acts_toggle_btn.set_label(
                 S["btn_hide"] if acts_expanded[0] else S["btn_show"])
@@ -1704,7 +1682,6 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         # preview_disk forces direct QEMU mode — quickemu can't use a custom disk path
         compat    = True if preview_disk else vm.get("compat_mode") == "true"
         boot      = vm.get("boot", "uefi")
-        quiet     = vm.get("quiet_launch") == "true"
         disk_if   = vm.get("disk_if", "")
         net_dev   = vm.get("net_device", "e1000")
         disk_img  = vm.get("disk_img", "")
@@ -1736,8 +1713,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         accel   = "kvm" if KVM_AVAILABLE else "tcg"
 
-        if not quiet:
-            notify("quickbox", S["ntf_launching"].format(vmname), "low")
+        notify("quickbox", S["ntf_launching"].format(vmname), "low")
 
         # Base QEMU args (all modes)
         base_args = [
