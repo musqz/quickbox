@@ -265,6 +265,8 @@ _EN_STRINGS = {
     "ntf_rsz_done": "Disk resized to {}GB",
     "warn_rsz_fail_t": "Resize failed",
     "warn_rsz_fail_b": "qemu-img resize returned an error.",
+    "warn_launch_fail_t": "Launch failed",
+    "warn_launch_fail_b": "QEMU exited with code {}.",
     "clone_title": "Clone VM",
     "clone_label": "Clone '{}' as:",
     "clone_tt": "Name for the cloned VM — date suffix helps track when it was made",
@@ -1833,7 +1835,20 @@ class QuickboxWindow(Gtk.ApplicationWindow):
             cmd = ["quickemu", "--vm", conf_path]
 
         with open(log, "w") as logfile:
-            subprocess.Popen(cmd, stdout=logfile, stderr=logfile)
+            proc = subprocess.Popen(cmd, stdout=logfile, stderr=logfile)
+
+        def _check_launch():
+            if proc.poll() is not None and proc.returncode != 0:
+                body = S["warn_launch_fail_b"].format(proc.returncode)
+                try:
+                    tail = Path(log).read_text(errors="replace").strip().splitlines()[-6:]
+                    if tail:
+                        body += "\n\n" + "\n".join(tail)
+                except Exception:
+                    pass
+                self._warn(S["warn_launch_fail_t"], body)
+            return False
+        GLib.timeout_add(1500, _check_launch)
 
         # Mark disk as potentially changed — cleared when a snapshot is applied
         if not preview_disk:
