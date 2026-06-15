@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Quickbox Uninstall Script
 # MIT License - Copyright (c) 2026 Musqz
