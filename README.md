@@ -69,6 +69,10 @@ sudo cp quickbox.desktop /usr/share/applications/
 yay -S quickbox
 ```
 
+### Debian
+
+[quickbox debian](https://github.com/musqz/quickbox/releases/tag/v1.3.7)
+
 ## Uninstallation
 
 ```bash
