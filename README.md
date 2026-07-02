@@ -63,15 +63,11 @@ sudo chmod +x /usr/local/bin/quickbox
 sudo cp quickbox.desktop /usr/share/applications/
 ```
 
-### Arch Linux — local PKGBUILD (beta testing)
+### Arch Linux
 
 ```bash
-git clone https://github.com/musqz/quickbox.git
-cd quickbox/packaging
-makepkg -si
+yay -S quickbox
 ```
-
-> AUR package is planned but not yet published.
 
 ## Uninstallation
 
