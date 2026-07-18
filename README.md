@@ -14,6 +14,8 @@
 
 A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/quickemu-project/quickemu).
 
+Also available as a Qt6/PySide6 port: [quickbox-qt](https://github.com/musqz/quickbox-qt).
+
 <table align="center">
   <tr>
     <td align="center">
