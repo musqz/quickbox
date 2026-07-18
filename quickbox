@@ -3264,7 +3264,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         subtitle = Gtk.Label()
         subtitle.set_markup(
-            f'<span size="small">{S["adv_about_quickemu"]} '
+            f'<span size="small">{GLib.markup_escape_text(S["adv_about_quickemu"])} '
             f'<a href="https://github.com/quickemu-project/quickemu">quickemu</a></span>'
         )
         subtitle.set_halign(Gtk.Align.CENTER)
