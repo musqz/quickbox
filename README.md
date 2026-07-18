@@ -14,9 +14,36 @@
 
 A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/quickemu-project/quickemu).
 
-![quickbox](images/running.png)
-
-![quickbox](images/advanced.png)
+<table align="center">
+  <tr>
+    <td align="center">
+      <a href="images/running.png"><img src="images/thumbs/running.png" width="250" height="300" alt="Main window"/></a><br/>
+      <sub>Main window</sub>
+    </td>
+    <td align="center">
+      <a href="images/advanced.png"><img src="images/thumbs/advanced.png" width="250" height="300" alt="Advanced settings"/></a><br/>
+      <sub>Advanced settings</sub>
+    </td>
+    <td align="center">
+      <a href="images/download.png"><img src="images/thumbs/download.png" width="250" height="300" alt="Download distros"/></a><br/>
+      <sub>Download distros</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="images/migrate.png"><img src="images/thumbs/migrate.png" width="250" height="300" alt="Migrate VMs"/></a><br/>
+      <sub>Migrate VMs</sub>
+    </td>
+    <td align="center">
+      <a href="images/systray.png"><img src="images/thumbs/systray.png" width="250" height="300" alt="System tray"/></a><br/>
+      <sub>System tray</sub>
+    </td>
+    <td align="center">
+      <a href="images/about.png"><img src="images/thumbs/about.png" width="250" height="300" alt="About"/></a><br/>
+      <sub>About</sub>
+    </td>
+  </tr>
+</table>
 
 ## Features
 
@@ -34,8 +61,6 @@ A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/
 - **System tray** — optional tray icon, hide to tray on close
 - **Collapsible sections** — Info, Settings, Snapshots, Actions hide/show per preference
 - **Read-only mode during import** — browse freely while an import runs, settings locked until done
-
-![quickbox](images/download.png)
 
 ## Requirements
 
