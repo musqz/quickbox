@@ -126,7 +126,7 @@ Quickbox is just a GUI — all the actual VM work (downloading, booting, disk ha
 
 ## License
 
-MIT — Copyright (c) 2026 Musqz
+MIT — 2026 Musqz
 
 ---
 
