@@ -85,6 +85,7 @@
   "cvm_filter": "Disk görüntüleri (*.iso, *.img)",
   "btn_next": "İleri",
   "adv_about": "Hakkında",
+  "adv_about_quickemu": "Destekleyen:",
   "adv_about_release": "Sürüm",
   "adv_about_author": "Yazar",
   "adv_about_github": "GitHub",

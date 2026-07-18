@@ -85,6 +85,7 @@
   "cvm_filter": "Образы дисков (*.iso, *.img)",
   "btn_next": "Далее",
   "adv_about": "О программе",
+  "adv_about_quickemu": "Работает на",
   "adv_about_release": "Версия",
   "adv_about_author": "Автор",
   "adv_about_github": "GitHub",

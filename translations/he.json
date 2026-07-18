@@ -85,6 +85,7 @@
   "cvm_filter": "תמונות דיסק (*.iso, *.img)",
   "btn_next": "הבא",
   "adv_about": "אודות",
+  "adv_about_quickemu": "מופעל על ידי",
   "adv_about_release": "גרסה",
   "adv_about_author": "מחבר",
   "adv_about_github": "GitHub",

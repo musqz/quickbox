@@ -85,6 +85,7 @@
   "cvm_filter": "Images disque (*.iso, *.img)",
   "btn_next": "Suivant",
   "adv_about": "À propos",
+  "adv_about_quickemu": "Propulsé par",
   "adv_about_release": "Version",
   "adv_about_author": "Auteur",
   "adv_about_github": "GitHub",

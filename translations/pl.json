@@ -85,6 +85,7 @@
   "cvm_filter": "Obrazy dysków (*.iso, *.img)",
   "btn_next": "Dalej",
   "adv_about": "O programie",
+  "adv_about_quickemu": "Oparte na",
   "adv_about_release": "Wersja",
   "adv_about_author": "Autor",
   "adv_about_github": "GitHub",

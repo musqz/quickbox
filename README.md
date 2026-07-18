@@ -99,6 +99,10 @@ To apply a theme, symlink its `gtk-4.0/gtk.css` into your config:
 ln -sf /usr/share/themes/YourTheme/gtk-4.0/gtk.css ~/.config/gtk-4.0/gtk.css
 ```
 
+## Credits
+
+Quickbox is just a GUI — all the actual VM work (downloading, booting, disk handling) is done by [quickemu](https://github.com/quickemu-project/quickemu). Quickbox wouldn't exist without it.
+
 ## License
 
 MIT — Copyright (c) 2026 Musqz

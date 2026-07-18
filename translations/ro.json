@@ -85,6 +85,7 @@
   "cvm_filter": "Imagini disc (*.iso, *.img)",
   "btn_next": "Următorul",
   "adv_about": "Despre",
+  "adv_about_quickemu": "Realizat cu",
   "adv_about_release": "Versiune",
   "adv_about_author": "Autor",
   "adv_about_github": "GitHub",
