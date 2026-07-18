@@ -85,6 +85,7 @@
   "cvm_filter": "صور الأقراص (*.iso, *.img)",
   "btn_next": "التالي",
   "adv_about": "حول",
+  "adv_about_quickemu": "مدعوم بواسطة",
   "adv_about_release": "الإصدار",
   "adv_about_author": "المؤلف",
   "adv_about_github": "GitHub",

@@ -85,6 +85,7 @@
   "cvm_filter": "ディスクイメージ (*.iso, *.img)",
   "btn_next": "次へ",
   "adv_about": "情報",
+  "adv_about_quickemu": "提供",
   "adv_about_release": "バージョン",
   "adv_about_author": "作者",
   "adv_about_github": "GitHub",

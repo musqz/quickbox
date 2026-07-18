@@ -85,6 +85,7 @@
   "cvm_filter": "Schijfimages (*.iso, *.img)",
   "btn_next": "Volgende",
   "adv_about": "Over",
+  "adv_about_quickemu": "Mogelijk gemaakt door",
   "adv_about_release": "Versie",
   "adv_about_author": "Auteur",
   "adv_about_github": "GitHub",

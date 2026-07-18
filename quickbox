@@ -299,6 +299,7 @@ _EN_STRINGS = {
     "btn_next": "Next",
     "adv_cur_dir": "Current VMs directory:",
     "adv_about": "About",
+    "adv_about_quickemu": "Powered by",
     "adv_about_release": "Release",
     "adv_about_author": "Author",
     "adv_about_github": "GitHub",
@@ -3260,6 +3261,15 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         title.set_markup(f'<span size="large" weight="bold">Quickbox</span>')
         title.set_halign(Gtk.Align.CENTER)
         box.append(title)
+
+        subtitle = Gtk.Label()
+        subtitle.set_markup(
+            f'<span size="small">{GLib.markup_escape_text(S["adv_about_quickemu"])} '
+            f'<a href="https://github.com/quickemu-project/quickemu">quickemu</a></span>'
+        )
+        subtitle.set_halign(Gtk.Align.CENTER)
+        subtitle.add_css_class("dim-label")
+        box.append(subtitle)
 
         grid = Gtk.Grid()
         grid.set_column_spacing(12)

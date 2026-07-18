@@ -85,6 +85,7 @@
   "cvm_filter": "Diskimages (*.iso, *.img)",
   "btn_next": "Næste",
   "adv_about": "Om",
+  "adv_about_quickemu": "Drevet af",
   "adv_about_release": "Version",
   "adv_about_author": "Forfatter",
   "adv_about_github": "GitHub",

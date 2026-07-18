@@ -85,6 +85,7 @@
   "cvm_filter": "تصاویر دیسک (*.iso, *.img)",
   "btn_next": "بعدی",
   "adv_about": "درباره",
+  "adv_about_quickemu": "قدرت گرفته از",
   "adv_about_release": "نسخه",
   "adv_about_author": "نویسنده",
   "adv_about_github": "GitHub",

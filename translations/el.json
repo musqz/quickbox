@@ -85,6 +85,7 @@
   "cvm_filter": "Εικόνες δίσκου (*.iso, *.img)",
   "btn_next": "Επόμενο",
   "adv_about": "Σχετικά",
+  "adv_about_quickemu": "Βασισμένο σε",
   "adv_about_release": "Έκδοση",
   "adv_about_author": "Συγγραφέας",
   "adv_about_github": "GitHub",
