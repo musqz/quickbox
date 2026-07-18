@@ -16,7 +16,7 @@ A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/
 
 ![quickbox](images/running.png)
 
-![quickbox](images/running02.png)
+![quickbox](images/download.png)
 
 ![quickbox](images/advanced.png)
 
