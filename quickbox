@@ -223,8 +223,8 @@ _EN_STRINGS = {
     "set_compat_hint": "Use minimal QEMU without VirGL — for lightweight or older distros that show a blank screen.",
     "boot_uefi": "UEFI",             "boot_legacy": "Legacy (BIOS)",
     "set_display": "Display:",
-    "display_dsl": "DSL",            "display_gtk": "GTK",            "display_spice": "SPICE App",
-    "set_display_hint": "Controls how the VM window is rendered. DSL is the default; GTK is lightweight; SPICE App opens in a dedicated viewer.",
+    "display_sdl": "SDL",            "display_gtk": "GTK",            "display_spice": "SPICE App",
+    "set_display_hint": "Controls how the VM window is rendered. SDL is the default; GTK is lightweight; SPICE App opens in a dedicated viewer.",
     "snap_no_disk": "No disk yet — launch VM first to create one",
     "snap_none": "No snapshots yet",
     "snap_entry_ph": "New snapshot tag…",
@@ -1429,9 +1429,9 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         dl = Gtk.Label(label=S["set_display"])
         dl.set_halign(Gtk.Align.END)
         dl.add_css_class("dim-label")
-        _display_ids = ["dsl", "gtk", "spice-app"]
-        dc = Gtk.DropDown(model=Gtk.StringList.new([S["display_dsl"], S["display_gtk"], S["display_spice"]]))
-        cur_disp = vm.get("display", "dsl")
+        _display_ids = ["sdl", "gtk", "spice-app"]
+        dc = Gtk.DropDown(model=Gtk.StringList.new([S["display_sdl"], S["display_gtk"], S["display_spice"]]))
+        cur_disp = vm.get("display", "sdl")
         dc.set_selected(_display_ids.index(cur_disp) if cur_disp in _display_ids else 0)
         dc.connect("notify::selected", self._on_display_changed, vm, _display_ids)
         dc.set_sensitive(not locked)
@@ -1672,8 +1672,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         cpu_cores = vm.get("cpu_cores", "2")
         live_mode = vm.get("live_mode") == "true"
         headless  = vm.get("headless") == "true"
-        _disp_map  = {"dsl": "sdl", "gtk": "gtk,zoom-to-fit=on", "spice-app": "spice-app"}
-        disp_arg   = "none" if headless else _disp_map.get(vm.get("display", "dsl"), "sdl")
+        _disp_map  = {"gtk": "gtk,zoom-to-fit=on", "spice-app": "spice-app"}
+        disp_arg   = "none" if headless else _disp_map.get(vm.get("display", "sdl"), "sdl")
         
         # Create vmdir if needed
         Path(vmdir).mkdir(parents=True, exist_ok=True)
