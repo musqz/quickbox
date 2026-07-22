@@ -892,12 +892,17 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         self.set_visible(True)
         self.present()
         for win in self._transients:
-            if win.get_visible():
-                win.present()
+            win.set_visible(True)
+            win.present()
+
+    def _tray_hide(self):
+        self.hide()
+        for win in self._transients:
+            win.hide()
 
     def _tray_toggle(self, *_):
         if self.get_visible():
-            self.hide()
+            self._tray_hide()
         else:
             self._tray_show()
 
@@ -912,7 +917,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
     def _on_close_request(self, *args):
         if self._indicator and self.conf.get("systray") == "true":
-            self.hide()
+            self._tray_hide()
             return True
         self._teardown_systray()
         for timeout_id in self._timeout_handlers:
