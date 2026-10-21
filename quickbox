@@ -511,7 +511,10 @@ _notifications_on = True
 def notify(title, body, urgency="low"):
     if not _notifications_on:
         return
-    subprocess.Popen(["notify-send", "-i", _notify_icon(), "-u", urgency, title, body])
+    try:
+        subprocess.Popen(["notify-send", "-i", _notify_icon(), "-u", urgency, title, body])
+    except FileNotFoundError:
+        pass  # libnotify is optional
 
 
 def read_conf():
@@ -844,7 +847,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         for pid in pids:
             try:
                 os.kill(pid, sig)
-            except ProcessLookupError:
+            except (ProcessLookupError, PermissionError):
                 pass
         if force:
             self._stop_escalated.pop(name, None)
@@ -2357,9 +2360,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         GLib.idle_add(notify, "quickbox-gui",
                                       S["ntf_fmt_done"].format(layout, size_gb), "low")
                         GLib.idle_add(self._refresh)
-                    except subprocess.CalledProcessError as e:
+                    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                        failed = (' '.join(str(x) for x in e.cmd)
+                                  if isinstance(e, subprocess.CalledProcessError) else e.filename)
                         GLib.idle_add(self._warn, S["warn_fmt_fail_t"],
-                                      S["warn_fmt_fail_b"].format(' '.join(str(x) for x in e.cmd)))
+                                      S["warn_fmt_fail_b"].format(failed))
                     finally:
                         GLib.idle_add(spin_win.destroy)
                         if Path(tmp).exists():
