@@ -14,7 +14,7 @@ optdepends=(
     'virt-viewer: SPICE display backend support'
 )
 source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('4a8138570e9971c24adb424de69b41995eb0d13524b464f63c843be71cff0d9c')
 
 package() {
     cd "${srcdir}/${pkgname}"
