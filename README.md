@@ -38,11 +38,6 @@ Also available as a Qt6/PySide6 port: [quickbox-qt](https://codeberg.org/linux-b
     </td>
     <td align="center">
       <a href="images/systray.png"><img src="images/thumbs/systray.png" width="250" height="300" alt="System tray"/></a><br/>
-      <sub>System tray</sub>
-    </td>
-    <td align="center">
-      <a href="images/about.png"><img src="images/thumbs/about.png" width="250" height="300" alt="About"/></a><br/>
-      <sub>About</sub>
     </td>
   </tr>
 </table>
