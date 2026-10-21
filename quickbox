@@ -307,7 +307,7 @@ _EN_STRINGS = {
     "adv_about_quickemu": "Powered by",
     "adv_about_release": "Release",
     "adv_about_author": "Author",
-    "adv_about_github": "GitHub",
+    "adv_about_github": "Codeberg",
     "adv_about_license": "License",
     "adv_sec_notif": "NOTIFICATIONS",
     "adv_notif_toggle": "Enable notifications",
@@ -3362,8 +3362,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         _row(S["adv_about_release"], APP_VERSION, 0)
         _row(S["adv_about_author"],  "Musqz", 1)
-        _row(S["adv_about_github"],  "github.com/musqz/quickbox", 2,
-             uri="https://github.com/musqz/quickbox")
+        _row(S["adv_about_github"],  "codeberg.org/linux-bird/quickbox", 2,
+             uri="https://codeberg.org/linux-bird/quickbox")
         _row(S["adv_about_license"], "MIT", 3)
 
         box.append(grid)
