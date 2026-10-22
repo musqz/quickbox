@@ -1,3 +1,6 @@
+> **This repository has moved to Codeberg: https://codeberg.org/linux-bird/quickbox**
+> It is archived here. Please use Codeberg for issues and pull requests.
+
 # Quickbox — GUI for quickemu
 
 <p align="center">
