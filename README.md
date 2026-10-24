@@ -1,6 +1,3 @@
-> **This repository has moved to Codeberg: https://codeberg.org/linux-bird/quickbox**
-> It is archived here. Please use Codeberg for issues and pull requests.
-
 # Quickbox — GUI for quickemu
 
 <p align="center">
@@ -8,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/musqz/quickbox/releases"><img src="https://img.shields.io/github/v/release/musqz/quickbox" alt="Version"/></a>
+  <a href="https://codeberg.org/linux-bird/quickbox/releases"><img src="https://img.shields.io/gitea/v/release/linux-bird/quickbox?gitea_url=https://codeberg.org" alt="Version"/></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License"/>
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/GTK-4-4A90D9?logo=gnome&logoColor=white" alt="GTK4"/>
@@ -17,7 +14,7 @@
 
 A GTK4 GUI for managing QEMU virtual machines via [quickemu](https://github.com/quickemu-project/quickemu).
 
-Also available as a Qt6/PySide6 port: [quickbox-qt](https://github.com/musqz/quickbox-qt).
+Also available as a Qt6/PySide6 port: [quickbox-qt](https://codeberg.org/linux-bird/quickbox-qt).
 
 <table align="center">
   <tr>
@@ -41,11 +38,6 @@ Also available as a Qt6/PySide6 port: [quickbox-qt](https://github.com/musqz/qui
     </td>
     <td align="center">
       <a href="images/systray.png"><img src="images/thumbs/systray.png" width="250" height="300" alt="System tray"/></a><br/>
-      <sub>System tray</sub>
-    </td>
-    <td align="center">
-      <a href="images/about.png"><img src="images/thumbs/about.png" width="250" height="300" alt="About"/></a><br/>
-      <sub>About</sub>
     </td>
   </tr>
 </table>
@@ -94,10 +86,6 @@ sudo cp quickbox.desktop /usr/share/applications/
 ```bash
 yay -S quickbox
 ```
-
-### Debian
-
-[quickbox debian](https://github.com/musqz/quickbox/releases/tag/v1.3.7)
 
 ## Uninstallation
 

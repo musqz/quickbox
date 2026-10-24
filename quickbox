@@ -307,7 +307,7 @@ _EN_STRINGS = {
     "adv_about_quickemu": "Powered by",
     "adv_about_release": "Release",
     "adv_about_author": "Author",
-    "adv_about_github": "GitHub",
+    "adv_about_github": "Codeberg",
     "adv_about_license": "License",
     "adv_sec_notif": "NOTIFICATIONS",
     "adv_notif_toggle": "Enable notifications",
@@ -511,7 +511,10 @@ _notifications_on = True
 def notify(title, body, urgency="low"):
     if not _notifications_on:
         return
-    subprocess.Popen(["notify-send", "-i", _notify_icon(), "-u", urgency, title, body])
+    try:
+        subprocess.Popen(["notify-send", "-i", _notify_icon(), "-u", urgency, title, body])
+    except FileNotFoundError:
+        pass  # libnotify is optional
 
 
 def read_conf():
@@ -844,7 +847,7 @@ class QuickboxWindow(Gtk.ApplicationWindow):
         for pid in pids:
             try:
                 os.kill(pid, sig)
-            except ProcessLookupError:
+            except (ProcessLookupError, PermissionError):
                 pass
         if force:
             self._stop_escalated.pop(name, None)
@@ -2357,9 +2360,11 @@ class QuickboxWindow(Gtk.ApplicationWindow):
                         GLib.idle_add(notify, "quickbox-gui",
                                       S["ntf_fmt_done"].format(layout, size_gb), "low")
                         GLib.idle_add(self._refresh)
-                    except subprocess.CalledProcessError as e:
+                    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                        failed = (' '.join(str(x) for x in e.cmd)
+                                  if isinstance(e, subprocess.CalledProcessError) else e.filename)
                         GLib.idle_add(self._warn, S["warn_fmt_fail_t"],
-                                      S["warn_fmt_fail_b"].format(' '.join(str(x) for x in e.cmd)))
+                                      S["warn_fmt_fail_b"].format(failed))
                     finally:
                         GLib.idle_add(spin_win.destroy)
                         if Path(tmp).exists():
@@ -3362,8 +3367,8 @@ class QuickboxWindow(Gtk.ApplicationWindow):
 
         _row(S["adv_about_release"], APP_VERSION, 0)
         _row(S["adv_about_author"],  "Musqz", 1)
-        _row(S["adv_about_github"],  "github.com/musqz/quickbox", 2,
-             uri="https://github.com/musqz/quickbox")
+        _row(S["adv_about_github"],  "codeberg.org/linux-bird/quickbox", 2,
+             uri="https://codeberg.org/linux-bird/quickbox")
         _row(S["adv_about_license"], "MIT", 3)
 
         box.append(grid)
